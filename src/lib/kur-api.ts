@@ -33,10 +33,10 @@ export async function tcmbKurCek(): Promise<KurVerisi | null> {
 
     // USD ve EUR satış kurlarını bul
     const usdData = data.TCMB_AnlikKurBilgileri.find(
-      (k: any) => k.CurrencyCode === 'USD'
+      (k: any) => k.CurrencyName === 'US DOLLAR'
     );
     const eurData = data.TCMB_AnlikKurBilgileri.find(
-      (k: any) => k.CurrencyCode === 'EUR'
+      (k: any) => k.CurrencyName === 'EURO'
     );
     
     if (!usdData || !eurData) {
