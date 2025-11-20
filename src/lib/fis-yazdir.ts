@@ -19,42 +19,46 @@ export function tahsilatFisiOlustur(
   odeme: HesapHareketi,
   oncekiBorc: number
 ): string {
-  const genislik = 32;
   const tarih = new Date(odeme.tarih);
+  const formatTarih = tarih.toLocaleDateString('tr-TR');
+  const formatSaat = tarih.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  
+  const pad = (text: string, length: number = 20) => text.substring(0, length).padEnd(length);
+  const padRight = (text: string, length: number = 14) => text.padStart(length);
+  
+  const odemeTuruText = odeme.odemeTuru === 'kredi-karti' ? 'Kredi Kartı' :
+                        odeme.odemeTuru === 'eft' ? 'EFT' :
+                        odeme.odemeTuru === 'havale' ? 'Havale' : 'Nakit';
   
   return `
-${center('KUYUMCU MAKİNE MALZEME', genislik)}
-${center('TAHSİLAT FİŞİ', genislik)}
-${line(genislik, '=')}
+╔═══════════════════════════════╗
+║   KUYUMCU MAKİNE MALZEME      ║
+║       LTD. ŞTİ.               ║
+╠═══════════════════════════════╣
+║       TAHSİLAT FİŞİ          ║
+║  Tarih: ${formatTarih} ${formatSaat}  ║
+╠═══════════════════════════════╣
+║ Müşteri: ${pad(musteri.adSoyad)} ║
+║ Telefon: ${pad(musteri.telefon)} ║
+${musteri.email ? `║ E-posta: ${pad(musteri.email)} ║` : ''}
+╠═══════════════════════════════╣
+║ ÖNCEKİ BORÇ:  ${padRight(formatCurrency(oncekiBorc, 'TRY'))} ║
+║ TAHSİLAT:     ${padRight(formatCurrency(odeme.tlKarsiligi, 'TRY'))} ║
+${odeme.paraBirimi !== 'TRY' ? `║ (${formatCurrency(odeme.tutar, odeme.paraBirimi)} x ${odeme.kur.toFixed(2)})${' '.repeat(Math.max(0, 30 - (`(${formatCurrency(odeme.tutar, odeme.paraBirimi)} x ${odeme.kur.toFixed(2)})`.length)))} ║` : ''}
+╠═══════════════════════════════╣
+║ YENİ BAKİYE:  ${padRight(formatCurrency(odeme.bakiye, 'TRY'))} ║
+╠═══════════════════════════════╣
+║ Ödeme: ${pad(odemeTuruText, 23)} ║
+║ Para Birimi: ${pad(odeme.paraBirimi, 18)} ║
+${odeme.aciklama ? `║ Not: ${pad(odeme.aciklama, 26)} ║` : ''}
+╠═══════════════════════════════╣
+║       Teşekkür Ederiz!        ║
+║     📞 0212 123 45 67         ║
+║   www.kuyumcumakine.com       ║
+╚═══════════════════════════════╝
 
-Müşteri: ${musteri.adSoyad}
-Telefon: ${musteri.telefon}
-Tarih: ${tarih.toLocaleDateString('tr-TR')} ${tarih.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-
-${line(genislik)}
-
-Önceki Borç:    ${align(formatCurrency(oncekiBorc, 'TRY'), 15)}
-${odeme.paraBirimi !== 'TRY' ? `
-Ödeme Tutarı:   ${align(formatCurrency(odeme.tutar, odeme.paraBirimi), 15)}
-Kur:            ${align(odeme.kur.toFixed(2), 15)}` : ''}
-TL Karşılığı:   ${align(formatCurrency(odeme.tlKarsiligi, 'TRY'), 15)}
-
-${line(genislik)}
-
-Yeni Borç:      ${align(formatCurrency(odeme.bakiye, 'TRY'), 15)}
-
-${line(genislik)}
-
-Ödeme Yöntemi: ${odeme.odemeTuru?.toUpperCase()}
-${odeme.aciklama ? `Not: ${odeme.aciklama}` : ''}
-
-${line(genislik)}
-${center('İyi günler dileriz!', genislik)}
-${line(genislik)}
-
-${center('Reklam Alanı', genislik)}
-${center('Yeni ürünlerimizi inceleyin!', genislik)}
-
+[Özelleştirilebilir Reklam Alanı]
+  Yeni ürünlerimizi inceleyin!
   `.trim();
 }
 

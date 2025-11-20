@@ -11,6 +11,7 @@ import { Musteri, HesapHareketi, ParaBirimi, OdemeTuru } from "@/types/musteri";
 import { getKur, formatCurrency, paraBirimiTLyeCevir } from "@/lib/kur-hesaplama";
 import { saveHareket, musteriBalanceGuncelle, getMusteriById } from "@/lib/musteri-data";
 import { tahsilatFisiOlustur, fisYazdir } from "@/lib/fis-yazdir";
+import { Printer } from "lucide-react";
 
 interface OdemeAlModalProps {
   musteri: Musteri | null;
@@ -110,6 +111,37 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
 
     onSuccess();
     onOpenChange(false);
+  };
+
+  const handleFisOnizleme = () => {
+    if (!musteri) return;
+    
+    const tutar = parseFloat(formData.odemeTutari);
+    if (!tutar || tutar <= 0) {
+      toast({
+        title: "Hata",
+        description: "Geçerli bir ödeme tutarı giriniz.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const tempHareket: HesapHareketi = {
+      id: 'preview',
+      musteriId: musteri.id,
+      tarih: new Date(formData.odemeTarihi).toISOString(),
+      islemTuru: 'odeme',
+      aciklama: formData.aciklama || 'Ödeme alındı',
+      paraBirimi: formData.odemeParaBirimi,
+      tutar,
+      kur: anlikKur,
+      tlKarsiligi,
+      bakiye: yeniBakiye,
+      odemeTuru: formData.odemeTuru,
+    };
+    
+    const fisIcerigi = tahsilatFisiOlustur(musteri, tempHareket, musteri.toplamBorc);
+    fisYazdir(fisIcerigi);
   };
 
   if (!musteri) return null;
@@ -234,10 +266,14 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button onClick={() => handleKaydet(false)} className="flex-1">
+          <Button type="button" variant="outline" onClick={handleFisOnizleme}>
+            <Printer className="w-4 h-4 mr-2" />
+            Fiş Önizleme
+          </Button>
+          <Button type="button" onClick={() => handleKaydet(false)}>
             💾 Kaydet
           </Button>
-          <Button onClick={() => handleKaydet(true)} variant="outline" className="flex-1">
+          <Button type="button" variant="default" onClick={() => handleKaydet(true)}>
             🖨️ Kaydet ve Fiş Yazdır
           </Button>
         </DialogFooter>
