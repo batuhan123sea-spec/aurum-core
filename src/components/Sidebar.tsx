@@ -28,7 +28,7 @@ const menuItems: MenuItem[] = [
     path: "/stok/urunler",
   },
   {
-    title: "Satış İşlemleri",
+    title: "Yeni Satış",
     icon: ShoppingCart,
     path: "/satis/yeni",
   },
@@ -45,7 +45,7 @@ const menuItems: MenuItem[] = [
   {
     title: "Raporlama",
     icon: BarChart3,
-    path: "/rapor/ozet",
+    path: "/raporlar",
   },
   {
     title: "Ayarlar",
