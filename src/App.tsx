@@ -13,6 +13,7 @@ import MusteriListe from "./pages/MusteriListe";
 import MusteriDetay from "./pages/MusteriDetay";
 import MusteriForm from "./components/MusteriForm";
 import Raporlar from "./pages/Raporlar";
+import Ayarlar from "./pages/Ayarlar";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,7 +32,7 @@ const App = () => (
           <Route path="/tedarikci/liste" element={<TedarikciListe />} />
           <Route path="/tedarikci/detay/:tedarikciId" element={<TedarikciDetay />} />
           <Route path="/raporlar" element={<Raporlar />} />
-          <Route path="/ayarlar" element={<div>Ayarlar sayfası yakında...</div>} />
+          <Route path="/ayarlar" element={<Ayarlar />} />
           <Route path="/musteri/liste" element={<MusteriListe />} />
           <Route path="/musteri/detay/:musteriId" element={<MusteriDetay />} />
           <Route path="/musteri/yeni" element={<MusteriForm />} />
