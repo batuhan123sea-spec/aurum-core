@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import StokUrunler from "./pages/StokUrunler";
 import StokKategoriDetay from "./pages/StokKategoriDetay";
+import YeniSatis from "./pages/YeniSatis";
 import MusteriListe from "./pages/MusteriListe";
 import MusteriDetay from "./pages/MusteriDetay";
 import MusteriForm from "./components/MusteriForm";
@@ -23,7 +24,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/stok/urunler" element={<StokUrunler />} />
           <Route path="/stok/kategori/:kategoriId" element={<StokKategoriDetay />} />
-          <Route path="/satis/yeni" element={<div>Satış sayfası yakında...</div>} />
+          <Route path="/satis/yeni" element={<YeniSatis />} />
           <Route path="/tedarikci/liste" element={<div>Tedarikçi sayfası yakında...</div>} />
           <Route path="/raporlar" element={<div>Raporlar sayfası yakında...</div>} />
           <Route path="/ayarlar" element={<div>Ayarlar sayfası yakında...</div>} />
