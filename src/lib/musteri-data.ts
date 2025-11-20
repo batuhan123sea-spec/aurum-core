@@ -1,5 +1,5 @@
 import { Musteri, HesapHareketi } from "@/types/musteri";
-import { paraBirimiTLyeCevir } from "./kur-hesaplama";
+import { paraBirimiTLyeCevir, getGuncelKurlar } from "./kur-hesaplama";
 
 const MUSTERI_KEY = 'kuyumcu_musteriler';
 const HAREKET_KEY = 'kuyumcu_hesap_hareketleri';
@@ -90,7 +90,7 @@ export function musteriDovizBorclariniHesapla(musteriId: string): {
   });
   
   // Güncel kurlarla TL karşılığını hesapla
-  const kurlar = require('./kur-hesaplama').getGuncelKurlar();
+  const kurlar = getGuncelKurlar();
   const toplamTL = 
     borclar.TRY + 
     (borclar.USD * kurlar.usd) + 
@@ -204,7 +204,7 @@ export function migrateOldData(): void {
       const varsayilanPB = musteriAny.varsayilanParaBirimi || 'TRY';
       
       // Güncel kurları al
-      const kurlar = require('./kur-hesaplama').getGuncelKurlar();
+      const kurlar = getGuncelKurlar();
       
       // Eski borcu varsayılan para birimine ata
       musteriAny.borclar = {
