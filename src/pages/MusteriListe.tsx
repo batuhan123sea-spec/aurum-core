@@ -7,13 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Plus, Search, Edit, Trash2, FileDown } from "lucide-react";
+import { Plus, Search, Edit, Trash2, FileDown, Printer } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getMusteriler, deleteMusteri } from "@/lib/musteri-data";
 import { formatCurrency } from "@/lib/kur-hesaplama";
 import { Musteri } from "@/types/musteri";
 import { toast } from "@/hooks/use-toast";
 import { musterileriExcelAktar } from "@/lib/excel-export";
+import { TopluTahsilatFisiModal } from "@/components/TopluTahsilatFisiModal";
 
 const ALFABETIK_FILTRE = ['TÜM', 'A', 'B', 'C', 'Ç', 'D', 'E', 'F', 'G', 'Ğ', 'H', 'I', 'İ', 'J', 'K', 'L', 'M', 'N', 'O', 'Ö', 'P', 'R', 'S', 'Ş', 'T', 'U', 'Ü', 'V', 'Y', 'Z'];
 
@@ -26,6 +27,7 @@ const MusteriListe = () => {
   const [aktifFiltre, setAktifFiltre] = useState<FiltreTuru>("tum");
   const [musteriler, setMusteriler] = useState<Musteri[]>(getMusteriler());
   const [selectedMusteriler, setSelectedMusteriler] = useState<string[]>([]);
+  const [topluFisModalOpen, setTopluFisModalOpen] = useState(false);
 
   const filtreliMusteriler = useMemo(() => {
     let filtered = [...musteriler];
@@ -178,7 +180,14 @@ const MusteriListe = () => {
         {selectedMusteriler.length > 0 && (
           <div className="p-3 bg-muted rounded-lg flex items-center justify-between">
             <span className="text-sm font-medium">{selectedMusteriler.length} müşteri seçildi</span>
-            <Button variant="outline" size="sm">Toplu İşlem</Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setTopluFisModalOpen(true)}
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              Haftalık Tahsilat Fişi Yazdır ({selectedMusteriler.length})
+            </Button>
           </div>
         )}
 
@@ -270,6 +279,12 @@ const MusteriListe = () => {
           </Table>
         </div>
       </div>
+
+      <TopluTahsilatFisiModal
+        musteriIds={selectedMusteriler}
+        open={topluFisModalOpen}
+        onOpenChange={setTopluFisModalOpen}
+      />
     </Layout>
   );
 };
