@@ -1,1 +1,4 @@
 project_id = "vwhcznxvgvscriopxzlp"
+
+[functions.bigpara-kurlar]
+verify_jwt = false
