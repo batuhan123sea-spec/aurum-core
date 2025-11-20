@@ -1,7 +1,7 @@
 export interface KurVerisi {
   usd: number;
   eur: number;
-  kaynak: 'tcmb' | 'doviz-dev' | 'manuel';
+  kaynak: 'tcmb' | 'doviz.com' | 'manuel';
   guncelleme: string;
 }
 
@@ -68,6 +68,7 @@ export async function tcmbKurCek(): Promise<KurVerisi | null> {
 /**
  * doviz.dev API'sinden gerçek piyasa kurlarını çeker
  * TCMB'den daha güncel ve piyasa gerçeklerini yansıtır
+ * NOT: Artık kullanılmıyor, doviz.com Edge Function tercih edilmeli
  */
 export async function dovizDevKurCek(): Promise<KurVerisi | null> {
   try {
@@ -103,11 +104,52 @@ export async function dovizDevKurCek(): Promise<KurVerisi | null> {
     return {
       usd: usdSatis,
       eur: eurSatis,
-      kaynak: 'doviz-dev',
+      kaynak: 'doviz.com',
       guncelleme: new Date().toISOString()
     };
   } catch (error) {
     console.error('doviz.dev kur çekme hatası:', error);
+    return null;
+  }
+}
+
+/**
+ * Supabase Edge Function üzerinden doviz.com'dan kurları çeker
+ * CORS problemi olmaz çünkü sunucu tarafında çalışır
+ */
+export async function dovizComKurCek(): Promise<KurVerisi | null> {
+  try {
+    console.log('doviz.com\'dan kurlar çekiliyor (Edge Function)...');
+    
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/doviz-kurlar`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success || !result.data) {
+      throw new Error('doviz.com verisi alınamadı');
+    }
+
+    return {
+      usd: result.data.usd,
+      eur: result.data.eur,
+      kaynak: 'doviz.com',
+      guncelleme: result.data.guncelleme
+    };
+  } catch (error) {
+    console.error('doviz.com kur çekme hatası:', error);
     return null;
   }
 }

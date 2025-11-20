@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { LogOut, User, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { tcmbKurCek } from "@/lib/kur-api";
+import { tcmbKurCek, dovizComKurCek } from "@/lib/kur-api";
 import { kurlarıKaydet, getGuncelKurlar } from "@/lib/kur-hesaplama";
 import { tumMusteriBorclariniGuncelle } from "@/lib/musteri-data";
 
@@ -29,9 +29,16 @@ export const Header = () => {
     setKurGuncelleniyor(true);
     
     try {
-      console.log('TCMB\'den kurlar çekiliyor...');
+      console.log('doviz.com\'dan kurlar çekiliyor...');
       
-      const kurlar = await tcmbKurCek();
+      // Önce doviz.com'dan dene
+      let kurlar = await dovizComKurCek();
+      
+      // Başarısız olursa TCMB'ye fall back
+      if (!kurlar) {
+        console.warn('doviz.com başarısız, TCMB\'ye geçiliyor...');
+        kurlar = await tcmbKurCek();
+      }
       
       if (kurlar) {
         setExchangeRates({
@@ -44,7 +51,7 @@ export const Header = () => {
         setSonGuncelleme(new Date());
         
         toast.success('Döviz kurları güncellendi', {
-          description: `USD: ${kurlar.usd.toFixed(2)} ₺ | EUR: ${kurlar.eur.toFixed(2)} ₺`
+          description: `USD: ${kurlar.usd.toFixed(2)} ₺ | EUR: ${kurlar.eur.toFixed(2)} ₺ (${kurlar.kaynak})`
         });
       } else {
         throw new Error('Kur bilgisi alınamadı');

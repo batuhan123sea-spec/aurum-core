@@ -1,0 +1,4 @@
+project_id = "vwhcznxvgvscriopxzlp"
+
+[functions.doviz-kurlar]
+verify_jwt = false
