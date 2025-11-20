@@ -18,17 +18,39 @@ export function kurlarıKaydet(usd: number, eur: number): void {
   localStorage.setItem(KUR_STORAGE_KEY, JSON.stringify(kurlar));
 }
 
-// Güncel kurları al (localStorage veya varsayılan)
+// Güncel kurları al (localStorage, ayarlar veya varsayılan)
 export function getGuncelKurlar(): DovizKurlari {
+  // Önce localStorage'dan BigPara kurlarını kontrol et
   const stored = localStorage.getItem(KUR_STORAGE_KEY);
   if (stored) {
-    return JSON.parse(stored);
+    try {
+      return JSON.parse(stored);
+    } catch {
+      // Parse hatası varsa devam et
+    }
   }
   
-  // Varsayılan kurlar (TCMB + %1.5 marj ile piyasa seviyesine yakın)
+  // Yoksa ayarlardan manuel kurları al
+  try {
+    const ayarlarStored = localStorage.getItem('kuyumcu_ayarlar');
+    if (ayarlarStored) {
+      const ayarlar = JSON.parse(ayarlarStored);
+      if (ayarlar?.paraBirimi?.manuelKurlar) {
+        return {
+          usd: ayarlar.paraBirimi.manuelKurlar.usd,
+          eur: ayarlar.paraBirimi.manuelKurlar.eur,
+          guncellemeTarihi: new Date().toISOString(),
+        };
+      }
+    }
+  } catch {
+    // Parse hatası varsa varsayılana geç
+  }
+  
+  // En son çare: Varsayılan kurlar (güncel piyasa seviyesine yakın)
   return {
-    usd: 43.00,
-    eur: 49.53,
+    usd: 38.50,
+    eur: 43.80,
     guncellemeTarihi: new Date().toISOString(),
   };
 }

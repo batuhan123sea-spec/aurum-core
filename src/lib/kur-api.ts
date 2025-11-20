@@ -1,7 +1,7 @@
 export interface KurVerisi {
   usd: number;
   eur: number;
-  kaynak: 'tcmb' | 'doviz.com' | 'manuel';
+  kaynak: 'tcmb' | 'doviz.com' | 'bigpara' | 'manuel';
   guncelleme: string;
 }
 
@@ -150,6 +150,47 @@ export async function dovizComKurCek(): Promise<KurVerisi | null> {
     };
   } catch (error) {
     console.error('doviz.com kur çekme hatası:', error);
+    return null;
+  }
+}
+
+/**
+ * Supabase Edge Function üzerinden BigPara'dan kurları çeker
+ * Gerçek piyasa kurlarını sağlar (TCMB'den daha güncel)
+ */
+export async function bigParaKurCek(): Promise<KurVerisi | null> {
+  try {
+    console.log('BigPara\'dan kurlar çekiliyor (Edge Function)...');
+    
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/bigpara-kurlar`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success || !result.data) {
+      throw new Error('BigPara verisi alınamadı');
+    }
+
+    return {
+      usd: result.data.usd,
+      eur: result.data.eur,
+      kaynak: 'bigpara',
+      guncelleme: result.data.guncelleme
+    };
+  } catch (error) {
+    console.error('BigPara kur çekme hatası:', error);
     return null;
   }
 }

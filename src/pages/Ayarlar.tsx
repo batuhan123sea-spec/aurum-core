@@ -256,24 +256,49 @@ export default function Ayarlar() {
   const kurGuncelle = async () => {
     setSaving(true);
     try {
-      // Simulated API call for exchange rates
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('BigPara\'dan kurlar çekiliyor...');
       
-      const yeniKurlar = {
-        usd: 34.50 + (Math.random() - 0.5) * 2,
-        eur: 37.20 + (Math.random() - 0.5) * 2
-      };
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/bigpara-kurlar`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Content-Type': 'application/json',
+        }
+      });
 
-      const guncelAyarlar = getAyarlar();
-      guncelAyarlar.paraBirimi.manuelKurlar = yeniKurlar;
-      saveAyarlar(guncelAyarlar);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-      paraBirimiForm.setValue("usdKuru", yeniKurlar.usd);
-      paraBirimiForm.setValue("eurKuru", yeniKurlar.eur);
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        const yeniKurlar = {
+          usd: result.data.usd,
+          eur: result.data.eur
+        };
 
-      toast.success("Kurlar güncellendi");
+        const guncelAyarlar = getAyarlar();
+        guncelAyarlar.paraBirimi.manuelKurlar = yeniKurlar;
+        saveAyarlar(guncelAyarlar);
+
+        paraBirimiForm.setValue("usdKuru", yeniKurlar.usd);
+        paraBirimiForm.setValue("eurKuru", yeniKurlar.eur);
+
+        toast.success("BigPara kurları getirildi", {
+          description: `USD: ${yeniKurlar.usd.toFixed(2)} ₺ | EUR: ${yeniKurlar.eur.toFixed(2)} ₺`
+        });
+      } else {
+        throw new Error('BigPara verisi alınamadı');
+      }
     } catch (error) {
-      toast.error("Kur güncelleme sırasında hata oluştu");
+      console.error('Kur güncelleme hatası:', error);
+      toast.error("BigPara'dan kur alınamadı", {
+        description: 'Manuel olarak girebilirsiniz'
+      });
     } finally {
       setSaving(false);
     }

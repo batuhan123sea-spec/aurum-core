@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { LogOut, User, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { tcmbKurCek } from "@/lib/kur-api";
+import { bigParaKurCek } from "@/lib/kur-api";
 import { kurlarıKaydet, getGuncelKurlar } from "@/lib/kur-hesaplama";
 import { tumMusteriBorclariniGuncelle } from "@/lib/musteri-data";
+import { getAyarlar } from "@/lib/ayarlar-data";
 
 export const Header = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -29,21 +30,10 @@ export const Header = () => {
     setKurGuncelleniyor(true);
     
     try {
-      console.log('Piyasa kurları çekiliyor (TCMB + marj)...');
+      console.log('BigPara\'dan gerçek piyasa kurları çekiliyor...');
       
-      // TCMB kurlarını çek ve %1.5 marj ekle (doviz.com seviyelerine yakın)
-      const tcmbKurlar = await tcmbKurCek();
-      let kurlar = null;
-      
-      if (tcmbKurlar) {
-        // TCMB satış kurlarına %1.5 marj ekleyerek piyasa kurlarına yaklaş
-        kurlar = {
-          usd: Number((tcmbKurlar.usd * 1.015).toFixed(2)),
-          eur: Number((tcmbKurlar.eur * 1.015).toFixed(2)),
-          kaynak: 'tcmb' as const,
-          guncelleme: tcmbKurlar.guncelleme
-        };
-      }
+      // BigPara'dan gerçek piyasa kurlarını çek
+      const kurlar = await bigParaKurCek();
       
       if (kurlar) {
         setExchangeRates({
@@ -56,42 +46,44 @@ export const Header = () => {
         setSonGuncelleme(new Date());
         
         toast.success('Piyasa kurları güncellendi', {
-          description: `USD: ${kurlar.usd.toFixed(2)} ₺ | EUR: ${kurlar.eur.toFixed(2)} ₺ (TCMB + %1.5)`
+          description: `USD: ${kurlar.usd.toFixed(2)} ₺ | EUR: ${kurlar.eur.toFixed(2)} ₺ (BigPara)`
         });
       } else {
-        throw new Error('Kur bilgisi alınamadı');
+        throw new Error('BigPara\'dan kur alınamadı');
       }
     } catch (error) {
-      // Hata durumunda localStorage'dan son kurları kullan
-      const storedKurlar = getGuncelKurlar();
+      console.error('Kur güncelleme hatası:', error);
+      
+      // Hata durumunda ayarlardan manuel kurları kullan
+      const ayarlar = getAyarlar();
+      const manuelKurlar = ayarlar.paraBirimi.manuelKurlar;
+      
       setExchangeRates({
-        usd: storedKurlar.usd,
-        eur: storedKurlar.eur
+        usd: manuelKurlar.usd,
+        eur: manuelKurlar.eur
       });
       
-      toast.error('Kur güncellenemedi', {
-        description: 'Son kaydedilen kurlar kullanılıyor'
+      kurlarıKaydet(manuelKurlar.usd, manuelKurlar.eur);
+      
+      toast.warning('BigPara\'dan kur alınamadı', {
+        description: 'Ayarlardaki manuel kurlar kullanılıyor'
       });
     } finally {
       setKurGuncelleniyor(false);
     }
   };
 
-  // İlk yüklemede ve 5 dakikada bir otomatik güncelleme
+  // İlk yüklemede kurları yükle
   useEffect(() => {
-    // İlk yüklemede localStorage'dan kurları al
+    // İlk yüklemede localStorage veya ayarlardan kurları al
     const storedKurlar = getGuncelKurlar();
     setExchangeRates({
       usd: storedKurlar.usd,
       eur: storedKurlar.eur
     });
     
-    // İlk yüklemede güncel kurları çek
+    // İlk yüklemede BigPara'dan güncel kurları çek
     kurGuncelle();
-
-    // 1 dakikada bir otomatik güncelle (canlı piyasa takibi)
-    const timer = setInterval(kurGuncelle, 60000); // 1 dakika
-    return () => clearInterval(timer);
   }, []);
 
   const formatTime = (date: Date) => {
