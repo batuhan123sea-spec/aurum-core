@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { LogOut, User, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { tcmbKurCek, dovizComKurCek } from "@/lib/kur-api";
+import { tcmbKurCek } from "@/lib/kur-api";
 import { kurlarıKaydet, getGuncelKurlar } from "@/lib/kur-hesaplama";
 import { tumMusteriBorclariniGuncelle } from "@/lib/musteri-data";
 
@@ -29,15 +29,20 @@ export const Header = () => {
     setKurGuncelleniyor(true);
     
     try {
-      console.log('doviz.com\'dan kurlar çekiliyor...');
+      console.log('Piyasa kurları çekiliyor (TCMB + marj)...');
       
-      // Önce doviz.com'dan dene
-      let kurlar = await dovizComKurCek();
+      // TCMB kurlarını çek ve %1.5 marj ekle (doviz.com seviyelerine yakın)
+      const tcmbKurlar = await tcmbKurCek();
+      let kurlar = null;
       
-      // Başarısız olursa TCMB'ye fall back
-      if (!kurlar) {
-        console.warn('doviz.com başarısız, TCMB\'ye geçiliyor...');
-        kurlar = await tcmbKurCek();
+      if (tcmbKurlar) {
+        // TCMB satış kurlarına %1.5 marj ekleyerek piyasa kurlarına yaklaş
+        kurlar = {
+          usd: Number((tcmbKurlar.usd * 1.015).toFixed(2)),
+          eur: Number((tcmbKurlar.eur * 1.015).toFixed(2)),
+          kaynak: 'tcmb' as const,
+          guncelleme: tcmbKurlar.guncelleme
+        };
       }
       
       if (kurlar) {
@@ -50,8 +55,8 @@ export const Header = () => {
         tumMusteriBorclariniGuncelle();
         setSonGuncelleme(new Date());
         
-        toast.success('Döviz kurları güncellendi', {
-          description: `USD: ${kurlar.usd.toFixed(2)} ₺ | EUR: ${kurlar.eur.toFixed(2)} ₺ (${kurlar.kaynak})`
+        toast.success('Piyasa kurları güncellendi', {
+          description: `USD: ${kurlar.usd.toFixed(2)} ₺ | EUR: ${kurlar.eur.toFixed(2)} ₺ (TCMB + %1.5)`
         });
       } else {
         throw new Error('Kur bilgisi alınamadı');

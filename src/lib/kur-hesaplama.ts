@@ -25,10 +25,10 @@ export function getGuncelKurlar(): DovizKurlari {
     return JSON.parse(stored);
   }
   
-  // Varsayılan kurlar
+  // Varsayılan kurlar (TCMB + %1.5 marj ile piyasa seviyesine yakın)
   return {
-    usd: 42.37,
-    eur: 48.80,
+    usd: 43.00,
+    eur: 49.53,
     guncellemeTarihi: new Date().toISOString(),
   };
 }
