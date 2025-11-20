@@ -91,7 +91,7 @@ export function hesapliSatisYap(
     bakiye: 0
   });
   
-  musteriBalanceGuncelle(musteriId, 'satis', genelToplam);
+  musteriBalanceGuncelle(musteriId);
   
   toast({
     title: "Satış Tamamlandı",

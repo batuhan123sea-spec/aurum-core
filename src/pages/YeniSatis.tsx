@@ -573,7 +573,7 @@ export default function YeniSatis() {
                         <div>
                           <p className="font-medium">{seciliMusteriData.adSoyad}</p>
                           <p className="text-xs text-muted-foreground">
-                            Borç: {seciliMusteriData.toplamBorc.toFixed(2)} ₺
+                            Borç: {seciliMusteriData.toplamBorcTL.toFixed(2)} ₺
                           </p>
                         </div>
                         <Button
