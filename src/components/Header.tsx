@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { tcmbKurCek, marjEkle } from "@/lib/kur-api";
+import { kurlarıKaydet, getGuncelKurlar } from "@/lib/kur-hesaplama";
 
 export const Header = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -8,6 +11,8 @@ export const Header = () => {
     usd: 32.50,
     eur: 35.20,
   });
+  const [kurGuncelleniyor, setKurGuncelleniyor] = useState(false);
+  const [sonGuncelleme, setSonGuncelleme] = useState<Date | null>(null);
 
   // Canlı saat güncelleme
   useEffect(() => {
@@ -18,18 +23,71 @@ export const Header = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Döviz kurları güncelleme (5 dakikada bir)
-  useEffect(() => {
-    const updateExchangeRates = () => {
-      // Gerçek API entegrasyonu için buraya kod eklenecek
-      // Şimdilik simüle ediyoruz
+  // Kurları güncelleme fonksiyonu
+  const kurGuncelle = async () => {
+    setKurGuncelleniyor(true);
+    
+    try {
+      console.log('Kurlar güncelleniyor...');
+      
+      // TCMB'den kur çek
+      const tcmbKurlar = await tcmbKurCek();
+      
+      if (tcmbKurlar) {
+        // %1.5 marj ekle (piyasa satış kurlarına daha yakın)
+        const marjliKurlar = marjEkle(tcmbKurlar, 1.5);
+        
+        // State'i güncelle
+        setExchangeRates({
+          usd: marjliKurlar.usd,
+          eur: marjliKurlar.eur
+        });
+        
+        // localStorage'a kaydet (tüm sistemde kullanılmak üzere)
+        kurlarıKaydet(marjliKurlar.usd, marjliKurlar.eur);
+        
+        setSonGuncelleme(new Date());
+        
+        toast.success('Döviz kurları güncellendi', {
+          description: `USD: ${marjliKurlar.usd.toFixed(2)} ₺ | EUR: ${marjliKurlar.eur.toFixed(2)} ₺`
+        });
+        
+        console.log('Kurlar başarıyla güncellendi:', marjliKurlar);
+      } else {
+        throw new Error('Kur bilgisi alınamadı');
+      }
+    } catch (error) {
+      console.error('Kur güncelleme hatası:', error);
+      
+      // Hata durumunda localStorage'dan son kurları kullan
+      const storedKurlar = getGuncelKurlar();
       setExchangeRates({
-        usd: 32.50 + (Math.random() - 0.5) * 0.5,
-        eur: 35.20 + (Math.random() - 0.5) * 0.5,
+        usd: storedKurlar.usd,
+        eur: storedKurlar.eur
       });
-    };
+      
+      toast.error('Kur güncellenemedi', {
+        description: 'Son kaydedilen kurlar kullanılıyor'
+      });
+    } finally {
+      setKurGuncelleniyor(false);
+    }
+  };
 
-    const timer = setInterval(updateExchangeRates, 300000); // 5 dakika
+  // İlk yüklemede ve 5 dakikada bir otomatik güncelleme
+  useEffect(() => {
+    // İlk yüklemede localStorage'dan kurları al
+    const storedKurlar = getGuncelKurlar();
+    setExchangeRates({
+      usd: storedKurlar.usd,
+      eur: storedKurlar.eur
+    });
+    
+    // İlk yüklemede güncel kurları çek
+    kurGuncelle();
+
+    // 5 dakikada bir otomatik güncelle
+    const timer = setInterval(kurGuncelle, 300000); // 5 dakika
     return () => clearInterval(timer);
   }, []);
 
@@ -94,7 +152,24 @@ export const Header = () => {
               {exchangeRates.eur.toFixed(2)}
             </span>
           </div>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={kurGuncelle}
+            disabled={kurGuncelleniyor}
+            className="h-8 w-8 p-0 hover:bg-header-foreground/10"
+            title="Kurları Güncelle"
+          >
+            <RefreshCw className={`w-4 h-4 ${kurGuncelleniyor ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
+        
+        {sonGuncelleme && (
+          <div className="text-xs opacity-50">
+            Son güncelleme: {formatTime(sonGuncelleme)}
+          </div>
+        )}
       </div>
 
       {/* Sağ: Kullanıcı */}
