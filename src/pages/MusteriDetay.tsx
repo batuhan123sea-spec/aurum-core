@@ -15,6 +15,7 @@ import HesapEkstresiTable from "@/components/HesapEkstresiTable";
 import OdemeAlModal from "@/components/OdemeAlModal";
 import { HaftalikTahsilatFisiModal } from "@/components/HaftalikTahsilatFisiModal";
 import { SatisGecmisiTable } from "@/components/SatisGecmisiTable";
+import MusteriBorcTimeline from "@/components/MusteriBorcTimeline";
 
 const MusteriDetay = () => {
   const { musteriId } = useParams();
@@ -240,9 +241,10 @@ const MusteriDetay = () => {
             <Card>
               <Tabs defaultValue="hesap-ekstresi" className="w-full">
                 <CardHeader>
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="hesap-ekstresi">Hesap Ekstresi</TabsTrigger>
                     <TabsTrigger value="satis-gecmisi">Satış Geçmişi</TabsTrigger>
+                    <TabsTrigger value="timeline">Borç Timeline</TabsTrigger>
                   </TabsList>
                 </CardHeader>
 
@@ -269,6 +271,10 @@ const MusteriDetay = () => {
 
                   <TabsContent value="satis-gecmisi" className="mt-4">
                     <SatisGecmisiTable musteriId={musteri.id} />
+                  </TabsContent>
+
+                  <TabsContent value="timeline" className="mt-4">
+                    <MusteriBorcTimeline musteriId={musteri.id} />
                   </TabsContent>
                 </CardContent>
               </Tabs>

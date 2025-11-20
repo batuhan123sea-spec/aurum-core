@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { LogOut, User, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { tcmbKurCek, marjEkle } from "@/lib/kur-api";
+import { tcmbKurCek, marjEkle, dovizDevKurCek } from "@/lib/kur-api";
 import { kurlarıKaydet, getGuncelKurlar } from "@/lib/kur-hesaplama";
 import { tumMusteriBorclariniGuncelle } from "@/lib/musteri-data";
 
@@ -29,34 +29,40 @@ export const Header = () => {
     setKurGuncelleniyor(true);
     
     try {
-      console.log('Kurlar güncelleniyor...');
+      console.log('Piyasa kurları güncelleniyor (doviz.dev)...');
       
-      // TCMB'den kur çek
-      const tcmbKurlar = await tcmbKurCek();
+      // Önce doviz.dev'den dene
+      let kurlar = await dovizDevKurCek();
       
-      if (tcmbKurlar) {
-        // %1.5 marj ekle (piyasa satış kurlarına daha yakın)
-        const marjliKurlar = marjEkle(tcmbKurlar, 1.5);
-        
+      // Başarısız olursa TCMB'ye fall back yap
+      if (!kurlar) {
+        console.warn('doviz.dev başarısız, TCMB\'ye geçiliyor...');
+        const tcmbKurlar = await tcmbKurCek();
+        if (tcmbKurlar) {
+          kurlar = marjEkle(tcmbKurlar, 2); // TCMB için %2 marj
+        }
+      }
+      
+      if (kurlar) {
         // State'i güncelle
         setExchangeRates({
-          usd: marjliKurlar.usd,
-          eur: marjliKurlar.eur
+          usd: kurlar.usd,
+          eur: kurlar.eur
         });
         
         // localStorage'a kaydet (tüm sistemde kullanılmak üzere)
-        kurlarıKaydet(marjliKurlar.usd, marjliKurlar.eur);
+        kurlarıKaydet(kurlar.usd, kurlar.eur);
         
         // ✅ Tüm müşteri borçlarını güncelle
         tumMusteriBorclariniGuncelle();
         
         setSonGuncelleme(new Date());
         
-        toast.success('Döviz kurları ve müşteri borçları güncellendi', {
-          description: `USD: ${marjliKurlar.usd.toFixed(2)} ₺ | EUR: ${marjliKurlar.eur.toFixed(2)} ₺`
+        toast.success('Piyasa kurları ve müşteri borçları güncellendi', {
+          description: `USD: ${kurlar.usd.toFixed(2)} ₺ | EUR: ${kurlar.eur.toFixed(2)} ₺ (${kurlar.kaynak})`
         });
         
-        console.log('Kurlar ve müşteri borçları başarıyla güncellendi:', marjliKurlar);
+        console.log('Kurlar ve müşteri borçları başarıyla güncellendi:', kurlar);
       } else {
         throw new Error('Kur bilgisi alınamadı');
       }
@@ -90,8 +96,8 @@ export const Header = () => {
     // İlk yüklemede güncel kurları çek
     kurGuncelle();
 
-    // 2 dakikada bir otomatik güncelle (daha canlı)
-    const timer = setInterval(kurGuncelle, 120000); // 2 dakika
+    // 1 dakikada bir otomatik güncelle (canlı piyasa takibi)
+    const timer = setInterval(kurGuncelle, 60000); // 1 dakika
     return () => clearInterval(timer);
   }, []);
 
