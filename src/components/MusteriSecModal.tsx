@@ -75,9 +75,9 @@ export const MusteriSecModal = ({ open, onOpenChange, onSelect }: MusteriSecModa
                       <Badge variant={musteri.konum === 'ic' ? 'default' : 'secondary'}>
                         {musteri.konum === 'ic' ? 'İç' : 'Dış'}
                       </Badge>
-                      {musteri.toplamBorc > 0 && (
+                      {musteri.toplamBorcTL > 0 && (
                         <p className="text-sm font-semibold text-destructive mt-1">
-                          Borç: {musteri.toplamBorc.toFixed(2)} ₺
+                          Borç: {musteri.toplamBorcTL.toFixed(2)} ₺
                         </p>
                       )}
                     </div>

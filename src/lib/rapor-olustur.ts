@@ -46,14 +46,14 @@ export const getMusteriBorcRaporu = (): MusteriBorcRapor[] => {
   const musteriler = getMusteriler();
   
   return musteriler
-    .filter(m => m.toplamBorc > 0)
+    .filter(m => m.toplamBorcTL > 0)
     .map(m => ({
       musteriId: m.id,
       musteriAdi: m.adSoyad,
       konum: m.konum,
-      borcTL: m.toplamBorc,
+      borcTL: m.toplamBorcTL,
       paraBirimi: m.varsayilanParaBirimi,
-      borcOrijinal: m.toplamBorc // Basitleştirilmiş, gerçekte kur hesabı yapılmalı
+      borcOrijinal: m.toplamBorcTL
     }))
     .sort((a, b) => b.borcTL - a.borcTL);
 };

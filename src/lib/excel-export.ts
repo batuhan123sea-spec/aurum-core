@@ -16,7 +16,7 @@ export function musterileriExcelAktar(musteriler: Musteri[]): void {
     'Konum': m.konum === 'ic' ? 'İş Hanı İçi' : 'Dışarı',
     'Para Birimi': m.varsayilanParaBirimi,
     'Kredi Limiti': m.krediLimiti ? formatCurrency(m.krediLimiti, 'TRY') : '-',
-    'Toplam Borç': formatCurrency(m.toplamBorc, 'TRY'),
+    'Toplam Borç': formatCurrency(m.toplamBorcTL, 'TRY'),
     'Son İşlem': new Date(m.sonIslemTarihi).toLocaleDateString('tr-TR'),
     'Durum': m.durumu === 'aktif' ? 'Aktif' : 'Pasif',
   }));

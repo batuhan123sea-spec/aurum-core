@@ -53,7 +53,7 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
     setTlKarsiligi(tlTutar);
   }, [formData.odemeTutari, formData.odemeParaBirimi]);
 
-  const yeniBakiye = musteri ? musteri.toplamBorc - tlKarsiligi : 0;
+  const yeniBakiye = musteri ? musteri.toplamBorcTL - tlKarsiligi : 0;
 
   const handleKaydet = (yazdır: boolean = false) => {
     if (!musteri) return;
@@ -68,7 +68,7 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
       return;
     }
 
-    if (tlKarsiligi > musteri.toplamBorc) {
+    if (tlKarsiligi > musteri.toplamBorcTL) {
       toast({
         title: "Uyarı",
         description: "Ödeme tutarı mevcut borçtan fazla olamaz.",
@@ -77,7 +77,7 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
       return;
     }
 
-    const oncekiBorc = musteri.toplamBorc;
+    const oncekiBorc = musteri.toplamBorcTL;
 
     const hareket: HesapHareketi = {
       id: Date.now().toString(),
@@ -94,7 +94,7 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
     };
 
     saveHareket(hareket);
-    musteriBalanceGuncelle(musteri.id, 'odeme', tlKarsiligi);
+    musteriBalanceGuncelle(musteri.id);
 
     toast({
       title: "Başarılı",
@@ -140,7 +140,7 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
       odemeTuru: formData.odemeTuru,
     };
     
-    const fisIcerigi = tahsilatFisiOlustur(musteri, tempHareket, musteri.toplamBorc);
+    const fisIcerigi = tahsilatFisiOlustur(musteri, tempHareket, musteri.toplamBorcTL);
     fisYazdir(fisIcerigi);
   };
 
@@ -152,7 +152,7 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
         <DialogHeader>
           <DialogTitle>Ödeme Al - {musteri.adSoyad}</DialogTitle>
           <p className="text-destructive font-semibold">
-            Mevcut Borç: {formatCurrency(musteri.toplamBorc, 'TRY')}
+            Mevcut Borç: {formatCurrency(musteri.toplamBorcTL, 'TRY')}
           </p>
         </DialogHeader>
 

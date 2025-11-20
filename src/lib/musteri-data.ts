@@ -61,23 +61,75 @@ export function saveHareket(hareket: HesapHareketi): void {
   localStorage.setItem(HAREKET_KEY, JSON.stringify(hareketler));
 }
 
+// Müşterinin döviz borçlarını hesapla
+export function musteriDovizBorclariniHesapla(musteriId: string): {
+  TRY: number;
+  USD: number;
+  EUR: number;
+  toplamTL: number;
+} {
+  const hareketler = getHareketlerByMusteriId(musteriId);
+  
+  const borclar = {
+    TRY: 0,
+    USD: 0,
+    EUR: 0
+  };
+  
+  hareketler.forEach(hareket => {
+    const miktar = hareket.tutar;
+    const paraBirimi = hareket.paraBirimi;
+    
+    if (hareket.islemTuru === 'satis') {
+      borclar[paraBirimi] += miktar;
+    } else if (hareket.islemTuru === 'odeme') {
+      borclar[paraBirimi] -= miktar;
+    } else if (hareket.islemTuru === 'iade') {
+      borclar[paraBirimi] -= miktar;
+    }
+  });
+  
+  // Güncel kurlarla TL karşılığını hesapla
+  const kurlar = require('./kur-hesaplama').getGuncelKurlar();
+  const toplamTL = 
+    borclar.TRY + 
+    (borclar.USD * kurlar.usd) + 
+    (borclar.EUR * kurlar.eur);
+  
+  return {
+    ...borclar,
+    toplamTL
+  };
+}
+
 // Müşteri bakiyesini güncelle
-export function musteriBalanceGuncelle(
-  musteriId: string,
-  islemTuru: 'satis' | 'odeme' | 'iade',
-  tlTutar: number
-): void {
+export function musteriBalanceGuncelle(musteriId: string): void {
   const musteri = getMusteriById(musteriId);
   if (!musteri) return;
   
-  if (islemTuru === 'satis') {
-    musteri.toplamBorc += tlTutar;
-  } else {
-    musteri.toplamBorc -= tlTutar;
-  }
+  // Dinamik hesaplama
+  const hesaplananBorclar = musteriDovizBorclariniHesapla(musteriId);
   
+  musteri.borclar = {
+    TRY: hesaplananBorclar.TRY,
+    USD: hesaplananBorclar.USD,
+    EUR: hesaplananBorclar.EUR
+  };
+  musteri.toplamBorcTL = hesaplananBorclar.toplamTL;
   musteri.sonIslemTarihi = new Date().toISOString();
+  
   updateMusteri(musteri);
+}
+
+// Tüm müşteri borçlarını güncelle (kur değiştiğinde)
+export function tumMusteriBorclariniGuncelle(): void {
+  const musteriler = getMusteriler();
+  
+  musteriler.forEach(musteri => {
+    musteriBalanceGuncelle(musteri.id);
+  });
+  
+  console.log('✅ Tüm müşteri borçları güncel kurlarla güncellendi');
 }
 
 // Hesap ekstresini bakiyelerle birlikte hesapla
@@ -126,7 +178,7 @@ export function filterMusterilerByKonum(konum: 'ic' | 'dis'): Musteri[] {
 // Borç filtreleme
 export function filterMusterilerByBorc(durum: 'borclu' | 'borcsuz'): Musteri[] {
   return getMusteriler().filter(m => 
-    durum === 'borclu' ? m.toplamBorc > 0 : m.toplamBorc === 0
+    durum === 'borclu' ? m.toplamBorcTL > 0 : m.toplamBorcTL === 0
   );
 }
 
@@ -137,6 +189,42 @@ export function generateMusteriKodu(): string {
     ? Math.max(...musteriler.map(m => parseInt(m.kod.split('-')[1])))
     : 0;
   return `MUS-${String(sonKod + 1).padStart(4, '0')}`;
+}
+
+// Eski müşteri verilerini yeni yapıya dönüştür (migrasyon)
+export function migrateOldData(): void {
+  const musteriler = getMusteriler();
+  let migrasyonYapildi = false;
+  
+  musteriler.forEach(musteri => {
+    // Eğer eski formattaysa (toplamBorc var ama borclar yok)
+    if ('toplamBorc' in musteri && !('borclar' in musteri)) {
+      const musteriAny = musteri as any;
+      const eskiBorc = musteriAny.toplamBorc;
+      const varsayilanPB = musteriAny.varsayilanParaBirimi || 'TRY';
+      
+      // Güncel kurları al
+      const kurlar = require('./kur-hesaplama').getGuncelKurlar();
+      
+      // Eski borcu varsayılan para birimine ata
+      musteriAny.borclar = {
+        TRY: varsayilanPB === 'TRY' ? eskiBorc : 0,
+        USD: varsayilanPB === 'USD' ? eskiBorc / kurlar.usd : 0,
+        EUR: varsayilanPB === 'EUR' ? eskiBorc / kurlar.eur : 0
+      };
+      musteriAny.toplamBorcTL = eskiBorc;
+      
+      // Eski alanı sil
+      delete musteriAny.toplamBorc;
+      
+      updateMusteri(musteri);
+      migrasyonYapildi = true;
+    }
+  });
+  
+  if (migrasyonYapildi) {
+    console.log('✅ Eski müşteri verileri yeni yapıya dönüştürüldü');
+  }
 }
 
 // Mock data
@@ -152,7 +240,8 @@ export function initializeMockData(): void {
     vergiNoTcKimlik: '12345678901',
     konum: 'ic',
     varsayilanParaBirimi: 'TRY',
-      toplamBorc: 15000,
+      borclar: { TRY: 15000, USD: 0, EUR: 0 },
+      toplamBorcTL: 15000,
       durumu: 'aktif',
       olusturmaTarihi: '2024-01-15T10:00:00Z',
       sonIslemTarihi: '2024-03-20T14:30:00Z'
@@ -167,7 +256,8 @@ export function initializeMockData(): void {
       vergiNoTcKimlik: '9876543210',
       konum: 'ic',
       varsayilanParaBirimi: 'USD',
-      toplamBorc: 8500,
+      borclar: { TRY: 0, USD: 250, EUR: 0 },
+      toplamBorcTL: 8500,
       durumu: 'aktif',
       olusturmaTarihi: '2024-02-10T09:15:00Z',
       sonIslemTarihi: '2024-03-18T11:20:00Z'
@@ -180,7 +270,8 @@ export function initializeMockData(): void {
       adres: 'Atatürk Bulvarı, No: 123, Çankaya/Ankara',
       konum: 'dis',
       varsayilanParaBirimi: 'TRY',
-      toplamBorc: 0,
+      borclar: { TRY: 0, USD: 0, EUR: 0 },
+      toplamBorcTL: 0,
       durumu: 'aktif',
       olusturmaTarihi: '2024-01-05T13:45:00Z',
       sonIslemTarihi: '2024-03-15T16:00:00Z'
@@ -193,7 +284,8 @@ export function initializeMockData(): void {
       adres: 'Kızılay Meydanı, No: 56, Çankaya/Ankara',
       konum: 'dis',
       varsayilanParaBirimi: 'EUR',
-      toplamBorc: 22300,
+      borclar: { TRY: 0, USD: 0, EUR: 650 },
+      toplamBorcTL: 22867,
       durumu: 'aktif',
       olusturmaTarihi: '2024-02-20T08:30:00Z',
       sonIslemTarihi: '2024-03-19T15:45:00Z'
@@ -206,7 +298,8 @@ export function initializeMockData(): void {
       adres: 'Mücevherci Sokak, No: 8, Fatih/İstanbul',
       konum: 'ic',
       varsayilanParaBirimi: 'TRY',
-      toplamBorc: 5200,
+      borclar: { TRY: 5200, USD: 0, EUR: 0 },
+      toplamBorcTL: 5200,
       durumu: 'aktif',
       olusturmaTarihi: '2024-03-01T11:00:00Z',
       sonIslemTarihi: '2024-03-21T10:15:00Z'

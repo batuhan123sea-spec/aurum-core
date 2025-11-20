@@ -16,7 +16,12 @@ export interface Musteri {
   varsayilanParaBirimi: ParaBirimi;
   krediLimiti?: number;
   notlar?: string;
-  toplamBorc: number;
+  borclar: {
+    TRY: number;
+    USD: number;
+    EUR: number;
+  };
+  toplamBorcTL: number;
   durumu: MusteriDurumu;
   olusturmaTarihi: string;
   sonIslemTarihi: string;

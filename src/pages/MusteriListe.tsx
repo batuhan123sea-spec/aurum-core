@@ -10,7 +10,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Plus, Search, Edit, Trash2, FileDown, Printer } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getMusteriler, deleteMusteri } from "@/lib/musteri-data";
-import { formatCurrency } from "@/lib/kur-hesaplama";
+import { formatCurrency, getGuncelKurlar } from "@/lib/kur-hesaplama";
 import { Musteri } from "@/types/musteri";
 import { toast } from "@/hooks/use-toast";
 import { musterileriExcelAktar } from "@/lib/excel-export";
@@ -53,16 +53,16 @@ const MusteriListe = () => {
     // Borç/Konum filtresi
     switch (aktifFiltre) {
       case 'ic-borclu':
-        filtered = filtered.filter(m => m.konum === 'ic' && m.toplamBorc > 0 && m.durumu === 'aktif');
+        filtered = filtered.filter(m => m.konum === 'ic' && m.toplamBorcTL > 0 && m.durumu === 'aktif');
         break;
       case 'dis-borclu':
-        filtered = filtered.filter(m => m.konum === 'dis' && m.toplamBorc > 0 && m.durumu === 'aktif');
+        filtered = filtered.filter(m => m.konum === 'dis' && m.toplamBorcTL > 0 && m.durumu === 'aktif');
         break;
       case 'borclu':
-        filtered = filtered.filter(m => m.toplamBorc > 0 && m.durumu === 'aktif');
+        filtered = filtered.filter(m => m.toplamBorcTL > 0 && m.durumu === 'aktif');
         break;
       case 'borcsuz':
-        filtered = filtered.filter(m => m.toplamBorc === 0 && m.durumu === 'aktif');
+        filtered = filtered.filter(m => m.toplamBorcTL === 0 && m.durumu === 'aktif');
         break;
       case 'pasif':
         filtered = filtered.filter(m => m.durumu === 'pasif');
@@ -242,9 +242,21 @@ const MusteriListe = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right" onClick={() => navigate(`/musteri/detay/${musteri.id}`)}>
-                      <span className={musteri.toplamBorc > 0 ? 'text-destructive font-semibold' : 'text-success'}>
-                        {formatCurrency(musteri.toplamBorc, 'TRY')}
-                      </span>
+                      <div className="space-y-1">
+                        <p className={`font-semibold ${musteri.toplamBorcTL > 0 ? 'text-destructive' : 'text-success'}`}>
+                          {formatCurrency(musteri.toplamBorcTL, 'TRY')}
+                        </p>
+                        {(musteri.borclar.USD > 0 || musteri.borclar.EUR > 0) && (
+                          <div className="text-xs text-muted-foreground space-y-0.5">
+                            {musteri.borclar.USD > 0 && (
+                              <p className="text-blue-600">USD: {formatCurrency(musteri.borclar.USD, 'USD')}</p>
+                            )}
+                            {musteri.borclar.EUR > 0 && (
+                              <p className="text-green-600">EUR: {formatCurrency(musteri.borclar.EUR, 'EUR')}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell onClick={() => navigate(`/musteri/detay/${musteri.id}`)}>
                       {new Date(musteri.sonIslemTarihi).toLocaleDateString('tr-TR')}

@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowLeft, Edit, DollarSign, Receipt } from "lucide-react";
 import { getMusteriById } from "@/lib/musteri-data";
-import { formatCurrency } from "@/lib/kur-hesaplama";
+import { formatCurrency, getGuncelKurlar } from "@/lib/kur-hesaplama";
 import HesapEkstresiTable from "@/components/HesapEkstresiTable";
 import OdemeAlModal from "@/components/OdemeAlModal";
 import { HaftalikTahsilatFisiModal } from "@/components/HaftalikTahsilatFisiModal";
@@ -51,8 +51,10 @@ const MusteriDetay = () => {
     .toUpperCase();
 
   const borcOrani = musteri.krediLimiti
-    ? (musteri.toplamBorc / musteri.krediLimiti) * 100
+    ? (musteri.toplamBorcTL / musteri.krediLimiti) * 100
     : 0;
+
+  const guncelKurlar = getGuncelKurlar();
 
   const handleOdemeSuccess = () => {
     if (musteriId) {
@@ -127,16 +129,56 @@ const MusteriDetay = () => {
 
                 <Separator />
 
-                <div className="space-y-3">
+                <div className="space-y-4">
+                  <div className="text-sm font-medium text-muted-foreground">Borç Detayları</div>
+                  
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1 p-3 bg-muted/50 rounded-lg">
+                      <p className="text-xs text-muted-foreground">TRY Borç</p>
+                      <p className="text-lg font-bold">
+                        {formatCurrency(musteri.borclar.TRY, 'TRY')}
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-1 p-3 bg-blue-500/10 rounded-lg">
+                      <p className="text-xs text-muted-foreground">USD Borç</p>
+                      <p className="text-lg font-bold text-blue-600">
+                        {formatCurrency(musteri.borclar.USD, 'USD')}
+                      </p>
+                      {musteri.borclar.USD > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          ≈ {formatCurrency(musteri.borclar.USD * guncelKurlar.usd, 'TRY')}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-1 p-3 bg-green-500/10 rounded-lg">
+                      <p className="text-xs text-muted-foreground">EUR Borç</p>
+                      <p className="text-lg font-bold text-green-600">
+                        {formatCurrency(musteri.borclar.EUR, 'EUR')}
+                      </p>
+                      {musteri.borclar.EUR > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          ≈ {formatCurrency(musteri.borclar.EUR * guncelKurlar.eur, 'TRY')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
                   <div className="text-center">
-                    <div className="text-sm text-muted-foreground mb-1">Toplam Borç</div>
+                    <div className="text-sm text-muted-foreground mb-1">Toplam Borç (TL Karşılığı)</div>
                     <div
                       className={`text-3xl font-bold ${
-                        musteri.toplamBorc > 0 ? "text-destructive" : "text-green-600"
+                        musteri.toplamBorcTL > 0 ? "text-destructive" : "text-green-600"
                       }`}
                     >
-                      {formatCurrency(musteri.toplamBorc, "TRY")}
+                      {formatCurrency(musteri.toplamBorcTL, "TRY")}
                     </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Güncel kurlarla hesaplanmış toplam
+                    </p>
                   </div>
 
                   {musteri.krediLimiti && (

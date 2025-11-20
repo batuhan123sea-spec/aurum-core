@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { tcmbKurCek, marjEkle } from "@/lib/kur-api";
 import { kurlarıKaydet, getGuncelKurlar } from "@/lib/kur-hesaplama";
+import { tumMusteriBorclariniGuncelle } from "@/lib/musteri-data";
 
 export const Header = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -46,13 +47,16 @@ export const Header = () => {
         // localStorage'a kaydet (tüm sistemde kullanılmak üzere)
         kurlarıKaydet(marjliKurlar.usd, marjliKurlar.eur);
         
+        // ✅ Tüm müşteri borçlarını güncelle
+        tumMusteriBorclariniGuncelle();
+        
         setSonGuncelleme(new Date());
         
-        toast.success('Döviz kurları güncellendi', {
+        toast.success('Döviz kurları ve müşteri borçları güncellendi', {
           description: `USD: ${marjliKurlar.usd.toFixed(2)} ₺ | EUR: ${marjliKurlar.eur.toFixed(2)} ₺`
         });
         
-        console.log('Kurlar başarıyla güncellendi:', marjliKurlar);
+        console.log('Kurlar ve müşteri borçları başarıyla güncellendi:', marjliKurlar);
       } else {
         throw new Error('Kur bilgisi alınamadı');
       }
@@ -86,8 +90,8 @@ export const Header = () => {
     // İlk yüklemede güncel kurları çek
     kurGuncelle();
 
-    // 5 dakikada bir otomatik güncelle
-    const timer = setInterval(kurGuncelle, 300000); // 5 dakika
+    // 2 dakikada bir otomatik güncelle (daha canlı)
+    const timer = setInterval(kurGuncelle, 120000); // 2 dakika
     return () => clearInterval(timer);
   }, []);
 
