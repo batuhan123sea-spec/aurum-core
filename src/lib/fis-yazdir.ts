@@ -62,6 +62,75 @@ ${odeme.aciklama ? `║ Not: ${pad(odeme.aciklama, 26)} ║` : ''}
   `.trim();
 }
 
+export function haftalikTahsilatFisiOlustur(
+  musteri: { adSoyad: string; kod: string; telefon: string },
+  baslangicTarihi: string,
+  bitisTarihi: string,
+  baslangicBakiyesi: number,
+  buHaftaOdemeler: Array<{ tarih: string; aciklama: string; tutar: number }>,
+  buHaftaSatislar: Array<{ tarih: string; satisNo: string; tutar: number }>,
+  guncelBakiye: number
+): string {
+  const formatTarih = (tarih: string) => new Date(tarih).toLocaleDateString('tr-TR');
+  const pad = (text: string, length: number = 20) => text.substring(0, length).padEnd(length);
+  const padRight = (text: string, length: number = 14) => text.padStart(length);
+  
+  const toplamOdeme = buHaftaOdemeler.reduce((sum, o) => sum + o.tutar, 0);
+  const toplamSatis = buHaftaSatislar.reduce((sum, s) => sum + s.tutar, 0);
+  
+  let odemelerText = '';
+  if (buHaftaOdemeler.length > 0) {
+    buHaftaOdemeler.forEach(odeme => {
+      const tarih = formatTarih(odeme.tarih).substring(0, 5);
+      const aciklama = odeme.aciklama.substring(0, 10).padEnd(10);
+      odemelerText += `║ ${tarih} - ${aciklama} ${padRight(formatCurrency(-odeme.tutar, 'TRY'))} ║\n`;
+    });
+  } else {
+    odemelerText = '║ (Ödeme yapılmadı)              ║\n';
+  }
+  
+  let satislarText = '';
+  if (buHaftaSatislar.length > 0) {
+    buHaftaSatislar.forEach(satis => {
+      const tarih = formatTarih(satis.tarih).substring(0, 5);
+      const satisNo = satis.satisNo.substring(0, 10).padEnd(10);
+      satislarText += `║ ${tarih} - ${satisNo} ${padRight(formatCurrency(satis.tutar, 'TRY'))} ║\n`;
+    });
+  } else {
+    satislarText = '║ (Satış yapılmadı)               ║\n';
+  }
+  
+  return `
+╔═══════════════════════════════╗
+║   KUYUMCU MAKİNE MALZEME      ║
+║       LTD. ŞTİ.               ║
+╠═══════════════════════════════╣
+║   HAFTALİK TAHSİLAT FİŞİ     ║
+║  ${formatTarih(baslangicTarihi)} - ${formatTarih(bitisTarihi)}  ║
+╠═══════════════════════════════╣
+║ Müşteri: ${pad(musteri.adSoyad)} ║
+║ Kod: ${pad(musteri.kod)} ║
+║ Telefon: ${pad(musteri.telefon)} ║
+╠═══════════════════════════════╣
+║ GEÇEN HAFTADAN KALAN:         ║
+║           ${padRight(formatCurrency(baslangicBakiyesi, 'TRY'))} ║
+╠═══════════════════════════════╣
+║ BU HAFTA YAPILAN ÖDEMELER:    ║
+${odemelerText}║ Toplam ödemeler: ${padRight(formatCurrency(-toplamOdeme, 'TRY'))} ║
+╠═══════════════════════════════╣
+║ BU HAFTA YAPILAN SATIŞLAR:    ║
+${satislarText}║ Toplam satışlar: ${padRight(formatCurrency(toplamSatis, 'TRY'))} ║
+╠═══════════════════════════════╣
+║ GÜNCEL BAKİYE:                ║
+║           ${padRight(formatCurrency(guncelBakiye, 'TRY'))} ║
+╠═══════════════════════════════╣
+║       Teşekkür Ederiz!        ║
+║     📞 0212 123 45 67         ║
+║   www.kuyumcumakine.com       ║
+╚═══════════════════════════════╝
+  `.trim();
+}
+
 export function fisYazdir(fisIcerigi: string): void {
   const printWindow = window.open('', '', 'width=300,height=600');
   if (!printWindow) {
