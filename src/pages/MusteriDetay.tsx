@@ -85,21 +85,42 @@ const MusteriDetay = () => {
                 </Badge>
               </CardHeader>
 
-              <CardContent className="space-y-4">
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">📞 Telefon:</span>
-                    <span>{musteri.telefon}</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-muted-foreground">📍 Adres:</span>
-                    <span className="flex-1">{musteri.adres}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">💳 Para Birimi:</span>
-                    <span>{musteri.varsayilanParaBirimi}</span>
-                  </div>
+          <CardContent className="space-y-4">
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">📞 Telefon:</span>
+                <span>{musteri.telefon}</span>
+              </div>
+              
+              {musteri.email && (
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">📧 E-posta:</span>
+                  <span>{musteri.email}</span>
                 </div>
+              )}
+              
+              <div className="flex items-start gap-2">
+                <span className="text-muted-foreground">📍 Adres:</span>
+                <span className="flex-1">{musteri.adres}</span>
+              </div>
+              
+              {musteri.vergiNoTcKimlik && (
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">🆔 Vergi/TC:</span>
+                  <span>{musteri.vergiNoTcKimlik}</span>
+                </div>
+              )}
+              
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">💳 Para Birimi:</span>
+                <span>{musteri.varsayilanParaBirimi}</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">📅 Kayıt Tarihi:</span>
+                <span>{new Date(musteri.olusturmaTarihi).toLocaleDateString('tr-TR')}</span>
+              </div>
+            </div>
 
                 <Separator />
 

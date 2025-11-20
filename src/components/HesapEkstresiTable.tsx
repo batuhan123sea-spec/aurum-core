@@ -66,6 +66,7 @@ const HesapEkstresiTable = ({ musteriId, filter = 'tum' }: HesapEkstresiTablePro
             <TableHead className="text-right">Tutar</TableHead>
             <TableHead className="text-right">Kur</TableHead>
             <TableHead className="text-right">TL Karşılığı</TableHead>
+            <TableHead>Ödeme Yöntemi</TableHead>
             <TableHead className="text-right">Bakiye</TableHead>
           </TableRow>
         </TableHeader>
@@ -86,11 +87,6 @@ const HesapEkstresiTable = ({ musteriId, filter = 'tum' }: HesapEkstresiTablePro
                 <TableCell>{getIslemTuruBadge(hareket.islemTuru)}</TableCell>
                 <TableCell className="max-w-[200px]">
                   <div className="truncate">{hareket.aciklama}</div>
-                  {hareket.odemeTuru && (
-                    <span className="text-xs text-muted-foreground">
-                      {hareket.odemeTuru}
-                    </span>
-                  )}
                 </TableCell>
                 <TableCell>{getParaBirimiBadge(hareket.paraBirimi)}</TableCell>
                 <TableCell className={`text-right font-semibold ${isBorc ? 'text-destructive' : 'text-green-600'}`}>
@@ -101,6 +97,17 @@ const HesapEkstresiTable = ({ musteriId, filter = 'tum' }: HesapEkstresiTablePro
                 </TableCell>
                 <TableCell className={`text-right font-semibold ${isBorc ? 'text-destructive' : 'text-green-600'}`}>
                   {isBorc ? '+' : '-'}{formatCurrency(hareket.tlKarsiligi, 'TRY')}
+                </TableCell>
+                <TableCell>
+                  {hareket.odemeTuru ? (
+                    <Badge variant="outline" className="capitalize">
+                      {hareket.odemeTuru === 'kredi-karti' ? 'Kredi Kartı' :
+                       hareket.odemeTuru === 'eft' ? 'EFT' :
+                       hareket.odemeTuru === 'havale' ? 'Havale' : 'Nakit'}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">-</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-right font-bold">
                   {formatCurrency(hareket.bakiye, 'TRY')}

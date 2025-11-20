@@ -20,7 +20,9 @@ const MusteriForm = () => {
   const [formData, setFormData] = useState({
     adSoyad: "",
     telefon: "",
+    email: "",
     adres: "",
+    vergiNoTcKimlik: "",
     konum: "ic" as Konum,
     varsayilanParaBirimi: "TRY" as ParaBirimi,
     krediLimiti: "",
@@ -31,15 +33,17 @@ const MusteriForm = () => {
     if (isEdit && musteriId) {
       const musteri = getMusteriById(musteriId);
       if (musteri) {
-        setFormData({
-          adSoyad: musteri.adSoyad,
-          telefon: musteri.telefon,
-          adres: musteri.adres,
-          konum: musteri.konum,
-          varsayilanParaBirimi: musteri.varsayilanParaBirimi,
-          krediLimiti: musteri.krediLimiti?.toString() || "",
-          notlar: musteri.notlar || "",
-        });
+      setFormData({
+        adSoyad: musteri.adSoyad,
+        telefon: musteri.telefon,
+        email: musteri.email || "",
+        adres: musteri.adres,
+        vergiNoTcKimlik: musteri.vergiNoTcKimlik || "",
+        konum: musteri.konum,
+        varsayilanParaBirimi: musteri.varsayilanParaBirimi,
+        krediLimiti: musteri.krediLimiti?.toString() || "",
+        notlar: musteri.notlar || "",
+      });
       } else {
         toast({
           title: "Hata",
@@ -68,7 +72,9 @@ const MusteriForm = () => {
       kod: isEdit && musteriId ? getMusteriById(musteriId)!.kod : generateMusteriKodu(),
       adSoyad: formData.adSoyad.trim(),
       telefon: formData.telefon.trim(),
+      email: formData.email.trim() || undefined,
       adres: formData.adres.trim(),
+      vergiNoTcKimlik: formData.vergiNoTcKimlik.trim() || undefined,
       konum: formData.konum,
       varsayilanParaBirimi: formData.varsayilanParaBirimi,
       krediLimiti: formData.krediLimiti ? parseFloat(formData.krediLimiti) : undefined,
@@ -128,6 +134,17 @@ const MusteriForm = () => {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="email">E-posta</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="ornek@email.com"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="adres">Adres</Label>
                 <Textarea
                   id="adres"
@@ -136,6 +153,18 @@ const MusteriForm = () => {
                   placeholder="Müşteri adresi"
                   maxLength={200}
                   rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="vergiNoTcKimlik">Vergi No / TC Kimlik</Label>
+                <Input
+                  id="vergiNoTcKimlik"
+                  type="text"
+                  value={formData.vergiNoTcKimlik}
+                  onChange={(e) => setFormData({ ...formData, vergiNoTcKimlik: e.target.value })}
+                  placeholder="12345678901"
+                  maxLength={11}
                 />
               </div>
 

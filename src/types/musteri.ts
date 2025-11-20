@@ -9,7 +9,9 @@ export interface Musteri {
   kod: string;
   adSoyad: string;
   telefon: string;
+  email?: string;
   adres: string;
+  vergiNoTcKimlik?: string;
   konum: Konum;
   varsayilanParaBirimi: ParaBirimi;
   krediLimiti?: number;
