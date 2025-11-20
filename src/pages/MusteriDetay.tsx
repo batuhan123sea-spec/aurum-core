@@ -8,17 +8,20 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Edit, Printer, DollarSign } from "lucide-react";
+import { ArrowLeft, Edit, DollarSign, Receipt } from "lucide-react";
 import { getMusteriById } from "@/lib/musteri-data";
 import { formatCurrency } from "@/lib/kur-hesaplama";
 import HesapEkstresiTable from "@/components/HesapEkstresiTable";
 import OdemeAlModal from "@/components/OdemeAlModal";
+import { HaftalikTahsilatFisiModal } from "@/components/HaftalikTahsilatFisiModal";
+import { SatisGecmisiTable } from "@/components/SatisGecmisiTable";
 
 const MusteriDetay = () => {
   const { musteriId } = useParams();
   const navigate = useNavigate();
   const [musteri, setMusteri] = useState(getMusteriById(musteriId || ""));
   const [odemeModalOpen, setOdemeModalOpen] = useState(false);
+  const [tahsilatFisiModalOpen, setTahsilatFisiModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("tum");
 
   useEffect(() => {
@@ -177,37 +180,53 @@ const MusteriDetay = () => {
                     <Edit className="w-4 h-4" />
                     Düzenle
                   </Button>
-                  <Button variant="outline" className="w-full gap-2">
-                    <Printer className="w-4 h-4" />
-                    Fiş Yazdır
+                  <Button 
+                    variant="outline" 
+                    className="w-full gap-2"
+                    onClick={() => setTahsilatFisiModalOpen(true)}
+                  >
+                    <Receipt className="w-4 h-4" />
+                    Haftalık Tahsilat Fişi
                   </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Sağ Panel - Hesap Ekstresi */}
+          {/* Sağ Panel - Hesap Ekstresi ve Satış Geçmişi */}
           <div className="lg:col-span-2">
             <Card>
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <Tabs defaultValue="hesap-ekstresi" className="w-full">
                 <CardHeader>
-                  <CardTitle>Hesap Ekstresi</CardTitle>
-                  <TabsList>
-                    <TabsTrigger value="tum">Tümü</TabsTrigger>
-                    <TabsTrigger value="satis">Satışlar</TabsTrigger>
-                    <TabsTrigger value="odeme">Ödemeler</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="hesap-ekstresi">Hesap Ekstresi</TabsTrigger>
+                    <TabsTrigger value="satis-gecmisi">Satış Geçmişi</TabsTrigger>
                   </TabsList>
                 </CardHeader>
 
                 <CardContent>
-                  <TabsContent value="tum" className="mt-0">
-                    <HesapEkstresiTable musteriId={musteri.id} filter="tum" />
+                  <TabsContent value="hesap-ekstresi">
+                    <Tabs value={activeTab} onValueChange={setActiveTab}>
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="tum">Tümü</TabsTrigger>
+                        <TabsTrigger value="satis">Satışlar</TabsTrigger>
+                        <TabsTrigger value="odeme">Ödemeler</TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="tum" className="mt-4">
+                        <HesapEkstresiTable musteriId={musteri.id} filter="tum" />
+                      </TabsContent>
+                      <TabsContent value="satis" className="mt-4">
+                        <HesapEkstresiTable musteriId={musteri.id} filter="satis" />
+                      </TabsContent>
+                      <TabsContent value="odeme" className="mt-4">
+                        <HesapEkstresiTable musteriId={musteri.id} filter="odeme" />
+                      </TabsContent>
+                    </Tabs>
                   </TabsContent>
-                  <TabsContent value="satis" className="mt-0">
-                    <HesapEkstresiTable musteriId={musteri.id} filter="satis" />
-                  </TabsContent>
-                  <TabsContent value="odeme" className="mt-0">
-                    <HesapEkstresiTable musteriId={musteri.id} filter="odeme" />
+
+                  <TabsContent value="satis-gecmisi" className="mt-4">
+                    <SatisGecmisiTable musteriId={musteri.id} />
                   </TabsContent>
                 </CardContent>
               </Tabs>
@@ -216,11 +235,17 @@ const MusteriDetay = () => {
         </div>
       </div>
 
-      <OdemeAlModal
+      <OdemeAlModal 
         musteri={musteri}
         open={odemeModalOpen}
         onOpenChange={setOdemeModalOpen}
         onSuccess={handleOdemeSuccess}
+      />
+
+      <HaftalikTahsilatFisiModal
+        musteri={musteri}
+        open={tahsilatFisiModalOpen}
+        onOpenChange={setTahsilatFisiModalOpen}
       />
     </Layout>
   );
