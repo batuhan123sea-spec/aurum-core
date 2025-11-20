@@ -27,8 +27,8 @@ export function getGuncelKurlar(): DovizKurlari {
   
   // Varsayılan kurlar
   return {
-    usd: 32.50,
-    eur: 35.20,
+    usd: 42.37,
+    eur: 48.80,
     guncellemeTarihi: new Date().toISOString(),
   };
 }

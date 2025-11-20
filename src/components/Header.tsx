@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { LogOut, User, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { tcmbKurCek, marjEkle, dovizDevKurCek } from "@/lib/kur-api";
+import { tcmbKurCek } from "@/lib/kur-api";
 import { kurlarıKaydet, getGuncelKurlar } from "@/lib/kur-hesaplama";
 import { tumMusteriBorclariniGuncelle } from "@/lib/musteri-data";
 
@@ -29,46 +29,27 @@ export const Header = () => {
     setKurGuncelleniyor(true);
     
     try {
-      console.log('Piyasa kurları güncelleniyor (doviz.dev)...');
+      console.log('TCMB\'den kurlar çekiliyor...');
       
-      // Önce doviz.dev'den dene
-      let kurlar = await dovizDevKurCek();
-      
-      // Başarısız olursa TCMB'ye fall back yap
-      if (!kurlar) {
-        console.warn('doviz.dev başarısız, TCMB\'ye geçiliyor...');
-        const tcmbKurlar = await tcmbKurCek();
-        if (tcmbKurlar) {
-          kurlar = marjEkle(tcmbKurlar, 2); // TCMB için %2 marj
-        }
-      }
+      const kurlar = await tcmbKurCek();
       
       if (kurlar) {
-        // State'i güncelle
         setExchangeRates({
           usd: kurlar.usd,
           eur: kurlar.eur
         });
         
-        // localStorage'a kaydet (tüm sistemde kullanılmak üzere)
         kurlarıKaydet(kurlar.usd, kurlar.eur);
-        
-        // ✅ Tüm müşteri borçlarını güncelle
         tumMusteriBorclariniGuncelle();
-        
         setSonGuncelleme(new Date());
         
-        toast.success('Piyasa kurları ve müşteri borçları güncellendi', {
-          description: `USD: ${kurlar.usd.toFixed(2)} ₺ | EUR: ${kurlar.eur.toFixed(2)} ₺ (${kurlar.kaynak})`
+        toast.success('Döviz kurları güncellendi', {
+          description: `USD: ${kurlar.usd.toFixed(2)} ₺ | EUR: ${kurlar.eur.toFixed(2)} ₺`
         });
-        
-        console.log('Kurlar ve müşteri borçları başarıyla güncellendi:', kurlar);
       } else {
         throw new Error('Kur bilgisi alınamadı');
       }
     } catch (error) {
-      console.error('Kur güncelleme hatası:', error);
-      
       // Hata durumunda localStorage'dan son kurları kullan
       const storedKurlar = getGuncelKurlar();
       setExchangeRates({
