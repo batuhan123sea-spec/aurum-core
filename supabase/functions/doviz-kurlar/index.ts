@@ -14,11 +14,11 @@ serve(async (req) => {
   try {
     console.log('doviz.com\'dan kurlar çekiliyor...');
     
-    // doviz.com ana sayfasını çek
-    const response = await fetch('https://www.doviz.com/', {
+    // doviz.com API endpoint'ini çağır (mobil API)
+    const response = await fetch('https://www.doviz.com/api/v1/currencies/USD/latest', {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept': 'application/json',
       }
     });
 
@@ -26,18 +26,30 @@ serve(async (req) => {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const html = await response.text();
+    const usdData = await response.json();
+    console.log('USD verisi:', usdData);
     
-    // USD/TRY satış kurunu bul (doviz.com'un HTML yapısına göre)
-    const usdMatch = html.match(/data-name="dolar"[\s\S]*?data-selling="([\d.,]+)"/);
-    const usdSatis = usdMatch ? parseFloat(usdMatch[1].replace(',', '.')) : null;
-    
-    // EUR/TRY satış kurunu bul
-    const eurMatch = html.match(/data-name="euro"[\s\S]*?data-selling="([\d.,]+)"/);
-    const eurSatis = eurMatch ? parseFloat(eurMatch[1].replace(',', '.')) : null;
+    // EUR için ayrı istek
+    const eurResponse = await fetch('https://www.doviz.com/api/v1/currencies/EUR/latest', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/json',
+      }
+    });
 
-    if (!usdSatis || !eurSatis) {
-      throw new Error('Kurlar parse edilemedi');
+    if (!eurResponse.ok) {
+      throw new Error(`HTTP error! status: ${eurResponse.status}`);
+    }
+
+    const eurData = await eurResponse.json();
+    console.log('EUR verisi:', eurData);
+    
+    // Satış kurlarını al
+    const usdSatis = parseFloat(usdData.selling);
+    const eurSatis = parseFloat(eurData.selling);
+
+    if (isNaN(usdSatis) || isNaN(eurSatis)) {
+      throw new Error('Kur değerleri geçersiz');
     }
 
     console.log('doviz.com kurları başarıyla çekildi:', { usdSatis, eurSatis });
