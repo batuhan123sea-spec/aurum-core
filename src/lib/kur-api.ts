@@ -1,7 +1,7 @@
 export interface KurVerisi {
   usd: number;
   eur: number;
-  kaynak: 'tcmb' | 'manuel';
+  kaynak: 'tcmb' | 'doviz-dev' | 'manuel';
   guncelleme: string;
 }
 
@@ -61,6 +61,53 @@ export async function tcmbKurCek(): Promise<KurVerisi | null> {
     };
   } catch (error) {
     console.error('TCMB kur çekme hatası:', error);
+    return null;
+  }
+}
+
+/**
+ * doviz.dev API'sinden gerçek piyasa kurlarını çeker
+ * TCMB'den daha güncel ve piyasa gerçeklerini yansıtır
+ */
+export async function dovizDevKurCek(): Promise<KurVerisi | null> {
+  try {
+    console.log('doviz.dev API\'den kurlar çekiliyor...');
+    
+    const response = await fetch('https://api.doviz.dev/v1/currencies', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.data || !data.data.USD || !data.data.EUR) {
+      throw new Error('doviz.dev verisi bulunamadı');
+    }
+
+    // USD ve EUR satış kurları - gerçek piyasa kurları
+    const usdSatis = parseFloat(data.data.USD.satis);
+    const eurSatis = parseFloat(data.data.EUR.satis);
+
+    if (isNaN(usdSatis) || isNaN(eurSatis)) {
+      throw new Error('Kur değerleri geçersiz');
+    }
+
+    console.log('doviz.dev kurları başarıyla çekildi:', { usdSatis, eurSatis });
+
+    return {
+      usd: usdSatis,
+      eur: eurSatis,
+      kaynak: 'doviz-dev',
+      guncelleme: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('doviz.dev kur çekme hatası:', error);
     return null;
   }
 }
