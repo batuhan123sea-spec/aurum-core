@@ -6,6 +6,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import StokUrunler from "./pages/StokUrunler";
 import StokKategoriDetay from "./pages/StokKategoriDetay";
+import MusteriListe from "./pages/MusteriListe";
+import MusteriDetay from "./pages/MusteriDetay";
+import MusteriForm from "./components/MusteriForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +23,10 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/stok/urunler" element={<StokUrunler />} />
           <Route path="/stok/kategori/:kategoriId" element={<StokKategoriDetay />} />
+          <Route path="/musteri/liste" element={<MusteriListe />} />
+          <Route path="/musteri/detay/:musteriId" element={<MusteriDetay />} />
+          <Route path="/musteri/yeni" element={<MusteriForm />} />
+          <Route path="/musteri/duzenle/:musteriId" element={<MusteriForm />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
