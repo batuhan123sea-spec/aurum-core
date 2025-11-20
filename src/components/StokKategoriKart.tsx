@@ -15,13 +15,6 @@ export const StokKategoriKart = ({ kategori, onClick }: StokKategoriKartProps) =
       <div className="text-center space-y-4">
         <div className="text-5xl mb-3">{kategori.emoji}</div>
         <h3 className="font-semibold text-lg text-foreground">{kategori.ad}</h3>
-        <div className="space-y-1 text-sm text-muted-foreground">
-          {kategori.altKategoriler.map((alt, index) => (
-            <div key={index} className="hover:text-primary transition-colors">
-              • {alt}
-            </div>
-          ))}
-        </div>
       </div>
     </Card>
   );
