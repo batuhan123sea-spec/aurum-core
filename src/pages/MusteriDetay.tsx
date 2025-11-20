@@ -189,28 +189,28 @@ const MusteriDetay = () => {
           {/* Sağ Panel - Hesap Ekstresi */}
           <div className="lg:col-span-2">
             <Card>
-              <CardHeader>
-                <CardTitle>Hesap Ekstresi</CardTitle>
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <CardHeader>
+                  <CardTitle>Hesap Ekstresi</CardTitle>
                   <TabsList>
                     <TabsTrigger value="tum">Tümü</TabsTrigger>
                     <TabsTrigger value="satis">Satışlar</TabsTrigger>
                     <TabsTrigger value="odeme">Ödemeler</TabsTrigger>
                   </TabsList>
-                </Tabs>
-              </CardHeader>
+                </CardHeader>
 
-              <CardContent>
-                <TabsContent value="tum" className="mt-0">
-                  <HesapEkstresiTable musteriId={musteri.id} filter="tum" />
-                </TabsContent>
-                <TabsContent value="satis" className="mt-0">
-                  <HesapEkstresiTable musteriId={musteri.id} filter="satis" />
-                </TabsContent>
-                <TabsContent value="odeme" className="mt-0">
-                  <HesapEkstresiTable musteriId={musteri.id} filter="odeme" />
-                </TabsContent>
-              </CardContent>
+                <CardContent>
+                  <TabsContent value="tum" className="mt-0">
+                    <HesapEkstresiTable musteriId={musteri.id} filter="tum" />
+                  </TabsContent>
+                  <TabsContent value="satis" className="mt-0">
+                    <HesapEkstresiTable musteriId={musteri.id} filter="satis" />
+                  </TabsContent>
+                  <TabsContent value="odeme" className="mt-0">
+                    <HesapEkstresiTable musteriId={musteri.id} filter="odeme" />
+                  </TabsContent>
+                </CardContent>
+              </Tabs>
             </Card>
           </div>
         </div>
