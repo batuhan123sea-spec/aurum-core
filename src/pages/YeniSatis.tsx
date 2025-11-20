@@ -32,7 +32,7 @@ export default function YeniSatis() {
   
   const [satisTuru, setSatisTuru] = useState<'hesapli' | 'rezerv' | 'hizli'>('hesapli');
   const [sepet, setSepet] = useState<SatisKalemi[]>([]);
-  const [kdvDahil, setKdvDahil] = useState(true);
+  const [kdvDahil, setKdvDahil] = useState(false);
   const [genelIndirimTL, setGenelIndirimTL] = useState(0);
   const [genelIndirimYuzde, setGenelIndirimYuzde] = useState(0);
   const [barkodInput, setBarkodInput] = useState("");
@@ -126,8 +126,8 @@ export default function YeniSatis() {
       toplam -= indirimTL;
     }
     
-    // KDV ekle (eğer dahil değilse)
-    if (!kdvDahil) {
+    // KDV ekle (eğer dahilse)
+    if (kdvDahil) {
       toplam += toplam * (kdvOrani / 100);
     }
     
@@ -212,7 +212,7 @@ export default function YeniSatis() {
     genelToplam -= genelIndirimTL;
   }
   
-  if (!kdvDahil) {
+  if (kdvDahil) {
     genelToplam += toplamKDV;
   }
 

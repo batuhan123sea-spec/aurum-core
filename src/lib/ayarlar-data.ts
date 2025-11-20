@@ -21,7 +21,7 @@ const DEFAULT_AYARLAR: Ayarlar = {
   },
   kdv: {
     varsayilanKDVOrani: 20,
-    kdvDahilSatis: true
+    kdvDahilSatis: false
   },
   stok: {
     minStokSeviyesi: 10,
