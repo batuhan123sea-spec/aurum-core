@@ -11,13 +11,14 @@ serve(async (req) => {
   }
 
   try {
-    console.log('BigPara\'dan kurlar çekiliyor...');
+    console.log('BigPara ana sitesinden SATIŞ kurları çekiliyor...');
     
-    // BigPara mobil sitesini çek
-    const response = await fetch('https://sm.bigpara.com/doviz', {
+    // BigPara ana sitesini çek (daha güncel ve yapılandırılmış)
+    const response = await fetch('https://bigpara.hurriyet.com.tr/doviz/', {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
       }
     });
 
@@ -26,78 +27,160 @@ serve(async (req) => {
     }
 
     const html = await response.text();
-    console.log('HTML alındı, parse ediliyor...');
+    console.log('HTML alındı, SATIŞ kurları parse ediliyor...');
     
     let usdSatis = 0;
     let eurSatis = 0;
     
-    // Yöntem 1: JSON içinde data-exchange-rate attribute'ları ara
-    const usdJsonMatch = html.match(/data-name="dolar"[^>]*data-exchange-rate="([\d,]+)"/i);
-    const eurJsonMatch = html.match(/data-name="euro"[^>]*data-exchange-rate="([\d,]+)"/i);
+    // Method 1: JSON içinde "satis" değeri ara (en güvenilir)
+    console.log('Method 1: JSON "satis" değerleri aranıyor...');
+    const usdJsonPattern = /"code"\s*:\s*"USD\/TRY"[\s\S]*?"selling"\s*:\s*"?([\d.]+)"?/i;
+    const eurJsonPattern = /"code"\s*:\s*"EUR\/TRY"[\s\S]*?"selling"\s*:\s*"?([\d.]+)"?/i;
+    
+    const usdJsonMatch = html.match(usdJsonPattern);
+    const eurJsonMatch = html.match(eurJsonPattern);
     
     if (usdJsonMatch) {
-      usdSatis = parseFloat(usdJsonMatch[1].replace(',', '.'));
-      console.log('USD bulundu (method 1):', usdSatis);
+      usdSatis = parseFloat(usdJsonMatch[1]);
+      console.log('✓ USD SATIŞ bulundu (JSON):', usdSatis);
     }
     if (eurJsonMatch) {
-      eurSatis = parseFloat(eurJsonMatch[1].replace(',', '.'));
-      console.log('EUR bulundu (method 1):', eurSatis);
+      eurSatis = parseFloat(eurJsonMatch[1]);
+      console.log('✓ EUR SATIŞ bulundu (JSON):', eurSatis);
     }
     
-    // Yöntem 2: Alternatif pattern - JSON içinde doğrudan değerler
+    // Method 2: data-selling attribute ara
     if (!usdSatis || !eurSatis) {
-      const jsonMatch = html.match(/\{[^}]*"DOLAR"[^}]*"SATIS":"([\d,]+)"[^}]*\}/);
-      const jsonMatch2 = html.match(/\{[^}]*"EURO"[^}]*"SATIS":"([\d,]+)"[^}]*\}/);
+      console.log('Method 2: data-selling attribute aranıyor...');
       
-      if (jsonMatch) {
-        usdSatis = parseFloat(jsonMatch[1].replace(',', '.'));
-        console.log('USD bulundu (method 2):', usdSatis);
+      const usdDataPattern = /data-code="USD\/TRY"[^>]*data-selling="([\d.]+)"/i;
+      const eurDataPattern = /data-code="EUR\/TRY"[^>]*data-selling="([\d.]+)"/i;
+      
+      if (!usdSatis) {
+        const usdDataMatch = html.match(usdDataPattern);
+        if (usdDataMatch) {
+          usdSatis = parseFloat(usdDataMatch[1]);
+          console.log('✓ USD SATIŞ bulundu (data-selling):', usdSatis);
+        }
       }
-      if (jsonMatch2) {
-        eurSatis = parseFloat(jsonMatch2[1].replace(',', '.'));
-        console.log('EUR bulundu (method 2):', eurSatis);
+      if (!eurSatis) {
+        const eurDataMatch = html.match(eurDataPattern);
+        if (eurDataMatch) {
+          eurSatis = parseFloat(eurDataMatch[1]);
+          console.log('✓ EUR SATIŞ bulundu (data-selling):', eurSatis);
+        }
       }
     }
     
-    // Yöntem 3: Table row içinde satış değeri ara
+    // Method 3: Table içinde SATIŞ kolonu ara
     if (!usdSatis || !eurSatis) {
-      // USD için: <tr data-name="dolar"...><td>...</td><td class="selling">38.5473</td>
-      const usdTableMatch = html.match(/data-name="dolar"[\s\S]{0,200}?class="[^"]*sell[^"]*"[^>]*>([\d,]+)/i);
-      const eurTableMatch = html.match(/data-name="euro"[\s\S]{0,200}?class="[^"]*sell[^"]*"[^>]*>([\d,]+)/i);
+      console.log('Method 3: Tablo SATIŞ kolonu aranıyor...');
       
-      if (usdTableMatch) {
-        usdSatis = parseFloat(usdTableMatch[1].replace(',', '.'));
-        console.log('USD bulundu (method 3):', usdSatis);
+      // USD için tablo satırını bul
+      const usdRowPattern = /USD\/TRY[\s\S]{0,300}?<td[^>]*class="[^"]*sell[^"]*"[^>]*>([\d.,]+)/i;
+      const eurRowPattern = /EUR\/TRY[\s\S]{0,300}?<td[^>]*class="[^"]*sell[^"]*"[^>]*>([\d.,]+)/i;
+      
+      if (!usdSatis) {
+        const usdRowMatch = html.match(usdRowPattern);
+        if (usdRowMatch) {
+          usdSatis = parseFloat(usdRowMatch[1].replace(',', '.'));
+          console.log('✓ USD SATIŞ bulundu (tablo):', usdSatis);
+        }
       }
-      if (eurTableMatch) {
-        eurSatis = parseFloat(eurTableMatch[1].replace(',', '.'));
-        console.log('EUR bulundu (method 3):', eurSatis);
+      if (!eurSatis) {
+        const eurRowMatch = html.match(eurRowPattern);
+        if (eurRowMatch) {
+          eurSatis = parseFloat(eurRowMatch[1].replace(',', '.'));
+          console.log('✓ EUR SATIŞ bulundu (tablo):', eurSatis);
+        }
+      }
+    }
+    
+    // Method 4: Alternatif JSON yapıları
+    if (!usdSatis || !eurSatis) {
+      console.log('Method 4: Alternatif JSON yapıları aranıyor...');
+      
+      // USDTRY için alternatif pattern
+      const altUsdPattern = /"USDTRY"[\s\S]{0,200}?"satis"\s*:\s*"?([\d.]+)"?/i;
+      const altEurPattern = /"EURTRY"[\s\S]{0,200}?"satis"\s*:\s*"?([\d.]+)"?/i;
+      
+      if (!usdSatis) {
+        const altUsdMatch = html.match(altUsdPattern);
+        if (altUsdMatch) {
+          usdSatis = parseFloat(altUsdMatch[1]);
+          console.log('✓ USD SATIŞ bulundu (alt JSON):', usdSatis);
+        }
+      }
+      if (!eurSatis) {
+        const altEurMatch = html.match(altEurPattern);
+        if (altEurMatch) {
+          eurSatis = parseFloat(altEurMatch[1]);
+          console.log('✓ EUR SATIŞ bulundu (alt JSON):', eurSatis);
+        }
       }
     }
 
-    // Yöntem 4: Basit pattern matching
-    if (!usdSatis) {
-      const simpleUsd = html.match(/DOLAR[\s\S]{0,100}?([\d]+[,\.][\d]+)/);
-      if (simpleUsd) {
-        usdSatis = parseFloat(simpleUsd[1].replace(',', '.'));
-        console.log('USD bulundu (method 4):', usdSatis);
+    // Method 5: Genel sayısal değer arama (en son çare)
+    if (!usdSatis || !eurSatis) {
+      console.log('Method 5: Genel pattern matching deneniyor...');
+      
+      if (!usdSatis) {
+        // USD için genel pattern
+        const generalUsdPattern = /(?:USD|DOLAR|usd)[\s\S]{0,150}?(4[0-2]\.\d{2,4})/i;
+        const generalUsdMatch = html.match(generalUsdPattern);
+        if (generalUsdMatch) {
+          usdSatis = parseFloat(generalUsdMatch[1]);
+          console.log('✓ USD SATIŞ bulundu (genel):', usdSatis);
+        }
       }
-    }
-    if (!eurSatis) {
-      const simpleEur = html.match(/EURO[\s\S]{0,100}?([\d]+[,\.][\d]+)/);
-      if (simpleEur) {
-        eurSatis = parseFloat(simpleEur[1].replace(',', '.'));
-        console.log('EUR bulundu (method 4):', eurSatis);
+      
+      if (!eurSatis) {
+        // EUR için genel pattern
+        const generalEurPattern = /(?:EUR|EURO|eur)[\s\S]{0,150}?(4[7-9]\.\d{2,4})/i;
+        const generalEurMatch = html.match(generalEurPattern);
+        if (generalEurMatch) {
+          eurSatis = parseFloat(generalEurMatch[1]);
+          console.log('✓ EUR SATIŞ bulundu (genel):', eurSatis);
+        }
       }
     }
 
-    // Geçerlilik kontrolü
-    if (!usdSatis || !eurSatis || usdSatis < 10 || eurSatis < 10 || usdSatis > 100 || eurSatis > 100) {
-      console.error('Parse edilen değerler geçersiz:', { usdSatis, eurSatis });
-      throw new Error(`Kurlar parse edilemedi veya geçersiz (USD: ${usdSatis}, EUR: ${eurSatis})`);
+    // Geçerlilik kontrolleri
+    const isValidValue = (value: number): boolean => {
+      return value >= 20 && value <= 80; // Makul TL kur aralığı
+    };
+    
+    const isReasonableRatio = (usd: number, eur: number): boolean => {
+      if (!usd || !eur) return false;
+      // EUR genelde USD'den %10-25 daha pahalı olmalı
+      const ratio = eur / usd;
+      return ratio >= 1.10 && ratio <= 1.30;
+    };
+
+    // Değerleri kontrol et
+    if (!usdSatis || !eurSatis) {
+      console.error('❌ Kurlar bulunamadı:', { usdSatis, eurSatis });
+      throw new Error(`Kurlar parse edilemedi (USD: ${usdSatis}, EUR: ${eurSatis})`);
+    }
+    
+    if (!isValidValue(usdSatis) || !isValidValue(eurSatis)) {
+      console.error('❌ Kurlar geçersiz aralıkta:', { usdSatis, eurSatis });
+      throw new Error(`Kurlar geçersiz (USD: ${usdSatis}, EUR: ${eurSatis})`);
+    }
+    
+    if (!isReasonableRatio(usdSatis, eurSatis)) {
+      console.warn('⚠️ USD/EUR oranı beklenenden farklı:', { 
+        usdSatis, 
+        eurSatis, 
+        ratio: (eurSatis / usdSatis).toFixed(2) 
+      });
     }
 
-    console.log('BigPara kurları başarıyla çekildi:', { usdSatis, eurSatis });
+    console.log('✅ BigPara SATIŞ kurları başarıyla çekildi:', { 
+      usdSatis: usdSatis.toFixed(4), 
+      eurSatis: eurSatis.toFixed(4),
+      ratio: (eurSatis / usdSatis).toFixed(2)
+    });
 
     return new Response(
       JSON.stringify({
@@ -114,19 +197,18 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('BigPara kur çekme hatası:', error);
+    console.error('❌ BigPara kur çekme hatası:', error);
     
     const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
     
-    // Fallback değerleri döndür
+    // Fallback değerleri döndür (güncel piyasa seviyesi)
     return new Response(
       JSON.stringify({
         success: false,
         error: errorMessage,
-        // Fallback değerleri (güncel piyasa seviyesi)
         fallback: {
-          usd: 38.50,
-          eur: 43.80
+          usd: 41.99,
+          eur: 48.70
         }
       }),
       {
