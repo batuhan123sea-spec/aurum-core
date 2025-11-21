@@ -1,8 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { KATEGORILER } from "@/types/stok";
+import { KATEGORILER, Urun } from "@/types/stok";
 import { getUrunByKategori } from "@/lib/stok-data";
+import { formatCurrency } from "@/lib/kur-hesaplama";
+import { YeniUrunModal } from "@/components/YeniUrunModal";
 import {
   Table,
   TableBody,
@@ -18,7 +20,9 @@ import { useState } from "react";
 export default function StokKategoriDetay() {
   const { kategoriId } = useParams<{ kategoriId: string }>();
   const navigate = useNavigate();
-  const [urunler] = useState(() => getUrunByKategori(kategoriId || ""));
+  const [urunler, setUrunler] = useState(() => getUrunByKategori(kategoriId || ""));
+  const [duzenlenecekUrun, setDuzenlenecekUrun] = useState<Urun | null>(null);
+  const [modalAcik, setModalAcik] = useState(false);
 
   const kategori = KATEGORILER.find((k) => k.id === kategoriId);
 
@@ -112,17 +116,24 @@ export default function StokKategoriDetay() {
                     </TableCell>
                     <TableCell>{urun.birim}</TableCell>
                     <TableCell className="text-right">
-                      {urun.alisFiyati.toFixed(2)} {urun.alisFiyatiParaBirimi === 'TRY' ? '₺' : urun.alisFiyatiParaBirimi}
+                      {formatCurrency(urun.alisFiyati, urun.alisFiyatiParaBirimi)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {urun.satisFiyati.toFixed(2)} {urun.alisFiyatiParaBirimi === 'TRY' ? '₺' : urun.alisFiyatiParaBirimi}
+                      {formatCurrency(urun.satisFiyati, urun.alisFiyatiParaBirimi)}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {urun.tedarikciler?.[0]?.tedarikciAdi || 'Belirtilmemiş'}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button size="icon" variant="ghost">
+                        <Button 
+                          size="icon" 
+                          variant="ghost"
+                          onClick={() => {
+                            setDuzenlenecekUrun(urun);
+                            setModalAcik(true);
+                          }}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button size="icon" variant="ghost">
@@ -137,6 +148,19 @@ export default function StokKategoriDetay() {
           )}
         </div>
       </div>
+
+      <YeniUrunModal
+        open={modalAcik}
+        onOpenChange={(open) => {
+          setModalAcik(open);
+          if (!open) setDuzenlenecekUrun(null);
+        }}
+        onSuccess={() => {
+          setUrunler(getUrunByKategori(kategoriId || ""));
+        }}
+        editMode={!!duzenlenecekUrun}
+        initialData={duzenlenecekUrun || undefined}
+      />
     </Layout>
   );
 }

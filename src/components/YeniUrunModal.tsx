@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { KATEGORILER } from "@/types/stok";
+import { KATEGORILER, Urun } from "@/types/stok";
 import { saveUrun, generateUrunKodu } from "@/lib/stok-data";
 import { useToast } from "@/hooks/use-toast";
 
@@ -52,14 +52,28 @@ interface YeniUrunModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  editMode?: boolean;
+  initialData?: Urun;
 }
 
-export const YeniUrunModal = ({ open, onOpenChange, onSuccess }: YeniUrunModalProps) => {
+export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false, initialData }: YeniUrunModalProps) => {
   const { toast } = useToast();
 
   const form = useForm<UrunFormValues>({
     resolver: zodResolver(urunSchema),
-    defaultValues: {
+    defaultValues: initialData ? {
+      ad: initialData.ad,
+      barkod: initialData.barkod,
+      kategori: initialData.kategori,
+      stokMiktari: initialData.stokMiktari,
+      birim: initialData.birim,
+      alisFiyati: initialData.alisFiyati,
+      paraBirimi: initialData.alisFiyatiParaBirimi,
+      satisFiyati: initialData.satisFiyati,
+      tedarikci: initialData.tedarikciler?.[0]?.tedarikciAdi || "",
+      minStokSeviyesi: initialData.minStokSeviyesi,
+      aciklama: initialData.aciklama || "",
+    } : {
       ad: "",
       barkod: "",
       kategori: "",
@@ -75,40 +89,70 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess }: YeniUrunModalPr
   });
 
   const onSubmit = (data: UrunFormValues) => {
-    const yeniUrun = {
-      id: Date.now().toString(),
-      kod: generateUrunKodu(),
-      ad: data.ad,
-      barkod: data.barkod,
-      kategori: data.kategori,
-      stokMiktari: data.stokMiktari,
-      birim: data.birim,
-      tedarikciler: [{
-        id: Date.now().toString(),
-        tedarikciId: 'temp',
-        tedarikciAdi: data.tedarikci,
+    if (editMode && initialData) {
+      const guncelUrun: Urun = {
+        ...initialData,
+        ad: data.ad,
+        barkod: data.barkod,
+        kategori: data.kategori,
+        stokMiktari: data.stokMiktari,
+        birim: data.birim,
         alisFiyati: data.alisFiyati,
-        paraBirimi: data.paraBirimi,
-        teslimatSuresi: 7,
-        varsayilan: true
-      }],
-      alisFiyati: data.alisFiyati,
-      alisFiyatiParaBirimi: data.paraBirimi,
-      karMarji: ((data.satisFiyati - data.alisFiyati) / data.alisFiyati) * 100,
-      satisFiyati: data.satisFiyati,
-      minStokSeviyesi: data.minStokSeviyesi,
-      kritikStokSeviyesi: Math.floor(data.minStokSeviyesi / 2),
-      aciklama: data.aciklama || '',
-      olusturmaTarihi: new Date().toISOString(),
-      guncellemeTarihi: new Date().toISOString(),
-    };
+        alisFiyatiParaBirimi: data.paraBirimi,
+        satisFiyati: data.satisFiyati,
+        karMarji: ((data.satisFiyati - data.alisFiyati) / data.alisFiyati) * 100,
+        minStokSeviyesi: data.minStokSeviyesi,
+        kritikStokSeviyesi: Math.floor(data.minStokSeviyesi / 2),
+        aciklama: data.aciklama || '',
+        guncellemeTarihi: new Date().toISOString(),
+        tedarikciler: [{
+          ...initialData.tedarikciler[0],
+          tedarikciAdi: data.tedarikci,
+          alisFiyati: data.alisFiyati,
+          paraBirimi: data.paraBirimi,
+        }]
+      };
+      
+      saveUrun(guncelUrun);
+      toast({
+        title: "Başarılı!",
+        description: "Ürün başarıyla güncellendi.",
+      });
+    } else {
+      const yeniUrun = {
+        id: Date.now().toString(),
+        kod: generateUrunKodu(),
+        ad: data.ad,
+        barkod: data.barkod,
+        kategori: data.kategori,
+        stokMiktari: data.stokMiktari,
+        birim: data.birim,
+        tedarikciler: [{
+          id: Date.now().toString(),
+          tedarikciId: 'temp',
+          tedarikciAdi: data.tedarikci,
+          alisFiyati: data.alisFiyati,
+          paraBirimi: data.paraBirimi,
+          teslimatSuresi: 7,
+          varsayilan: true
+        }],
+        alisFiyati: data.alisFiyati,
+        alisFiyatiParaBirimi: data.paraBirimi,
+        karMarji: ((data.satisFiyati - data.alisFiyati) / data.alisFiyati) * 100,
+        satisFiyati: data.satisFiyati,
+        minStokSeviyesi: data.minStokSeviyesi,
+        kritikStokSeviyesi: Math.floor(data.minStokSeviyesi / 2),
+        aciklama: data.aciklama || '',
+        olusturmaTarihi: new Date().toISOString(),
+        guncellemeTarihi: new Date().toISOString(),
+      };
 
-    saveUrun(yeniUrun);
-    
-    toast({
-      title: "Başarılı!",
-      description: "Ürün başarıyla eklendi.",
-    });
+      saveUrun(yeniUrun);
+      toast({
+        title: "Başarılı!",
+        description: "Ürün başarıyla eklendi.",
+      });
+    }
     
     form.reset();
     onOpenChange(false);
@@ -119,9 +163,9 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess }: YeniUrunModalPr
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Yeni Ürün Ekle</DialogTitle>
+          <DialogTitle>{editMode ? "Ürün Düzenle" : "Yeni Ürün Ekle"}</DialogTitle>
           <DialogDescription>
-            Yeni bir ürün eklemek için aşağıdaki formu doldurun.
+            {editMode ? "Ürün bilgilerini güncelleyin." : "Yeni bir ürün eklemek için aşağıdaki formu doldurun."}
           </DialogDescription>
         </DialogHeader>
 
@@ -327,7 +371,7 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess }: YeniUrunModalPr
                 İptal
               </Button>
               <Button type="submit" className="bg-success hover:bg-success/90">
-                Kaydet
+                {editMode ? "Güncelle" : "Kaydet"}
               </Button>
             </div>
           </form>
