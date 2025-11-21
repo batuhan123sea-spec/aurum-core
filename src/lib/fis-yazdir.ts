@@ -1,5 +1,6 @@
 import { Musteri, HesapHareketi } from "@/types/musteri";
 import { formatCurrency } from "./kur-hesaplama";
+import { getAyarlar } from "./ayarlar-data";
 
 function center(text: string, genislik: number): string {
   const padding = Math.max(0, Math.floor((genislik - text.length) / 2));
@@ -19,6 +20,10 @@ export function tahsilatFisiOlustur(
   odeme: HesapHareketi,
   oncekiBorc: number
 ): string {
+  const ayarlar = getAyarlar();
+  const firma = ayarlar.firma;
+  const fisAyarlari = ayarlar.fis;
+  
   const tarih = new Date(odeme.tarih);
   const formatTarih = tarih.toLocaleDateString('tr-TR');
   const formatSaat = tarih.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
@@ -30,10 +35,17 @@ export function tahsilatFisiOlustur(
                         odeme.odemeTuru === 'eft' ? 'EFT' :
                         odeme.odemeTuru === 'havale' ? 'Havale' : 'Nakit';
   
+  const baslik = center(fisAyarlari.baslik || 'TAHSİLAT FİŞİ', 31);
+  const firmaAdi = center(firma.firmaAdi || 'Firma Adı', 31);
+  const altBilgi = center(fisAyarlari.altBilgi || 'Teşekkür Ederiz!', 31);
+  const telefon = firma.telefon ? center(`📞 ${firma.telefon}`, 31) : '';
+  const email = firma.email ? center(firma.email, 31) : '';
+  const reklamAlani = fisAyarlari.reklamAlani ? `\n${fisAyarlari.reklamAlani}\n` : '';
+  
   return `
 ╔═══════════════════════════════╗
-║   KUYUMCU MAKİNE MALZEME      ║
-║       LTD. ŞTİ.               ║
+║${baslik}║
+║${firmaAdi}║
 ╠═══════════════════════════════╣
 ║       TAHSİLAT FİŞİ          ║
 ║  Tarih: ${formatTarih} ${formatSaat}  ║
@@ -52,14 +64,8 @@ ${odeme.paraBirimi !== 'TRY' ? `║ (${formatCurrency(odeme.tutar, odeme.paraBir
 ║ Para Birimi: ${pad(odeme.paraBirimi, 18)} ║
 ${odeme.aciklama ? `║ Not: ${pad(odeme.aciklama, 26)} ║` : ''}
 ╠═══════════════════════════════╣
-║       Teşekkür Ederiz!        ║
-║     📞 0212 123 45 67         ║
-║   www.kuyumcumakine.com       ║
-╚═══════════════════════════════╝
-
-[Özelleştirilebilir Reklam Alanı]
-  Yeni ürünlerimizi inceleyin!
-  `.trim();
+║${altBilgi}║
+${telefon ? `║${telefon}║\n` : ''}${email ? `║${email}║\n` : ''}╚═══════════════════════════════╝${reklamAlani}`.trim();
 }
 
 export function haftalikTahsilatFisiOlustur(
@@ -71,6 +77,10 @@ export function haftalikTahsilatFisiOlustur(
   buHaftaSatislar: Array<{ tarih: string; satisNo: string; tutar: number }>,
   guncelBakiye: number
 ): string {
+  const ayarlar = getAyarlar();
+  const firma = ayarlar.firma;
+  const fisAyarlari = ayarlar.fis;
+  
   const formatTarih = (tarih: string) => new Date(tarih).toLocaleDateString('tr-TR');
   const pad = (text: string, length: number = 20) => text.substring(0, length).padEnd(length);
   const padRight = (text: string, length: number = 14) => text.padStart(length);
@@ -100,10 +110,17 @@ export function haftalikTahsilatFisiOlustur(
     satislarText = '║ (Satış yapılmadı)               ║\n';
   }
   
+  const baslik = center(fisAyarlari.baslik || 'HAFTALİK TAHSİLAT FİŞİ', 31);
+  const firmaAdi = center(firma.firmaAdi || 'Firma Adı', 31);
+  const altBilgi = center(fisAyarlari.altBilgi || 'Teşekkür Ederiz!', 31);
+  const telefon = firma.telefon ? center(`📞 ${firma.telefon}`, 31) : '';
+  const email = firma.email ? center(firma.email, 31) : '';
+  const reklamAlani = fisAyarlari.reklamAlani ? `\n${fisAyarlari.reklamAlani}\n` : '';
+  
   return `
 ╔═══════════════════════════════╗
-║   KUYUMCU MAKİNE MALZEME      ║
-║       LTD. ŞTİ.               ║
+║${baslik}║
+║${firmaAdi}║
 ╠═══════════════════════════════╣
 ║   HAFTALİK TAHSİLAT FİŞİ     ║
 ║  ${formatTarih(baslangicTarihi)} - ${formatTarih(bitisTarihi)}  ║
@@ -124,21 +141,22 @@ ${satislarText}║ Toplam satışlar: ${padRight(formatCurrency(toplamSatis, 'TR
 ║ GÜNCEL BAKİYE:                ║
 ║           ${padRight(formatCurrency(guncelBakiye, 'TRY'))} ║
 ╠═══════════════════════════════╣
-║       Teşekkür Ederiz!        ║
-║     📞 0212 123 45 67         ║
-║   www.kuyumcumakine.com       ║
-╚═══════════════════════════════╝
-  `.trim();
+║${altBilgi}║
+${telefon ? `║${telefon}║\n` : ''}${email ? `║${email}║\n` : ''}╚═══════════════════════════════╝${reklamAlani}`.trim();
 }
 
 export function rezervFisiOlustur(rezerv: any): string {
+  const ayarlar = getAyarlar();
+  const firma = ayarlar.firma;
+  const fisAyarlari = ayarlar.fis;
+  
   const W = 45;
   let fis = '';
   
   fis += '\n';
   fis += line(W, '═') + '\n';
-  fis += center('KUYUMCU MAKİNE MALZEME', W) + '\n';
-  fis += center('LTD. ŞTİ.', W) + '\n';
+  fis += center(fisAyarlari.baslik || 'REZERV FİŞİ', W) + '\n';
+  fis += center(firma.firmaAdi || 'Firma Adı', W) + '\n';
   fis += line(W, '═') + '\n';
   fis += '\n';
   fis += center('██████████████████████████████████', W) + '\n';
@@ -170,21 +188,23 @@ export function rezervFisiOlustur(rezerv: any): string {
   fis += line(W, '─') + '\n';
   fis += '\n';
   
-  // Ürünler
+  // Ürünler - KDV detaylı
   rezerv.kalemler.forEach((kalem: any, index: number) => {
-    const toplamFiyat = kalem.birimFiyati * kalem.adet;
     fis += `  ${index + 1}. ${kalem.urunAdi}\n`;
     fis += `     ${kalem.adet} adet x ${kalem.birimFiyati.toFixed(2)} ₺\n`;
-    fis += `     Toplam: ${toplamFiyat.toFixed(2)} ₺\n`;
+    fis += `     KDV (%${kalem.kdvOrani}): ${kalem.kdvTutari.toFixed(2)} ₺\n`;
+    fis += `     Toplam: ${kalem.toplamTutar.toFixed(2)} ₺\n`;
     fis += '\n';
   });
   
   fis += line(W, '─') + '\n';
-  
-  // Toplam
-  const toplam = rezerv.kalemler.reduce((sum: number, k: any) => sum + (k.birimFiyati * k.adet), 0);
   fis += '\n';
-  fis += center(`TAHMİNİ TOPLAM: ${toplam.toFixed(2)} ₺`, W) + '\n';
+  
+  // Toplam - Detaylı
+  fis += `  Ara Toplam (KDV Hariç): ${rezerv.araToplam.toFixed(2)} ₺\n`;
+  fis += `  Toplam KDV: ${rezerv.toplamKDV.toFixed(2)} ₺\n`;
+  fis += line(W, '─') + '\n';
+  fis += center(`GENEL TOPLAM: ${rezerv.genelToplam.toFixed(2)} ₺`, W) + '\n';
   fis += center('(KDV Dahil)', W) + '\n';
   fis += '\n';
   fis += line(W, '═') + '\n';
@@ -200,10 +220,18 @@ export function rezervFisiOlustur(rezerv: any): string {
   fis += '    geri eklenecektir.\n';
   fis += '\n';
   fis += line(W, '═') + '\n';
-  fis += center('Teşekkür Ederiz!', W) + '\n';
-  fis += center('📞 0212 123 45 67', W) + '\n';
-  fis += center('www.kuyumcumakine.com', W) + '\n';
+  fis += center(fisAyarlari.altBilgi || 'Teşekkür Ederiz!', W) + '\n';
+  if (firma.telefon) {
+    fis += center(`📞 ${firma.telefon}`, W) + '\n';
+  }
+  if (firma.email) {
+    fis += center(firma.email, W) + '\n';
+  }
   fis += line(W, '═') + '\n';
+  if (fisAyarlari.reklamAlani) {
+    fis += '\n';
+    fis += center(fisAyarlari.reklamAlani, W) + '\n';
+  }
   fis += '\n';
   
   return fis;
