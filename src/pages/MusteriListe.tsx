@@ -1,5 +1,5 @@
 // Müşteri Listesi
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,12 +9,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Plus, Search, Edit, Trash2, FileDown, Printer } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { getMusteriler, deleteMusteri } from "@/lib/musteri-data";
-import { formatCurrency, getGuncelKurlar } from "@/lib/kur-hesaplama";
+import { getMusteriler, deleteMusteri, tumMusteriBorclariniGuncelle } from "@/lib/musteri-data";
+import { formatCurrency, getGuncelKurlar, getKurYasi, formatKurYasi } from "@/lib/kur-hesaplama";
 import { Musteri } from "@/types/musteri";
 import { toast } from "@/hooks/use-toast";
 import { musterileriExcelAktar } from "@/lib/excel-export";
 import { TopluTahsilatFisiModal } from "@/components/TopluTahsilatFisiModal";
+import { bigParaKurCek } from "@/lib/kur-api";
+import { kurlarıKaydet } from "@/lib/kur-hesaplama";
 
 const ALFABETIK_FILTRE = ['TÜM', 'A', 'B', 'C', 'Ç', 'D', 'E', 'F', 'G', 'Ğ', 'H', 'I', 'İ', 'J', 'K', 'L', 'M', 'N', 'O', 'Ö', 'P', 'R', 'S', 'Ş', 'T', 'U', 'Ü', 'V', 'Y', 'Z'];
 
@@ -28,6 +30,30 @@ const MusteriListe = () => {
   const [musteriler, setMusteriler] = useState<Musteri[]>(getMusteriler());
   const [selectedMusteriler, setSelectedMusteriler] = useState<string[]>([]);
   const [topluFisModalOpen, setTopluFisModalOpen] = useState(false);
+
+  // Sayfa açıldığında kurları kontrol et
+  useEffect(() => {
+    const kurYasi = getKurYasi();
+    
+    if (kurYasi > 10) {
+      console.log(`Kurlar ${kurYasi} dakika önce güncellenmiş, yenileniyor...`);
+      
+      bigParaKurCek().then(yeniKurlar => {
+        if (yeniKurlar) {
+          kurlarıKaydet(yeniKurlar.usd, yeniKurlar.eur);
+          tumMusteriBorclariniGuncelle();
+          setMusteriler(getMusteriler());
+          
+          toast({
+            title: "Kurlar Güncellendi",
+            description: `USD: ${yeniKurlar.usd.toFixed(2)} ₺ | EUR: ${yeniKurlar.eur.toFixed(2)} ₺`,
+          });
+        }
+      }).catch(error => {
+        console.error('Kur güncelleme hatası:', error);
+      });
+    }
+  }, []);
 
   const filtreliMusteriler = useMemo(() => {
     let filtered = [...musteriler];
@@ -114,7 +140,10 @@ const MusteriListe = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Müşteri İşlemleri</h1>
-            <p className="text-muted-foreground mt-1">Toplam {filtreliMusteriler.length} müşteri</p>
+            <div className="flex items-center gap-3 mt-1">
+              <p className="text-muted-foreground">Toplam {filtreliMusteriler.length} müşteri</p>
+              <KurBilgiKarti />
+            </div>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleExcelExport}>
@@ -298,6 +327,22 @@ const MusteriListe = () => {
         onOpenChange={setTopluFisModalOpen}
       />
     </Layout>
+  );
+};
+
+// Kur bilgi kartı komponenti
+const KurBilgiKarti = () => {
+  const kurlar = getGuncelKurlar();
+  const kurYasi = getKurYasi();
+  
+  return (
+    <div className="inline-flex items-center gap-2 px-3 py-1 bg-muted rounded-md text-xs">
+      <span className="text-muted-foreground">Güncel Kurlar:</span>
+      <span className="font-medium">USD {kurlar.usd.toFixed(2)}₺</span>
+      <span className="text-muted-foreground">/</span>
+      <span className="font-medium">EUR {kurlar.eur.toFixed(2)}₺</span>
+      <span className="text-muted-foreground">({formatKurYasi(kurYasi)})</span>
+    </div>
   );
 };
 

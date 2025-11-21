@@ -101,3 +101,64 @@ export function formatCurrency(tutar: number, paraBirimi: ParaBirimi = 'TRY'): s
   
   return `${formatted} ${symbols[paraBirimi]}`;
 }
+
+// Kur yaşını dakika cinsinden hesapla
+export function getKurYasi(): number {
+  const kurlar = getGuncelKurlar();
+  const guncellemeZamani = new Date(kurlar.guncellemeTarihi);
+  const simdikiZaman = new Date();
+  return Math.floor((simdikiZaman.getTime() - guncellemeZamani.getTime()) / 60000);
+}
+
+// Kur yaşını anlamlı metin olarak formatla
+export function formatKurYasi(dakika: number): string {
+  if (dakika < 1) return 'Az önce';
+  if (dakika === 1) return '1 dakika önce';
+  if (dakika < 60) return `${dakika} dakika önce`;
+  
+  const saat = Math.floor(dakika / 60);
+  if (saat === 1) return '1 saat önce';
+  if (saat < 24) return `${saat} saat önce`;
+  
+  const gun = Math.floor(saat / 24);
+  return gun === 1 ? '1 gün önce' : `${gun} gün önce`;
+}
+
+// Kur yaşına göre renk durumu
+export function getKurDurumu(dakika: number): 'yeni' | 'eski' | 'cok-eski' {
+  if (dakika <= 10) return 'yeni';
+  if (dakika <= 30) return 'eski';
+  return 'cok-eski';
+}
+
+// Kur değişim yüzdesini hesapla
+export function hesaplaKurDegisimi(eskiKur: number, yeniKur: number): number {
+  return ((yeniKur - eskiKur) / eskiKur) * 100;
+}
+
+// Kurları kaydet ve değişim kontrolü yap
+export function kurlarıKaydetVeKontrolEt(
+  usd: number, 
+  eur: number,
+  onKurDegisimi?: (para: 'USD' | 'EUR', eskiKur: number, yeniKur: number, degisimYuzdesi: number) => void
+): void {
+  // Eski kurları al
+  const eskiKurlar = getGuncelKurlar();
+  
+  // Değişim kontrolü
+  const usdDegisim = hesaplaKurDegisimi(eskiKurlar.usd, usd);
+  const eurDegisim = hesaplaKurDegisimi(eskiKurlar.eur, eur);
+  
+  // Yeni kurları kaydet
+  kurlarıKaydet(usd, eur);
+  
+  // %2'den fazla değişim varsa callback'i çağır
+  if (onKurDegisimi) {
+    if (Math.abs(usdDegisim) >= 2) {
+      onKurDegisimi('USD', eskiKurlar.usd, usd, usdDegisim);
+    }
+    if (Math.abs(eurDegisim) >= 2) {
+      onKurDegisimi('EUR', eskiKurlar.eur, eur, eurDegisim);
+    }
+  }
+}

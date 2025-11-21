@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,9 @@ import { saveSatis } from "@/lib/satis-data";
 import { RezervSatisModal } from "@/components/RezervSatisModal";
 import { rezervFisiOlustur, fisYazdir } from "@/lib/fis-yazdir";
 import { toast } from "@/hooks/use-toast";
+import { bigParaKurCek } from "@/lib/kur-api";
+import { kurlarıKaydet, getKurYasi } from "@/lib/kur-hesaplama";
+import { tumMusteriBorclariniGuncelle } from "@/lib/musteri-data";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +37,29 @@ export default function RezervListe() {
   const [iptalModalAcik, setIptalModalAcik] = useState(false);
   const [detayModalAcik, setDetayModalAcik] = useState(false);
   const [iptalEdilecekRezervId, setIptalEdilecekRezervId] = useState<string | null>(null);
+
+  // Sayfa açıldığında kurları kontrol et
+  useEffect(() => {
+    const kurYasi = getKurYasi();
+    
+    if (kurYasi > 10) {
+      console.log(`Kurlar ${kurYasi} dakika önce güncellenmiş, yenileniyor...`);
+      
+      bigParaKurCek().then(yeniKurlar => {
+        if (yeniKurlar) {
+          kurlarıKaydet(yeniKurlar.usd, yeniKurlar.eur);
+          tumMusteriBorclariniGuncelle();
+          
+          toast({
+            title: "Kurlar Güncellendi",
+            description: `USD: ${yeniKurlar.usd.toFixed(2)} ₺ | EUR: ${yeniKurlar.eur.toFixed(2)} ₺`,
+          });
+        }
+      }).catch(error => {
+        console.error('Kur güncelleme hatası:', error);
+      });
+    }
+  }, []);
 
   const rezervYenile = () => {
     setRezervler(getRezervler());

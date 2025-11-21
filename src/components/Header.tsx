@@ -3,7 +3,7 @@ import { LogOut, User, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { bigParaKurCek } from "@/lib/kur-api";
-import { kurlarıKaydet, getGuncelKurlar } from "@/lib/kur-hesaplama";
+import { kurlarıKaydet, getGuncelKurlar, getKurYasi, formatKurYasi, getKurDurumu } from "@/lib/kur-hesaplama";
 import { tumMusteriBorclariniGuncelle } from "@/lib/musteri-data";
 import { getAyarlar } from "@/lib/ayarlar-data";
 
@@ -32,7 +32,6 @@ export const Header = () => {
     try {
       console.log('BigPara\'dan gerçek piyasa kurları çekiliyor...');
       
-      // BigPara'dan gerçek piyasa kurlarını çek
       const kurlar = await bigParaKurCek();
       
       if (kurlar) {
@@ -54,7 +53,6 @@ export const Header = () => {
     } catch (error) {
       console.error('Kur güncelleme hatası:', error);
       
-      // Hata durumunda ayarlardan manuel kurları kullan
       const ayarlar = getAyarlar();
       const manuelKurlar = ayarlar.paraBirimi.manuelKurlar;
       
@@ -75,15 +73,31 @@ export const Header = () => {
 
   // İlk yüklemede kurları yükle
   useEffect(() => {
-    // İlk yüklemede localStorage veya ayarlardan kurları al
     const storedKurlar = getGuncelKurlar();
     setExchangeRates({
       usd: storedKurlar.usd,
       eur: storedKurlar.eur
     });
     
-    // İlk yüklemede BigPara'dan güncel kurları çek
+    setSonGuncelleme(new Date(storedKurlar.guncellemeTarihi));
+    
     kurGuncelle();
+  }, []);
+
+  // Otomatik kur güncelleme (ayarlara göre)
+  useEffect(() => {
+    const ayarlar = getAyarlar();
+    
+    if (ayarlar.paraBirimi.otomatikKurGuncelleme) {
+      const intervalMs = ayarlar.paraBirimi.kurGuncellemeSikligi * 60 * 1000;
+      
+      const interval = setInterval(() => {
+        console.log('Otomatik kur güncelleme çalışıyor...');
+        kurGuncelle();
+      }, intervalMs);
+      
+      return () => clearInterval(interval);
+    }
   }, []);
 
   const formatTime = (date: Date) => {
@@ -161,9 +175,7 @@ export const Header = () => {
         </div>
         
         {sonGuncelleme && (
-          <div className="text-xs opacity-50">
-            Son güncelleme: {formatTime(sonGuncelleme)}
-          </div>
+          <KurYasiGosterge sonGuncelleme={sonGuncelleme} />
         )}
       </div>
 
@@ -183,5 +195,31 @@ export const Header = () => {
         </Button>
       </div>
     </header>
+  );
+};
+
+// Kur yaşı gösterge komponenti
+const KurYasiGosterge = ({ sonGuncelleme }: { sonGuncelleme: Date }) => {
+  const [kurYasi, setKurYasi] = useState(0);
+  
+  useEffect(() => {
+    const updateYas = () => {
+      setKurYasi(getKurYasi());
+    };
+    
+    updateYas();
+    const interval = setInterval(updateYas, 30000); // 30 saniyede bir güncelle
+    
+    return () => clearInterval(interval);
+  }, [sonGuncelleme]);
+  
+  const durum = getKurDurumu(kurYasi);
+  const emoji = durum === 'yeni' ? '🟢' : durum === 'eski' ? '🟡' : '🔴';
+  const uyari = durum === 'eski' ? ' (ESKİ)' : durum === 'cok-eski' ? ' (ÇOK ESKİ!)' : '';
+  
+  return (
+    <div className={`text-xs ${durum === 'yeni' ? 'opacity-50' : 'opacity-100 font-medium'}`}>
+      {emoji} {formatKurYasi(kurYasi)}{uyari}
+    </div>
   );
 };
