@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import StokUrunler from "./pages/StokUrunler";
-import StokHareketler from "./pages/StokHareketler";
 import StokKategoriDetay from "./pages/StokKategoriDetay";
 import UrunDetay from "./pages/UrunDetay";
 import StokUyarilar from "./pages/StokUyarilar";
@@ -31,7 +30,6 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/stok/urunler" element={<StokUrunler />} />
-          <Route path="/stok/hareketler" element={<StokHareketler />} />
           <Route path="/stok/kategori/:kategoriId" element={<StokKategoriDetay />} />
           <Route path="/stok/urun/:urunId" element={<UrunDetay />} />
           <Route path="/stok/uyarilar" element={<StokUyarilar />} />
