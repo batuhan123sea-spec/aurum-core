@@ -132,57 +132,81 @@ ${satislarText}║ Toplam satışlar: ${padRight(formatCurrency(toplamSatis, 'TR
 }
 
 export function rezervFisiOlustur(rezerv: any): string {
-  const tarih = new Date(rezerv.tarih);
-  const formatTarih = tarih.toLocaleDateString('tr-TR');
-  const formatSaat = tarih.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  const W = 45;
+  let fis = '';
   
-  const pad = (text: string, length: number = 20) => text.substring(0, length).padEnd(length);
-  const padRight = (text: string, length: number = 14) => text.padStart(length);
+  fis += '\n';
+  fis += line(W, '═') + '\n';
+  fis += center('KUYUMCU MAKİNE MALZEME', W) + '\n';
+  fis += center('LTD. ŞTİ.', W) + '\n';
+  fis += line(W, '═') + '\n';
+  fis += '\n';
+  fis += center('██████████████████████████████████', W) + '\n';
+  fis += center('█                                █', W) + '\n';
+  fis += center('█       BİLGİ FİŞİ               █', W) + '\n';
+  fis += center('█                                █', W) + '\n';
+  fis += center('█  ⚠️  MALİ DEĞERİ YOKTUR  ⚠️   █', W) + '\n';
+  fis += center('█                                █', W) + '\n';
+  fis += center('██████████████████████████████████', W) + '\n';
+  fis += '\n';
+  fis += line(W, '═') + '\n';
+  fis += '\n';
   
-  let urunlerText = '';
-  rezerv.kalemler.forEach((kalem: any) => {
-    const urunAdi = kalem.urunAdi.substring(0, 15).padEnd(15);
-    const adet = String(kalem.adet).padStart(2);
-    const fiyat = (kalem.birimFiyati * kalem.adet).toFixed(2).padStart(10);
-    urunlerText += `║ • ${urunAdi} ${adet} ${fiyat}₺ ║\n`;
-  });
-
-  const kdvText = rezerv.kdvDahil ? 'KDV DAHİL' : 'KDV HARİÇ';
-  
-  let notText = '';
+  // Rezerv bilgileri
+  fis += `  Rezerv No: ${rezerv.satisNo}\n`;
+  fis += `  Tarih: ${new Date(rezerv.tarih).toLocaleString('tr-TR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })}\n`;
   if (rezerv.rezervNotu) {
-    const lines = rezerv.rezervNotu.match(/.{1,29}/g) || [];
-    lines.forEach((line: string) => {
-      notText += `║ ${pad(line, 29)} ║\n`;
-    });
+    fis += `  Not: ${rezerv.rezervNotu}\n`;
   }
-
-  return `
-╔═══════════════════════════════╗
-║   KUYUMCU MAKİNE MALZEME      ║
-║       LTD. ŞTİ.               ║
-╠═══════════════════════════════╣
-║      BİLGİ FİŞİ               ║
-║   MALİ DEĞERİ YOKTUR          ║
-║                               ║
-║  Rezerv No: ${pad(rezerv.satisNo, 17)} ║
-║  Tarih: ${formatTarih} ${formatSaat}  ║
-╠═══════════════════════════════╣
-║ ÜRÜNLER:                      ║
-${urunlerText}╠═══════════════════════════════╣
-║ TOPLAM:       ${padRight(rezerv.genelToplam.toFixed(2) + ' ₺')} ║
-║ (${kdvText})${' '.repeat(Math.max(0, 22 - kdvText.length))} ║
-╠═══════════════════════════════╣
-${notText ? `║ Not:                          ║\n${notText}╠═══════════════════════════════╣\n` : ''}║  Bu fiş mali değer taşımaz.   ║
-║  Ürünler denenecek olup,      ║
-║  satın alınanlar sonradan     ║
-║  tahsil edilecektir.          ║
-╠═══════════════════════════════╣
-║       Teşekkür Ederiz!        ║
-║     📞 0212 123 45 67         ║
-║   www.kuyumcumakine.com       ║
-╚═══════════════════════════════╝
-  `.trim();
+  fis += '\n';
+  fis += line(W, '─') + '\n';
+  fis += center('REZERVE EDİLEN ÜRÜNLER', W) + '\n';
+  fis += line(W, '─') + '\n';
+  fis += '\n';
+  
+  // Ürünler
+  rezerv.kalemler.forEach((kalem: any, index: number) => {
+    const toplamFiyat = kalem.birimFiyati * kalem.adet;
+    fis += `  ${index + 1}. ${kalem.urunAdi}\n`;
+    fis += `     ${kalem.adet} adet x ${kalem.birimFiyati.toFixed(2)} ₺\n`;
+    fis += `     Toplam: ${toplamFiyat.toFixed(2)} ₺\n`;
+    fis += '\n';
+  });
+  
+  fis += line(W, '─') + '\n';
+  
+  // Toplam
+  const toplam = rezerv.kalemler.reduce((sum: number, k: any) => sum + (k.birimFiyati * k.adet), 0);
+  fis += '\n';
+  fis += center(`TAHMİNİ TOPLAM: ${toplam.toFixed(2)} ₺`, W) + '\n';
+  fis += center('(KDV Dahil)', W) + '\n';
+  fis += '\n';
+  fis += line(W, '═') + '\n';
+  fis += '\n';
+  fis += center('⚠️  ÖNEMLİ BİLGİLENDİRME  ⚠️', W) + '\n';
+  fis += '\n';
+  fis += '  • Bu fiş satış fişi değildir.\n';
+  fis += '  • Mali değeri yoktur.\n';
+  fis += '  • Ürünler deneme amaçlıdır.\n';
+  fis += '  • Satın alınan ürünler için\n';
+  fis += '    ayrı satış fişi düzenlenecektir.\n';
+  fis += '  • İade edilen ürünler stoğa\n';
+  fis += '    geri eklenecektir.\n';
+  fis += '\n';
+  fis += line(W, '═') + '\n';
+  fis += center('Teşekkür Ederiz!', W) + '\n';
+  fis += center('📞 0212 123 45 67', W) + '\n';
+  fis += center('www.kuyumcumakine.com', W) + '\n';
+  fis += line(W, '═') + '\n';
+  fis += '\n';
+  
+  return fis;
 }
 
 export function fisYazdir(fisIcerigi: string): void {

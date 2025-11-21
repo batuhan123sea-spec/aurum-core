@@ -77,10 +77,13 @@ export default function YeniSatis() {
   const sepeteEkle = (urun: Urun) => {
     const mevcutKalem = sepet.find(k => k.urunId === urun.id);
     
+    // Satış fiyatının para birimini belirle (satisFiyatiParaBirimi varsa onu kullan, yoksa alisFiyatiParaBirimi)
+    const urunParaBirimi = urun.satisFiyatiParaBirimi || urun.alisFiyatiParaBirimi;
+    
     // Satış fiyatını TL'ye çevir
     const birimFiyatiTL = paraBirimiTLyeCevir(
       urun.satisFiyati,
-      urun.alisFiyatiParaBirimi
+      urunParaBirimi
     );
     
     if (mevcutKalem) {
@@ -99,7 +102,7 @@ export default function YeniSatis() {
         barkod: urun.barkod,
         adet: 1,
         birimFiyati: birimFiyatiTL,
-        paraBirimi: urun.alisFiyatiParaBirimi,
+        paraBirimi: urunParaBirimi,
         orijinalBirimFiyati: urun.satisFiyati,
         kdvOrani: ayarlar.kdv.varsayilanKDVOrani,
         kdvTutari: 0,
@@ -461,9 +464,22 @@ export default function YeniSatis() {
                       <div className="space-y-2">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <p className="font-medium text-sm">{kalem.urunAdi}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-sm">{kalem.urunAdi}</p>
+                              {kalem.paraBirimi !== 'TRY' && (
+                                <Badge variant="outline" className="text-xs">
+                                  {kalem.paraBirimi}
+                                </Badge>
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground">
-                              {kalem.birimFiyati.toFixed(2)} ₺
+                              {kalem.paraBirimi !== 'TRY' ? (
+                                <>
+                                  {formatCurrency(kalem.orijinalBirimFiyati, kalem.paraBirimi)} ≈ {formatCurrency(kalem.birimFiyati)}
+                                </>
+                              ) : (
+                                formatCurrency(kalem.birimFiyati)
+                              )}
                             </p>
                           </div>
                           <Button

@@ -50,6 +50,7 @@ export interface Urun {
   alisFiyatiParaBirimi: 'TRY' | 'USD' | 'EUR';
   karMarji: number; // Yüzde
   satisFiyati: number; // Otomatik hesaplanacak
+  satisFiyatiParaBirimi?: 'TRY' | 'USD' | 'EUR'; // Satış fiyatı para birimi (yoksa alisFiyatiParaBirimi kullanılır)
   
   // Varyasyonlar
   varyasyonlar?: UrunVaryasyon[];
