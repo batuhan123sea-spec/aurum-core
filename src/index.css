@@ -75,3 +75,22 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Barkod yazdırma stilleri */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  .barcode-print-area,
+  .barcode-print-area * {
+    visibility: visible;
+  }
+  
+  .barcode-print-area {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+}

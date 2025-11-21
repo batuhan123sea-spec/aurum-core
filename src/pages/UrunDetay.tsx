@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Package, TrendingUp, TrendingDown, History, Pencil } from "lucide-react";
+import { ArrowLeft, Package, TrendingUp, TrendingDown, History, Pencil, Download, Printer } from "lucide-react";
+import Barcode from 'react-barcode';
 import { YeniUrunModal } from "@/components/YeniUrunModal";
 import { getUrunler } from "@/lib/stok-data";
 import { getTedarikciAlimlari } from "@/lib/tedarikci-data";
@@ -92,6 +93,61 @@ export default function UrunDetay() {
               <CardContent className="space-y-4">
                 <div className="aspect-square bg-muted rounded-lg overflow-hidden">
                   <img src="/placeholder.svg" alt={urun.ad} className="w-full h-full object-cover" />
+                </div>
+
+                <Separator />
+
+                {/* Barkod Bölümü */}
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Barkod</p>
+                  <div className="bg-white p-4 rounded-lg border barcode-print-area">
+                    <Barcode 
+                      value={urun.barkod} 
+                      format="EAN13"
+                      width={2}
+                      height={60}
+                      displayValue={true}
+                      fontSize={14}
+                    />
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.print()}
+                      className="flex-1"
+                    >
+                      <Printer className="w-4 h-4 mr-2" />
+                      Yazdır
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const svg = document.querySelector('.barcode-print-area svg');
+                        if (!svg) return;
+                        const svgData = new XMLSerializer().serializeToString(svg);
+                        const canvas = document.createElement("canvas");
+                        const ctx = canvas.getContext("2d");
+                        const img = new Image();
+                        img.onload = () => {
+                          canvas.width = img.width;
+                          canvas.height = img.height;
+                          ctx?.drawImage(img, 0, 0);
+                          const pngFile = canvas.toDataURL("image/png");
+                          const downloadLink = document.createElement("a");
+                          downloadLink.download = `barkod-${urun.kod}.png`;
+                          downloadLink.href = pngFile;
+                          downloadLink.click();
+                        };
+                        img.src = "data:image/svg+xml;base64," + btoa(svgData);
+                      }}
+                      className="flex-1"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      İndir
+                    </Button>
+                  </div>
                 </div>
 
                 <Separator />

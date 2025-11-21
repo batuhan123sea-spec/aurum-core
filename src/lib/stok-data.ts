@@ -246,3 +246,31 @@ export const generateUrunKodu = (): string => {
   }, 0);
   return `URN-${String(maxKod + 1).padStart(3, '0')}`;
 };
+
+// EAN-13 kontrol hanesi hesaplama
+function calculateEAN13CheckDigit(code: string): string {
+  const digits = code.split('').map(Number);
+  let sum = 0;
+  
+  digits.forEach((digit, index) => {
+    sum += index % 2 === 0 ? digit : digit * 3;
+  });
+  
+  const checkDigit = (10 - (sum % 10)) % 10;
+  return checkDigit.toString();
+}
+
+// Otomatik barkod numarası oluşturma (EAN-13 formatında)
+export const generateBarkod = (): string => {
+  const timestamp = Date.now().toString().slice(-8); // Son 8 hane
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  
+  // 12 haneli barkod (EAN-13 için kontrol hanesi hariç)
+  const prefix = '869'; // Türkiye prefix
+  const code = `${prefix}${timestamp}${random}`.slice(0, 12);
+  
+  // EAN-13 kontrol hanesi hesapla
+  const checkDigit = calculateEAN13CheckDigit(code);
+  
+  return `${code}${checkDigit}`;
+};
