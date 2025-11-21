@@ -159,16 +159,6 @@ export function rezervFisiOlustur(rezerv: any): string {
   fis += center(firma.firmaAdi || 'Firma Adı', W) + '\n';
   fis += line(W, '═') + '\n';
   fis += '\n';
-  fis += center('██████████████████████████████████', W) + '\n';
-  fis += center('█                                █', W) + '\n';
-  fis += center('█       BİLGİ FİŞİ               █', W) + '\n';
-  fis += center('█                                █', W) + '\n';
-  fis += center('█  ⚠️  MALİ DEĞERİ YOKTUR  ⚠️   █', W) + '\n';
-  fis += center('█                                █', W) + '\n';
-  fis += center('██████████████████████████████████', W) + '\n';
-  fis += '\n';
-  fis += line(W, '═') + '\n';
-  fis += '\n';
   
   // Rezerv bilgileri
   fis += `  Rezerv No: ${rezerv.satisNo}\n`;
@@ -209,15 +199,8 @@ export function rezervFisiOlustur(rezerv: any): string {
   fis += '\n';
   fis += line(W, '═') + '\n';
   fis += '\n';
-  fis += center('⚠️  ÖNEMLİ BİLGİLENDİRME  ⚠️', W) + '\n';
-  fis += '\n';
-  fis += '  • Bu fiş satış fişi değildir.\n';
-  fis += '  • Mali değeri yoktur.\n';
-  fis += '  • Ürünler deneme amaçlıdır.\n';
-  fis += '  • Satın alınan ürünler için\n';
-  fis += '    ayrı satış fişi düzenlenecektir.\n';
-  fis += '  • İade edilen ürünler stoğa\n';
-  fis += '    geri eklenecektir.\n';
+  fis += center('Bu fiş bilgi amaçlıdır,', W) + '\n';
+  fis += center('mali değeri yoktur.', W) + '\n';
   fis += '\n';
   fis += line(W, '═') + '\n';
   fis += center(fisAyarlari.altBilgi || 'Teşekkür Ederiz!', W) + '\n';
