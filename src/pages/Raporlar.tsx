@@ -635,7 +635,7 @@ export default function Raporlar() {
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Özet Kartlar */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                   <Card>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -661,6 +661,20 @@ export default function Raporlar() {
                         {formatCurrency(karZararRapor.toplamMaliyet, 'TRY')}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">gider</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                        Alınan Tahsilat
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {formatCurrency(karZararRapor.toplamTahsilat, 'TRY')}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">müşteri ödemeleri</p>
                     </CardContent>
                   </Card>
 
@@ -701,12 +715,16 @@ export default function Raporlar() {
 
                 {/* Grafik */}
                 <Card className="p-4">
-                  <h3 className="text-sm font-medium mb-4">Satış vs Maliyet</h3>
+                  <h3 className="text-sm font-medium mb-4">Satış vs Tahsilat vs Maliyet</h3>
                   <ChartContainer
                     config={{
                       satis: {
                         label: "Satış",
                         color: "hsl(var(--primary))",
+                      },
+                      tahsilat: {
+                        label: "Tahsilat",
+                        color: "hsl(var(--chart-1))",
                       },
                       maliyet: {
                         label: "Maliyet",
@@ -720,7 +738,8 @@ export default function Raporlar() {
                         data={[
                           { 
                             name: 'Dönem Analizi', 
-                            satis: karZararRapor.toplamSatis, 
+                            satis: karZararRapor.toplamSatis,
+                            tahsilat: karZararRapor.toplamTahsilat,
                             maliyet: karZararRapor.toplamMaliyet 
                           }
                         ]}
@@ -731,6 +750,7 @@ export default function Raporlar() {
                         <ChartTooltip content={<ChartTooltipContent />} />
                         <ChartLegend content={<ChartLegendContent />} />
                         <Bar dataKey="satis" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                        <Bar dataKey="tahsilat" fill="hsl(var(--chart-1))" radius={[8, 8, 0, 0]} />
                         <Bar dataKey="maliyet" fill="hsl(var(--destructive))" radius={[8, 8, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
