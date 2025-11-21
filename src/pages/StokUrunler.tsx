@@ -6,53 +6,20 @@ import { Input } from "@/components/ui/input";
 import { StokKategoriKart } from "@/components/StokKategoriKart";
 import { YeniUrunModal } from "@/components/YeniUrunModal";
 import { KATEGORILER } from "@/types/stok";
-import { getUrunler } from "@/lib/stok-data";
 import { 
   Plus, 
   Package, 
   Upload, 
   ClipboardCheck, 
-  Search,
-  Edit,
-  Trash2
+  Search 
 } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 
 export default function StokUrunler() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("tumunu");
   const [yeniUrunModalOpen, setYeniUrunModalOpen] = useState(false);
-  const [urunler] = useState(() => getUrunler());
-
-  // Filtreleme fonksiyonu
-  const filteredUrunler = urunler.filter((urun) => {
-    // Arama filtresi
-    const searchMatch = searchQuery === "" || 
-      urun.ad.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      urun.barkod.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      urun.kod.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (urun.tedarikciler && urun.tedarikciler.some(t => t.tedarikciAdi.toLowerCase().includes(searchQuery.toLowerCase())));
-
-    if (!searchMatch) return false;
-
-    // Durum filtresi
-    switch (activeFilter) {
-      case "azalan":
-        return urun.stokMiktari <= urun.minStokSeviyesi && urun.stokMiktari > 0;
-      case "biten":
-        return urun.stokMiktari === 0;
-      case "aktif":
-        return urun.durum === "aktif";
-      case "pasif":
-        return urun.durum === "pasif";
-      default:
-        return true;
-    }
-  });
 
   return (
     <Layout>
@@ -132,125 +99,21 @@ export default function StokUrunler() {
           </div>
         </div>
 
-        {/* Tabs: Kategoriler ve Tüm Ürünler */}
-        <Tabs defaultValue="urunler" className="w-full">
-          <TabsList>
-            <TabsTrigger value="urunler">Tüm Ürünler ({filteredUrunler.length})</TabsTrigger>
-            <TabsTrigger value="kategoriler">Kategoriler</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="urunler" className="space-y-4">
-            {/* Ürün Listesi Tablosu */}
-            <div className="border rounded-lg">
-              {filteredUrunler.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground mb-4">
-                    {searchQuery || activeFilter !== "tumunu" 
-                      ? "Filtrelere uygun ürün bulunamadı" 
-                      : "Henüz ürün eklenmemiş"}
-                  </p>
-                  <Button 
-                    onClick={() => setYeniUrunModalOpen(true)}
-                    className="bg-success hover:bg-success/90"
-                  >
-                    <Plus className="mr-2" />
-                    İlk Ürünü Ekle
-                  </Button>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Ürün Kodu</TableHead>
-                      <TableHead>Ürün Adı</TableHead>
-                      <TableHead>Kategori</TableHead>
-                      <TableHead className="text-right">Stok</TableHead>
-                      <TableHead>Birim</TableHead>
-                      <TableHead className="text-right">Alış Fiyatı</TableHead>
-                      <TableHead className="text-right">Satış Fiyatı</TableHead>
-                      <TableHead>Tedarikçi</TableHead>
-                      <TableHead>Durum</TableHead>
-                      <TableHead className="text-right">İşlemler</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredUrunler.map((urun) => {
-                      const kategori = KATEGORILER.find(k => k.id === urun.kategori);
-                      return (
-                        <TableRow key={urun.id}>
-                          <TableCell className="font-medium">{urun.kod}</TableCell>
-                          <TableCell>{urun.ad}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <span>{kategori?.emoji}</span>
-                              <span className="text-sm text-muted-foreground">{kategori?.ad}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span
-                              className={
-                                urun.stokMiktari <= urun.minStokSeviyesi
-                                  ? "text-destructive font-semibold"
-                                  : urun.stokMiktari === 0
-                                  ? "text-destructive font-bold"
-                                  : ""
-                              }
-                            >
-                              {urun.stokMiktari}
-                            </span>
-                          </TableCell>
-                          <TableCell>{urun.birim}</TableCell>
-                          <TableCell className="text-right">
-                            {urun.alisFiyati.toFixed(2)} ₺
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {urun.satisFiyati.toFixed(2)} ₺
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {urun.tedarikciler[0]?.tedarikciAdi || 'Belirtilmemiş'}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={urun.durum === "aktif" ? "default" : "secondary"}>
-                              {urun.durum}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button size="icon" variant="ghost">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button size="icon" variant="ghost">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="kategoriler">
-            {/* Kategori Grid */}
-            <div>
-              <h2 className="text-xl font-semibold text-foreground mb-4">
-                Ürün Kategorileri
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {KATEGORILER.map((kategori) => (
-                  <StokKategoriKart
-                    key={kategori.id}
-                    kategori={kategori}
-                    onClick={() => navigate(`/stok/kategori/${kategori.id}`)}
-                  />
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+        {/* Kategori Grid */}
+        <div>
+          <h2 className="text-xl font-semibold text-foreground mb-4">
+            Ürün Kategorileri
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {KATEGORILER.map((kategori) => (
+              <StokKategoriKart
+                key={kategori.id}
+                kategori={kategori}
+                onClick={() => navigate(`/stok/kategori/${kategori.id}`)}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Yeni Ürün Modal */}

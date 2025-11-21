@@ -69,6 +69,15 @@ export default function StokKategoriDetay() {
           </div>
         </div>
 
+        {/* Alt Kategoriler */}
+        <div className="flex flex-wrap gap-2">
+          {kategori.altKategoriler.map((alt) => (
+            <Badge key={alt} variant="outline" className="text-sm">
+              {alt}
+            </Badge>
+          ))}
+        </div>
+
         {/* Ürün Tablosu */}
         <div className="border rounded-lg">
           {urunler.length === 0 ? (
@@ -86,6 +95,7 @@ export default function StokKategoriDetay() {
                 <TableRow>
                   <TableHead>Ürün Kodu</TableHead>
                   <TableHead>Ürün Adı</TableHead>
+                  <TableHead>Alt Kategori</TableHead>
                   <TableHead className="text-right">Stok</TableHead>
                   <TableHead>Birim</TableHead>
                   <TableHead className="text-right">Alış Fiyatı</TableHead>
@@ -100,6 +110,9 @@ export default function StokKategoriDetay() {
                   <TableRow key={urun.id}>
                     <TableCell className="font-medium">{urun.kod}</TableCell>
                     <TableCell>{urun.ad}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {urun.altKategori}
+                    </TableCell>
                     <TableCell className="text-right">
                       <span
                         className={

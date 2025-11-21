@@ -10,6 +10,7 @@ const MOCK_URUNLER: Urun[] = [
     ad: 'Lüks Takı Kutusu - Büyük',
     barkod: '8697123456789',
     kategori: 'kutular-aksesuarlar',
+    altKategori: 'Takı Kutuları',
     stokMiktari: 45,
     birim: 'Adet',
     tedarikciler: [{
@@ -39,6 +40,7 @@ const MOCK_URUNLER: Urun[] = [
     ad: 'Yüzük Kutusu - Kadife İç',
     barkod: '8697123456790',
     kategori: 'kutular-aksesuarlar',
+    altKategori: 'Yüzük Kutuları',
     stokMiktari: 120,
     birim: 'Adet',
     tedarikciler: [{
@@ -68,6 +70,7 @@ const MOCK_URUNLER: Urun[] = [
     ad: 'Kolye Standı - Ahşap',
     barkod: '8697123456791',
     kategori: 'kutular-aksesuarlar',
+    altKategori: 'Kolye Standları',
     stokMiktari: 30,
     birim: 'Adet',
     tedarikciler: [{
@@ -97,6 +100,7 @@ const MOCK_URUNLER: Urun[] = [
     ad: 'Bileklik Yastığı - Siyah',
     barkod: '8697123456792',
     kategori: 'kutular-aksesuarlar',
+    altKategori: 'Bileklik Yastıkları',
     stokMiktari: 75,
     birim: 'Adet',
     tedarikciler: [{
@@ -126,6 +130,7 @@ const MOCK_URUNLER: Urun[] = [
     ad: 'Takı Temizleme Bezi',
     barkod: '8697123456793',
     kategori: 'kutular-aksesuarlar',
+    altKategori: 'Temizleme Bezleri',
     stokMiktari: 200,
     birim: 'Adet',
     tedarikciler: [{
