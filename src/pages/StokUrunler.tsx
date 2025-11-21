@@ -13,7 +13,6 @@ import { getStokHareketler } from "@/lib/stok-hareket";
 import { 
   Plus, 
   Package, 
-  Upload, 
   ClipboardCheck, 
   Search,
   AlertTriangle,
@@ -66,13 +65,9 @@ export default function StokUrunler() {
         u.stokMiktari <= u.minStokSeviyesi && 
         u.stokMiktari > u.kritikStokSeviyesi
       );
-    } else if (activeFilter === "biten") {
-      sonuc = sonuc.filter(u => u.stokMiktari <= u.kritikStokSeviyesi);
-    } else if (activeFilter === "aktif") {
-      sonuc = sonuc.filter(u => u.stokMiktari > 0);
-    } else if (activeFilter === "pasif") {
-      sonuc = sonuc.filter(u => u.stokMiktari === 0);
-    }
+  } else if (activeFilter === "biten") {
+    sonuc = sonuc.filter(u => u.stokMiktari <= u.kritikStokSeviyesi);
+  }
 
     return sonuc;
   }, [searchQuery, activeFilter, allUrunler, refreshKey]);
@@ -188,14 +183,6 @@ export default function StokUrunler() {
                   <ClipboardCheck className="mr-2" />
                   Stok Sayımı Başlat
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  onClick={() => alert("Excel içe aktarma özelliği yakında eklenecek")}
-                >
-                  <Upload className="mr-2" />
-                  Excel'den İçe Aktar
-                </Button>
               </div>
 
               {/* Arama ve Filtreler */}
@@ -223,12 +210,6 @@ export default function StokUrunler() {
                   </ToggleGroupItem>
                   <ToggleGroupItem value="biten" variant="outline">
                     Stokta Olmayan
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="aktif" variant="outline">
-                    Aktif
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="pasif" variant="outline">
-                    Pasif
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
