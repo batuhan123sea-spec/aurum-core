@@ -103,6 +103,29 @@ export default function YeniSatis() {
   const sepeteEkle = (urun: Urun) => {
     const mevcutKalem = sepet.find(k => k.urunId === urun.id);
     
+    // STOK KONTROLÜ
+    if (mevcutKalem) {
+      // Sepette zaten var, 1 adet daha ekleyebilir miyiz?
+      if (mevcutKalem.adet >= urun.stokMiktari) {
+        toast({
+          title: "Yetersiz Stok",
+          description: `${urun.ad} için stokta sadece ${urun.stokMiktari} adet var. Sepetinizde zaten ${mevcutKalem.adet} adet bulunuyor.`,
+          variant: "destructive"
+        });
+        return;
+      }
+    } else {
+      // Yeni ürün eklenecek, stok var mı?
+      if (urun.stokMiktari === 0) {
+        toast({
+          title: "Stokta Yok",
+          description: `${urun.ad} stokta bulunmuyor.`,
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+    
     // Satış fiyatının para birimini belirle (satisFiyatiParaBirimi varsa onu kullan, yoksa alisFiyatiParaBirimi)
     const urunParaBirimi = urun.satisFiyatiParaBirimi || urun.alisFiyatiParaBirimi;
     
@@ -179,6 +202,22 @@ export default function YeniSatis() {
   const adetDegistir = (kalemId: string, yeniAdet: number) => {
     if (yeniAdet <= 0) {
       sepettenCikar(kalemId);
+      return;
+    }
+    
+    const kalem = sepet.find(k => k.id === kalemId);
+    if (!kalem) return;
+    
+    const urun = urunler.find(u => u.id === kalem.urunId);
+    if (!urun) return;
+    
+    // STOK KONTROLÜ
+    if (yeniAdet > urun.stokMiktari) {
+      toast({
+        title: "Yetersiz Stok",
+        description: `${urun.ad} için stokta sadece ${urun.stokMiktari} adet var.`,
+        variant: "destructive"
+      });
       return;
     }
     
@@ -452,13 +491,20 @@ export default function YeniSatis() {
                             {formatCurrency(urun.satisFiyati, urun.alisFiyatiParaBirimi)}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              size="sm"
-                              onClick={() => sepeteEkle(urun)}
-                              disabled={urun.stokMiktari === 0}
-                            >
-                              <Plus className="w-4 h-4" />
-                            </Button>
+                            {(() => {
+                              const sepettekiMiktar = sepet.find(k => k.urunId === urun.id)?.adet || 0;
+                              const stokDoldu = sepettekiMiktar >= urun.stokMiktari;
+                              return (
+                                <Button
+                                  size="sm"
+                                  onClick={() => sepeteEkle(urun)}
+                                  disabled={stokDoldu}
+                                  variant={stokDoldu ? "ghost" : "default"}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </Button>
+                              );
+                            })()}
                           </TableCell>
                         </TableRow>
                       ))}
