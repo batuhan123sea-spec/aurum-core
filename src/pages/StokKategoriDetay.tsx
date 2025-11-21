@@ -94,15 +94,24 @@ export default function StokKategoriDetay() {
                   <TableHead>Birim</TableHead>
                   <TableHead className="text-right">Alış Fiyatı</TableHead>
                   <TableHead className="text-right">Satış Fiyatı</TableHead>
-                  <TableHead>Tedarikçi</TableHead>
                   <TableHead className="text-right">İşlemler</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {urunler.map((urun) => (
                   <TableRow key={urun.id}>
-                    <TableCell className="font-medium">{urun.kod}</TableCell>
-                    <TableCell>{urun.ad}</TableCell>
+                    <TableCell 
+                      className="font-medium cursor-pointer hover:text-primary"
+                      onClick={() => navigate(`/stok/urun/${urun.id}`)}
+                    >
+                      {urun.kod}
+                    </TableCell>
+                    <TableCell 
+                      className="font-medium cursor-pointer hover:text-primary hover:underline"
+                      onClick={() => navigate(`/stok/urun/${urun.id}`)}
+                    >
+                      {urun.ad}
+                    </TableCell>
                     <TableCell className="text-right">
                       <span
                         className={
@@ -120,9 +129,6 @@ export default function StokKategoriDetay() {
                     </TableCell>
                     <TableCell className="text-right">
                       {formatCurrency(urun.satisFiyati, urun.alisFiyatiParaBirimi)}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {urun.tedarikciler?.[0]?.tedarikciAdi || 'Belirtilmemiş'}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
