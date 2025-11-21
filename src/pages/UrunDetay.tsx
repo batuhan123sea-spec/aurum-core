@@ -208,7 +208,7 @@ export default function UrunDetay() {
                     <CardTitle>Tedarikçi Bilgileri</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {urun.tedarikciler.length === 0 ? (
+                    {!urun.tedarikciler || urun.tedarikciler.length === 0 ? (
                       <p className="text-center text-muted-foreground py-8">
                         Tedarikçi bilgisi bulunamadı
                       </p>
