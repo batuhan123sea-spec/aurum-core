@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Package, TrendingUp, TrendingDown, History } from "lucide-react";
+import { ArrowLeft, Package, TrendingUp, TrendingDown, History, Pencil } from "lucide-react";
+import { YeniUrunModal } from "@/components/YeniUrunModal";
 import { getUrunler } from "@/lib/stok-data";
 import { getTedarikciAlimlari } from "@/lib/tedarikci-data";
 import { getSatislar } from "@/lib/satis-data";
@@ -19,6 +21,7 @@ export default function UrunDetay() {
     urunId: string;
   }>();
   const navigate = useNavigate();
+  const [duzenleModalAcik, setDuzenleModalAcik] = useState(false);
   const urun = getUrunler().find(u => u.id === urunId);
   if (!urun) {
     return <Layout>
@@ -70,10 +73,13 @@ export default function UrunDetay() {
               <p className="text-muted-foreground mt-1">{urun.kod} • {urun.barkod}</p>
             </div>
           </div>
-          <div className="flex gap-2">
-            
-            
-          </div>
+          <Button 
+            onClick={() => setDuzenleModalAcik(true)}
+            className="gap-2"
+          >
+            <Pencil className="w-4 h-4" />
+            Düzenle
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -360,5 +366,16 @@ export default function UrunDetay() {
           </div>
         </div>
       </div>
+
+      <YeniUrunModal
+        open={duzenleModalAcik}
+        onOpenChange={setDuzenleModalAcik}
+        editMode={true}
+        initialData={urun}
+        onSuccess={() => {
+          setDuzenleModalAcik(false);
+          window.location.reload();
+        }}
+      />
     </Layout>;
 }
