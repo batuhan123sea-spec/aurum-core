@@ -51,15 +51,12 @@ export interface Urun {
   karMarji: number; // Yüzde
   satisFiyati: number; // Otomatik hesaplanacak
   
-  kdvOrani: number;
-  
   // Varyasyonlar
   varyasyonlar?: UrunVaryasyon[];
   
   minStokSeviyesi: number;
   kritikStokSeviyesi: number;
   aciklama?: string;
-  durum: 'aktif' | 'pasif';
   olusturmaTarihi: string;
   guncellemeTarihi: string;
 }

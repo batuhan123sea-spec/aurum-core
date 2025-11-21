@@ -39,12 +39,11 @@ const urunSchema = z.object({
   stokMiktari: z.coerce.number().min(0, "Stok miktarı 0'dan küçük olamaz"),
   birim: z.string().min(1, "Birim seçiniz"),
   alisFiyati: z.coerce.number().min(0, "Alış fiyatı 0'dan küçük olamaz"),
+  paraBirimi: z.enum(['TRY', 'USD', 'EUR']),
   satisFiyati: z.coerce.number().min(0, "Satış fiyatı 0'dan küçük olamaz"),
-  kdvOrani: z.coerce.number(),
   tedarikci: z.string().min(1, "Tedarikçi gerekli"),
   minStokSeviyesi: z.coerce.number().min(0),
   aciklama: z.string().optional(),
-  durum: z.boolean(),
 });
 
 type UrunFormValues = z.infer<typeof urunSchema>;
@@ -67,12 +66,11 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess }: YeniUrunModalPr
       stokMiktari: 0,
       birim: "Adet",
       alisFiyati: 0,
+      paraBirimi: "TRY",
       satisFiyati: 0,
-      kdvOrani: 20,
       tedarikci: "",
       minStokSeviyesi: 10,
       aciklama: "",
-      durum: true,
     },
   });
 
@@ -90,19 +88,17 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess }: YeniUrunModalPr
         tedarikciId: 'temp',
         tedarikciAdi: data.tedarikci,
         alisFiyati: data.alisFiyati,
-        paraBirimi: 'TRY' as const,
+        paraBirimi: data.paraBirimi,
         teslimatSuresi: 7,
         varsayilan: true
       }],
       alisFiyati: data.alisFiyati,
-      alisFiyatiParaBirimi: 'TRY' as const,
+      alisFiyatiParaBirimi: data.paraBirimi,
       karMarji: ((data.satisFiyati - data.alisFiyati) / data.alisFiyati) * 100,
       satisFiyati: data.satisFiyati,
-      kdvOrani: data.kdvOrani,
       minStokSeviyesi: data.minStokSeviyesi,
       kritikStokSeviyesi: Math.floor(data.minStokSeviyesi / 2),
       aciklama: data.aciklama || '',
-      durum: data.durum ? 'aktif' as const : 'pasif' as const,
       olusturmaTarihi: new Date().toISOString(),
       guncellemeTarihi: new Date().toISOString(),
     };
@@ -247,10 +243,33 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess }: YeniUrunModalPr
                 name="alisFiyati"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Alış Fiyatı (TL) *</FormLabel>
+                    <FormLabel>Alış Fiyatı *</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="paraBirimi"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Para Birimi *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="TRY">₺ TRY</SelectItem>
+                        <SelectItem value="USD">$ USD</SelectItem>
+                        <SelectItem value="EUR">€ EUR</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -261,35 +280,10 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess }: YeniUrunModalPr
                 name="satisFiyati"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Satış Fiyatı (TL) *</FormLabel>
+                    <FormLabel>Satış Fiyatı *</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" {...field} />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="kdvOrani"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>KDV Oranı (%)</FormLabel>
-                    <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="0">%0</SelectItem>
-                        <SelectItem value="1">%1</SelectItem>
-                        <SelectItem value="8">%8</SelectItem>
-                        <SelectItem value="10">%10</SelectItem>
-                        <SelectItem value="20">%20</SelectItem>
-                      </SelectContent>
-                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -320,27 +314,6 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess }: YeniUrunModalPr
                     <Textarea placeholder="Ürün açıklaması..." {...field} />
                   </FormControl>
                   <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="durum"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Durum</FormLabel>
-                    <div className="text-sm text-muted-foreground">
-                      Ürün {field.value ? "aktif" : "pasif"} olacak
-                    </div>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
                 </FormItem>
               )}
             />
