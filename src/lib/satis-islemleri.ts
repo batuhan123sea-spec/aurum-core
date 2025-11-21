@@ -66,29 +66,55 @@ export function hesapliSatisYap(
       
       urun.stokMiktari = yeniMiktar;
       saveUrun(urun);
+
+      // Stok uyarısı kontrolü
+      if (yeniMiktar <= urun.kritikStokSeviyesi) {
+        toast({
+          title: "🚨 Kritik Stok Uyarısı!",
+          description: `${urun.ad} kritik seviyede! (Kalan: ${yeniMiktar})`,
+          variant: "destructive"
+        });
+      } else if (yeniMiktar <= urun.minStokSeviyesi) {
+        toast({
+          title: "⚠️ Düşük Stok",
+          description: `${urun.ad} minimum seviyeye yaklaştı! (Kalan: ${yeniMiktar})`
+        });
+      }
     }
   });
   
-  // Müşteri borcuna ekle
-  const paraBirimi = musteri.varsayilanParaBirimi;
-  let borcTutari = genelToplam;
-  
-  if (paraBirimi !== 'TRY') {
-    const kur = getKur(paraBirimi);
-    borcTutari = genelToplam / kur;
-  }
-  
-  saveHareket({
-    id: Date.now().toString(),
-    musteriId,
-    tarih: satis.tarih,
-    islemTuru: 'satis',
-    aciklama: `Satış - ${kalemler.map(k => k.urunAdi).join(', ')}`,
-    paraBirimi,
-    tutar: borcTutari,
-    kur: paraBirimi === 'TRY' ? 1 : getKur(paraBirimi),
-    tlKarsiligi: genelToplam,
-    bakiye: 0
+  // Sepetteki her kalemin para birimini grupla
+  const paraBirimiGroups: { [key: string]: number } = {
+    TRY: 0,
+    USD: 0,
+    EUR: 0
+  };
+
+  kalemler.forEach(kalem => {
+    const orijinalTutar = kalem.orijinalBirimFiyati * kalem.adet;
+    paraBirimiGroups[kalem.paraBirimi] += orijinalTutar;
+  });
+
+  // Her para birimi için ayrı hareket kaydet
+  Object.keys(paraBirimiGroups).forEach((pb) => {
+    const paraBirimi = pb as 'TRY' | 'USD' | 'EUR';
+    if (paraBirimiGroups[pb] > 0) {
+      const kur = paraBirimi === 'TRY' ? 1 : getKur(paraBirimi);
+      const tlKarsiligi = paraBirimiGroups[pb] * kur;
+      
+      saveHareket({
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        musteriId,
+        tarih: satis.tarih,
+        islemTuru: 'satis',
+        aciklama: `Satış - ${satis.satisNo} (${paraBirimi})`,
+        paraBirimi,
+        tutar: paraBirimiGroups[pb],
+        kur,
+        tlKarsiligi,
+        bakiye: 0
+      });
+    }
   });
   
   musteriBalanceGuncelle(musteriId);
@@ -184,6 +210,20 @@ export function hizliSatisYap(
       
       urun.stokMiktari = yeniMiktar;
       saveUrun(urun);
+
+      // Stok uyarısı kontrolü
+      if (yeniMiktar <= urun.kritikStokSeviyesi) {
+        toast({
+          title: "🚨 Kritik Stok Uyarısı!",
+          description: `${urun.ad} kritik seviyede! (Kalan: ${yeniMiktar})`,
+          variant: "destructive"
+        });
+      } else if (yeniMiktar <= urun.minStokSeviyesi) {
+        toast({
+          title: "⚠️ Düşük Stok",
+          description: `${urun.ad} minimum seviyeye yaklaştı! (Kalan: ${yeniMiktar})`
+        });
+      }
     }
   });
   

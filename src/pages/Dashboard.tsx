@@ -1,4 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   TrendingUp,
   Package,
@@ -7,8 +9,18 @@ import {
   DollarSign,
   ShoppingCart,
 } from "lucide-react";
+import { getUrunler } from "@/lib/stok-data";
+import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const allUrunler = getUrunler();
+  
+  const kritikStoklar = allUrunler.filter(u => u.stokMiktari <= u.kritikStokSeviyesi);
+  const dusukStoklar = allUrunler.filter(u => 
+    u.stokMiktari > u.kritikStokSeviyesi && u.stokMiktari <= u.minStokSeviyesi
+  );
+  
   const stats = [
     {
       title: "Bugünkü Satışlar",
@@ -32,9 +44,9 @@ export default function Dashboard() {
       color: "text-secondary",
     },
     {
-      title: "Düşük Stok Uyarısı",
-      value: "12",
-      change: "Dikkat gerekli",
+      title: "Kritik Stok Uyarısı",
+      value: kritikStoklar.length.toString(),
+      change: dusukStoklar.length > 0 ? `+${dusukStoklar.length} düşük stok` : "Dikkat gerekli",
       icon: AlertTriangle,
       color: "text-destructive",
     },
@@ -108,30 +120,64 @@ export default function Dashboard() {
         </Card>
 
         {/* Kritik Stok Uyarıları */}
-        <Card>
+        <Card className={kritikStoklar.length > 0 ? "border-l-4 border-l-destructive" : ""}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-warning" />
-              Kritik Stok Uyarıları
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className={kritikStoklar.length > 0 ? "w-5 h-5 text-destructive" : "w-5 h-5 text-warning"} />
+                Stok Uyarıları
+              </CardTitle>
+              {(kritikStoklar.length > 0 || dusukStoklar.length > 0) && (
+                <Button size="sm" onClick={() => navigate('/stok/uyarilar')}>
+                  Tümünü Gör
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {lowStockItems.map((item, index) => (
-                <div key={index} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">
-                  <div>
-                    <p className="font-medium text-foreground">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Minimum: {item.minStock}
-                    </p>
+            {kritikStoklar.length === 0 && dusukStoklar.length === 0 ? (
+              <div className="text-center py-8">
+                <Package className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">Tüm stoklar yeterli seviyede</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {kritikStoklar.slice(0, 3).map((urun) => (
+                  <div key={urun.id} className="flex items-center justify-between border-b border-border pb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-foreground">{urun.ad}</p>
+                        <Badge variant="destructive" className="text-xs">KRİTİK</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Min: {urun.minStokSeviyesi} {urun.birim} | Kritik: {urun.kritikStokSeviyesi} {urun.birim}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-destructive">{urun.stokMiktari} {urun.birim}</p>
+                      <p className="text-xs text-muted-foreground">Mevcut</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-destructive">{item.stock}</p>
-                    <p className="text-xs text-muted-foreground">Mevcut Stok</p>
+                ))}
+                {dusukStoklar.slice(0, 2).map((urun) => (
+                  <div key={urun.id} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-foreground">{urun.ad}</p>
+                        <Badge variant="outline" className="text-xs">DÜŞÜK</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Min: {urun.minStokSeviyesi} {urun.birim}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-warning">{urun.stokMiktari} {urun.birim}</p>
+                      <p className="text-xs text-muted-foreground">Mevcut</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

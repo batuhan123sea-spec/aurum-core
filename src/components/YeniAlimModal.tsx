@@ -30,7 +30,8 @@ import {
 import { Card } from "@/components/ui/card";
 import { Plus, X } from "lucide-react";
 import { saveTedarikciAlim } from "@/lib/tedarikci-data";
-import { getUrunler } from "@/lib/stok-data";
+import { getUrunler, saveUrun } from "@/lib/stok-data";
+import { stokHareketKaydet } from "@/lib/stok-hareket";
 import { useToast } from "@/hooks/use-toast";
 
 const alimSchema = z.object({
@@ -146,9 +147,31 @@ export const YeniAlimModal = ({ open, onOpenChange, tedarikciId, onSuccess }: Ye
 
     saveTedarikciAlim(yeniAlim);
     
+    // Stokları arttır ve hareket kaydet
+    urunler.forEach(urunItem => {
+      const allUrunler = getUrunler();
+      const urun = allUrunler.find(u => u.id === urunItem.urunId);
+      if (urun) {
+        const oncekiMiktar = urun.stokMiktari;
+        const yeniMiktar = oncekiMiktar + urunItem.miktar;
+        
+        stokHareketKaydet(
+          urunItem.urunId,
+          'giris',
+          urunItem.miktar,
+          `Tedarikçi Alımı - ${data.faturaNo}`,
+          oncekiMiktar,
+          yeniMiktar
+        );
+        
+        urun.stokMiktari = yeniMiktar;
+        saveUrun(urun);
+      }
+    });
+    
     toast({
       title: "Başarılı!",
-      description: "Alım kaydı başarıyla eklendi.",
+      description: "Alım kaydı eklendi ve stoklar güncellendi.",
     });
     
     form.reset();

@@ -13,8 +13,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Phone, Mail, MapPin, FileText, Plus, Package } from "lucide-react";
 import { getTedarikciById, getTedarikciAlimlari } from "@/lib/tedarikci-data";
+import { getUrunler } from "@/lib/stok-data";
+import { formatCurrency } from "@/lib/kur-hesaplama";
 import { YeniAlimModal } from "@/components/YeniAlimModal";
 
 export default function TedarikciDetay() {
@@ -24,6 +27,9 @@ export default function TedarikciDetay() {
 
   const tedarikci = tedarikciId ? getTedarikciById(tedarikciId) : null;
   const alimlar = tedarikciId ? getTedarikciAlimlari(tedarikciId) : [];
+  const tedarikciUrunleri = tedarikciId 
+    ? getUrunler().filter(u => u.tedarikciler.some(t => t.tedarikciId === tedarikciId))
+    : [];
 
   if (!tedarikci) {
     return (
@@ -189,78 +195,155 @@ export default function TedarikciDetay() {
             )}
           </div>
 
-          {/* Sağ Panel - Alım Geçmişi */}
+          {/* Sağ Panel - Tabs */}
           <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Alım Geçmişi</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {alimlar.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground mb-4">
-                      Henüz alım kaydı bulunmuyor
-                    </p>
-                    <Button onClick={() => setYeniAlimModalOpen(true)}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      İlk Alımı Kaydet
-                    </Button>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Tarih</TableHead>
-                        <TableHead>Fatura No</TableHead>
-                        <TableHead>Ürünler</TableHead>
-                        <TableHead className="text-right">Tutar</TableHead>
-                        <TableHead>Ödeme</TableHead>
-                        <TableHead>Açıklama</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {alimlar.map((alim) => (
-                        <TableRow key={alim.id}>
-                          <TableCell>
-                            {new Date(alim.tarih).toLocaleDateString('tr-TR')}
-                          </TableCell>
-                          <TableCell className="font-medium">{alim.faturaNo}</TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {alim.urunler.map((u, idx) => (
-                                <div key={idx} className="text-muted-foreground">
-                                  {u.urunAdi} ({u.miktar} adet)
+            <Tabs defaultValue="alimlar">
+              <TabsList>
+                <TabsTrigger value="alimlar">Alım Geçmişi</TabsTrigger>
+                <TabsTrigger value="urunler">Ürünler ({tedarikciUrunleri.length})</TabsTrigger>
+              </TabsList>
+
+              {/* Alım Geçmişi Tab */}
+              <TabsContent value="alimlar">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Alım Geçmişi</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {alimlar.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground mb-4">
+                          Henüz alım kaydı bulunmuyor
+                        </p>
+                        <Button onClick={() => setYeniAlimModalOpen(true)}>
+                          <Plus className="w-4 h-4 mr-2" />
+                          İlk Alımı Kaydet
+                        </Button>
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Tarih</TableHead>
+                            <TableHead>Fatura No</TableHead>
+                            <TableHead>Ürünler</TableHead>
+                            <TableHead className="text-right">Tutar</TableHead>
+                            <TableHead>Ödeme</TableHead>
+                            <TableHead>Açıklama</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {alimlar.map((alim) => (
+                            <TableRow key={alim.id}>
+                              <TableCell>
+                                {new Date(alim.tarih).toLocaleDateString('tr-TR')}
+                              </TableCell>
+                              <TableCell className="font-medium">{alim.faturaNo}</TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  {alim.urunler.map((u, idx) => (
+                                    <div key={idx} className="text-muted-foreground">
+                                      {u.urunAdi} ({u.miktar} adet)
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right font-semibold">
-                            {alim.genelToplam.toFixed(2)} ₺
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant={
-                                alim.odemeDurumu === 'odendi' ? 'default' :
-                                alim.odemeDurumu === 'beklemede' ? 'secondary' :
-                                'outline'
-                              }
-                            >
-                              {alim.odemeDurumu === 'odendi' ? 'Ödendi' :
-                               alim.odemeDurumu === 'beklemede' ? 'Beklemede' :
-                               'Kısmi'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {alim.aciklama || '-'}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
+                              </TableCell>
+                              <TableCell className="text-right font-semibold">
+                                {alim.genelToplam.toFixed(2)} ₺
+                              </TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant={
+                                    alim.odemeDurumu === 'odendi' ? 'default' :
+                                    alim.odemeDurumu === 'beklemede' ? 'secondary' :
+                                    'outline'
+                                  }
+                                >
+                                  {alim.odemeDurumu === 'odendi' ? 'Ödendi' :
+                                   alim.odemeDurumu === 'beklemede' ? 'Beklemede' :
+                                   'Kısmi'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {alim.aciklama || '-'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Ürünler Tab */}
+              <TabsContent value="urunler">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Bu Tedarikçiden Alınan Ürünler</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {tedarikciUrunleri.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground">
+                          Bu tedarikçiden henüz ürün kaydı bulunmuyor
+                        </p>
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Ürün</TableHead>
+                            <TableHead className="text-right">Alış Fiyatı</TableHead>
+                            <TableHead className="text-right">Satış Fiyatı</TableHead>
+                            <TableHead className="text-right">Stok</TableHead>
+                            <TableHead className="text-right">İşlem</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {tedarikciUrunleri.map((urun) => {
+                            const tedarikciInfo = urun.tedarikciler.find(t => t.tedarikciId === tedarikciId);
+                            return (
+                              <TableRow key={urun.id}>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <img src="/placeholder.svg" className="w-8 h-8 rounded" alt={urun.ad} />
+                                    <div>
+                                      <div className="font-medium">{urun.ad}</div>
+                                      <div className="text-sm text-muted-foreground">{urun.kod}</div>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {tedarikciInfo && formatCurrency(tedarikciInfo.alisFiyati, tedarikciInfo.paraBirimi)}
+                                </TableCell>
+                                <TableCell className="text-right font-semibold">
+                                  {formatCurrency(urun.satisFiyati, urun.alisFiyatiParaBirimi)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {urun.stokMiktari} {urun.birim}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => navigate(`/stok/urun/${urun.id}`)}
+                                  >
+                                    Detay
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>
