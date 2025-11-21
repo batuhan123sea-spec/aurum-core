@@ -187,10 +187,46 @@ const migrateTedarikcilerArray = (): void => {
   }
 };
 
+// Migration fonksiyonu - var olan ürünlere otomatik barkod ataması
+const BARKOD_MIGRATION_KEY = 'kuyumcu_barkod_migration_v1';
+const migrateBarcodes = (): void => {
+  const migrated = localStorage.getItem(BARKOD_MIGRATION_KEY);
+  if (migrated) return;
+  
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) return;
+  
+  try {
+    const urunler: Urun[] = JSON.parse(stored);
+    let updated = false;
+    
+    const updatedUrunler = urunler.map(urun => {
+      // Eğer barkod yoksa veya geçersizse yeni oluştur
+      if (!urun.barkod || urun.barkod.length !== 13) {
+        updated = true;
+        return {
+          ...urun,
+          barkod: generateBarkod()
+        };
+      }
+      return urun;
+    });
+    
+    if (updated) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUrunler));
+      console.log('✅ Barkod migration tamamlandı:', updatedUrunler.length, 'ürün güncellendi');
+    }
+    localStorage.setItem(BARKOD_MIGRATION_KEY, 'done');
+  } catch (error) {
+    console.error('Barkod migration failed:', error);
+  }
+};
+
 export const getUrunler = (): Urun[] => {
   // Migration kontrolü
   migrateProductCurrencies();
   migrateTedarikcilerArray();
+  migrateBarcodes();
   
   const stored = localStorage.getItem(STORAGE_KEY);
   if (!stored) {

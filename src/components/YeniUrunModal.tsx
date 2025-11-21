@@ -97,7 +97,7 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
       aciklama: initialData.aciklama || "",
     } : {
       ad: "",
-      barkod: "",
+      barkod: generateBarkod(),
       kategori: "",
       stokMiktari: 0,
       birim: "Adet",
