@@ -30,7 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { KATEGORILER, Urun } from "@/types/stok";
-import { saveUrun, generateUrunKodu } from "@/lib/stok-data";
+import { saveUrun, generateUrunKodu, generateBarkod } from "@/lib/stok-data";
 import { getTedarikciler } from "@/lib/tedarikci-data";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, X } from "lucide-react";
@@ -281,19 +281,32 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="barkod"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Barkod *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Barkod numarası" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="flex gap-2">
+                <FormField
+                  control={form.control}
+                  name="barkod"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel>Barkod *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Barkod numarası" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-8"
+                  onClick={() => {
+                    const yeniBarkod = generateBarkod();
+                    form.setValue('barkod', yeniBarkod);
+                  }}
+                >
+                  Otomatik Oluştur
+                </Button>
+              </div>
             </div>
 
             <FormField
