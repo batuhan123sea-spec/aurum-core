@@ -1,5 +1,5 @@
 import { getSatislar, getGunlukSatislar } from './satis-data';
-import { getMusteriler } from './musteri-data';
+import { getMusteriler, getHareketler } from './musteri-data';
 import { getUrunler } from './stok-data';
 import { Satis } from '@/types/satis';
 
@@ -93,9 +93,23 @@ export const getKarZararAnalizi = (baslangic: Date, bitis: Date) => {
     return sum + maliyet;
   }, 0);
   
+  // Tahsilat hesaplama
+  const tumHareketler = getHareketler();
+  const toplamTahsilat = tumHareketler
+    .filter(h => {
+      const hareketTarih = new Date(h.tarih);
+      return (
+        hareketTarih >= baslangic && 
+        hareketTarih <= bitis && 
+        h.islemTuru === 'odeme'
+      );
+    })
+    .reduce((sum, h) => sum + h.tlKarsiligi, 0);
+  
   return {
     toplamSatis,
     toplamMaliyet,
+    toplamTahsilat,
     brutKar: toplamSatis - toplamMaliyet,
     karMarji: toplamSatis > 0 ? ((toplamSatis - toplamMaliyet) / toplamSatis) * 100 : 0
   };
