@@ -7,6 +7,7 @@ import {
   Building2,
   BarChart3,
   Settings,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +32,11 @@ const menuItems: MenuItem[] = [
     title: "Yeni Satış",
     icon: ShoppingCart,
     path: "/satis/yeni",
+  },
+  {
+    title: "Rezervasyonlar",
+    icon: ClipboardList,
+    path: "/satis/rezervler",
   },
   {
     title: "Müşteri İşlemleri",

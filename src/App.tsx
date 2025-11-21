@@ -9,6 +9,7 @@ import StokKategoriDetay from "./pages/StokKategoriDetay";
 import UrunDetay from "./pages/UrunDetay";
 import StokUyarilar from "./pages/StokUyarilar";
 import YeniSatis from "./pages/YeniSatis";
+import RezervListe from "./pages/RezervListe";
 import TedarikciListe from "./pages/TedarikciListe";
 import TedarikciDetay from "./pages/TedarikciDetay";
 import MusteriListe from "./pages/MusteriListe";
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/stok/urun/:urunId" element={<UrunDetay />} />
           <Route path="/stok/uyarilar" element={<StokUyarilar />} />
           <Route path="/satis/yeni" element={<YeniSatis />} />
+          <Route path="/satis/rezervler" element={<RezervListe />} />
           <Route path="/tedarikci/liste" element={<TedarikciListe />} />
           <Route path="/tedarikci/detay/:tedarikciId" element={<TedarikciDetay />} />
           <Route path="/raporlar" element={<Raporlar />} />
