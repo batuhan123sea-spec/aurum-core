@@ -40,7 +40,6 @@ export default function StokUrunler() {
   const [hizliStokModalOpen, setHizliStokModalOpen] = useState(false);
   const [stokSayimModalOpen, setStokSayimModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [secilenUrunler, setSecilenUrunler] = useState<string[]>([]);
   const [barkodModalOpen, setBarkodModalOpen] = useState(false);
 
   // Stok Hareketleri filtreleri
@@ -191,10 +190,9 @@ export default function StokUrunler() {
                   variant="outline" 
                   size="lg"
                   onClick={() => setBarkodModalOpen(true)}
-                  disabled={secilenUrunler.length === 0}
                 >
                   <Printer className="mr-2" />
-                  Barkod Yazdır ({secilenUrunler.length})
+                  Barkod Yazdır ({filtrelenmisUrunler.length})
                 </Button>
               </div>
 
@@ -244,19 +242,6 @@ export default function StokUrunler() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-12">
-                            <input
-                              type="checkbox"
-                              checked={secilenUrunler.length === filtrelenmisUrunler.length && filtrelenmisUrunler.length > 0}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSecilenUrunler(filtrelenmisUrunler.map(u => u.id));
-                                } else {
-                                  setSecilenUrunler([]);
-                                }
-                              }}
-                            />
-                          </TableHead>
                           <TableHead>Ürün Kodu</TableHead>
                           <TableHead>Ürün Adı</TableHead>
                           <TableHead>Kategori</TableHead>
@@ -270,7 +255,7 @@ export default function StokUrunler() {
                       <TableBody>
                         {filtrelenmisUrunler.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                               Arama kriterlerine uygun ürün bulunamadı.
                             </TableCell>
                           </TableRow>
@@ -278,57 +263,27 @@ export default function StokUrunler() {
                           filtrelenmisUrunler.map((urun) => (
                             <TableRow 
                               key={urun.id}
-                              className="hover:bg-muted/50"
+                              className="hover:bg-muted/50 cursor-pointer"
+                              onClick={() => navigate(`/stok/urun/${urun.id}`)}
                             >
-                              <TableCell onClick={(e) => e.stopPropagation()}>
-                                <input
-                                  type="checkbox"
-                                  checked={secilenUrunler.includes(urun.id)}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setSecilenUrunler([...secilenUrunler, urun.id]);
-                                    } else {
-                                      setSecilenUrunler(secilenUrunler.filter(id => id !== urun.id));
-                                    }
-                                  }}
-                                />
-                              </TableCell>
-                              <TableCell 
-                                className="font-medium cursor-pointer"
-                                onClick={() => navigate(`/stok/urun/${urun.id}`)}
-                              >
+                              <TableCell className="font-medium">
                                 {urun.kod}
                               </TableCell>
-                              <TableCell 
-                                className="cursor-pointer"
-                                onClick={() => navigate(`/stok/urun/${urun.id}`)}
-                              >
+                              <TableCell>
                                 {urun.ad}
                               </TableCell>
-                              <TableCell
-                                className="cursor-pointer"
-                                onClick={() => navigate(`/stok/urun/${urun.id}`)}
-                              >
+                              <TableCell>
                                 <Badge variant="outline">
                                   {KATEGORILER.find(k => k.id === urun.kategori)?.ad}
                                 </Badge>
                               </TableCell>
-                              <TableCell 
-                                className="text-right font-semibold cursor-pointer"
-                                onClick={() => navigate(`/stok/urun/${urun.id}`)}
-                              >
+                              <TableCell className="text-right font-semibold">
                                 {urun.stokMiktari} {urun.birim}
                               </TableCell>
-                              <TableCell 
-                                className="text-right text-muted-foreground cursor-pointer"
-                                onClick={() => navigate(`/stok/urun/${urun.id}`)}
-                              >
+                              <TableCell className="text-right text-muted-foreground">
                                 {urun.minStokSeviyesi}
                               </TableCell>
-                              <TableCell
-                                className="cursor-pointer"
-                                onClick={() => navigate(`/stok/urun/${urun.id}`)}
-                              >
+                              <TableCell>
                                 {urun.stokMiktari <= urun.kritikStokSeviyesi ? (
                                   <Badge variant="destructive" className="gap-1">
                                     <AlertTriangle className="w-3 h-3" />
@@ -345,16 +300,10 @@ export default function StokUrunler() {
                                   </Badge>
                                 )}
                               </TableCell>
-                              <TableCell 
-                                className="text-right cursor-pointer"
-                                onClick={() => navigate(`/stok/urun/${urun.id}`)}
-                              >
+                              <TableCell className="text-right">
                                 {urun.alisFiyati.toFixed(2)} {urun.alisFiyatiParaBirimi}
                               </TableCell>
-                              <TableCell 
-                                className="text-right font-medium cursor-pointer"
-                                onClick={() => navigate(`/stok/urun/${urun.id}`)}
-                              >
+                              <TableCell className="text-right font-medium">
                                 {urun.satisFiyati.toFixed(2)} {urun.satisFiyatiParaBirimi || urun.alisFiyatiParaBirimi}
                               </TableCell>
                             </TableRow>
@@ -563,7 +512,7 @@ export default function StokUrunler() {
       <BarkodYazdirModal
         open={barkodModalOpen}
         onOpenChange={setBarkodModalOpen}
-        urunler={allUrunler.filter(u => secilenUrunler.includes(u.id))}
+        urunler={filtrelenmisUrunler}
       />
     </Layout>
   );
