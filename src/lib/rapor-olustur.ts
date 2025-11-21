@@ -2,6 +2,7 @@ import { getSatislar, getGunlukSatislar } from './satis-data';
 import { getMusteriler, getHareketler } from './musteri-data';
 import { getUrunler } from './stok-data';
 import { Satis } from '@/types/satis';
+import { paraBirimiTLyeCevir } from './kur-hesaplama';
 
 export interface GunlukSatisRapor {
   tarih: string;
@@ -64,8 +65,13 @@ export const getStokDurumRaporu = (): StokDurumRapor[] => {
   
   return kategoriler.map(kategori => {
     const kategoriUrunler = urunler.filter(u => u.kategori === kategori);
-    const toplamStokDegeri = kategoriUrunler.reduce((sum, u) => 
-      sum + (u.stokMiktari * u.alisFiyati), 0);
+    const toplamStokDegeri = kategoriUrunler.reduce((sum, u) => {
+      const alisFiyatiTL = paraBirimiTLyeCevir(
+        u.alisFiyati,
+        u.alisFiyatiParaBirimi
+      );
+      return sum + (u.stokMiktari * alisFiyatiTL);
+    }, 0);
     const kritikStokUrunler = kategoriUrunler.filter(u => 
       u.stokMiktari <= u.kritikStokSeviyesi).length;
     
@@ -85,10 +91,21 @@ export const getKarZararAnalizi = (baslangic: Date, bitis: Date) => {
   });
   
   const toplamSatis = satislar.reduce((sum, s) => sum + s.genelToplam, 0);
+  
+  // Gerçek alış fiyatı ve para birimi ile maliyet hesaplama
+  const tumUrunler = getUrunler();
   const toplamMaliyet = satislar.reduce((sum, s) => {
     const maliyet = s.kalemler.reduce((m, k) => {
-      // Basitleştirilmiş maliyet hesabı, gerçekte ürünün alış fiyatı kullanılmalı
-      return m + (k.birimFiyati * 0.7 * k.adet); // %30 kar marjı varsayımı
+      const urun = tumUrunler.find(u => u.id === k.urunId);
+      if (!urun) return m;
+      
+      // Ürünün alış fiyatını TL'ye çevir
+      const alisFiyatiTL = paraBirimiTLyeCevir(
+        urun.alisFiyati,
+        urun.alisFiyatiParaBirimi
+      );
+      
+      return m + (alisFiyatiTL * k.adet);
     }, 0);
     return sum + maliyet;
   }, 0);
