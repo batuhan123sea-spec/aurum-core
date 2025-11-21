@@ -138,49 +138,40 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
     const inputVal = inputValues[urunId]?.[tip] || '0';
     const girilenSayi = parseInt(inputVal) || 0;
     
+    // ÖNCE hesaplama yap - closure değişkenlerinde sakla
+    let yeniSatilanMiktar = 0;
+    let yeniIadeMiktar = 0;
+    
     setUrunIslemleri(prev => prev.map(islem => {
       if (islem.urunId === urunId) {
         const guvenliSayi = Math.min(Math.max(0, girilenSayi), islem.rezervMiktar);
         
         if (tip === 'satilan') {
-          return {
-            ...islem,
-            satilanMiktar: guvenliSayi,
-            iadeMiktar: islem.rezervMiktar - guvenliSayi,
-            kalanMiktar: 0,
-          };
+          yeniSatilanMiktar = guvenliSayi;
+          yeniIadeMiktar = islem.rezervMiktar - guvenliSayi;
         } else {
-          return {
-            ...islem,
-            iadeMiktar: guvenliSayi,
-            satilanMiktar: islem.rezervMiktar - guvenliSayi,
-            kalanMiktar: 0,
-          };
+          yeniIadeMiktar = guvenliSayi;
+          yeniSatilanMiktar = islem.rezervMiktar - guvenliSayi;
         }
+        
+        return {
+          ...islem,
+          satilanMiktar: yeniSatilanMiktar,
+          iadeMiktar: yeniIadeMiktar,
+          kalanMiktar: 0,
+        };
       }
       return islem;
     }));
     
-    // Input değerlerini senkronize et
-    setInputValues(prev => {
-      const updated = { ...prev };
-      const islem = urunIslemleri.find(i => i.urunId === urunId);
-      if (islem) {
-        const guvenliSayi = Math.min(Math.max(0, girilenSayi), islem.rezervMiktar);
-        if (tip === 'satilan') {
-          updated[urunId] = {
-            satilan: guvenliSayi.toString(),
-            iade: (islem.rezervMiktar - guvenliSayi).toString()
-          };
-        } else {
-          updated[urunId] = {
-            satilan: (islem.rezervMiktar - guvenliSayi).toString(),
-            iade: guvenliSayi.toString()
-          };
-        }
+    // SONRA hesaplanan değerlerle inputValues'u güncelle
+    setInputValues(prev => ({
+      ...prev,
+      [urunId]: {
+        satilan: yeniSatilanMiktar.toString(),
+        iade: yeniIadeMiktar.toString()
       }
-      return updated;
-    });
+    }));
   };
 
   const dogrulamaYap = (): boolean => {
