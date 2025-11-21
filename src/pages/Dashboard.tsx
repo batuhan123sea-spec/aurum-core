@@ -10,11 +10,35 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import { getUrunler } from "@/lib/stok-data";
+import { getMusteriler } from "@/lib/musteri-data";
+import { getSatislar } from "@/lib/satis-data";
+import { KATEGORILER } from "@/types/stok";
 import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const allUrunler = getUrunler();
+  const allMusteriler = getMusteriler();
+  const allSatislar = getSatislar();
+  
+  // Müşteri hesaplamaları
+  const aktifMusteriler = allMusteriler.filter(m => m.durumu === 'aktif');
+  const borcluMusteriler = allMusteriler.filter(m => m.toplamBorcTL > 0);
+  
+  // Bugünkü satışlar
+  const bugunBaslangic = new Date();
+  bugunBaslangic.setHours(0, 0, 0, 0);
+  
+  const bugunkuSatislar = allSatislar
+    .filter(s => {
+      const satisTarih = new Date(s.tarih);
+      return satisTarih >= bugunBaslangic && s.durum === 'tamamlandi';
+    })
+    .sort((a, b) => new Date(b.tarih).getTime() - new Date(a.tarih).getTime());
+  
+  const bugunkuToplamSatis = bugunkuSatislar.reduce((toplam, satis) => 
+    toplam + satis.genelToplam, 0
+  );
   
   const kritikStoklar = allUrunler.filter(u => u.stokMiktari <= u.kritikStokSeviyesi);
   const dusukStoklar = allUrunler.filter(u => 
@@ -24,22 +48,22 @@ export default function Dashboard() {
   const stats = [
     {
       title: "Bugünkü Satışlar",
-      value: "₺45,230",
-      change: "+12.5%",
+      value: `₺${bugunkuToplamSatis.toLocaleString('tr-TR')}`,
+      change: `${bugunkuSatislar.length} işlem`,
       icon: ShoppingCart,
       color: "text-success",
     },
     {
       title: "Toplam Ürün",
-      value: "1,234",
-      change: "+5 yeni",
+      value: allUrunler.length.toString(),
+      change: `${KATEGORILER.length} kategori`,
       icon: Package,
       color: "text-primary",
     },
     {
       title: "Aktif Müşteriler",
-      value: "892",
-      change: "+23 bu ay",
+      value: aktifMusteriler.length.toString(),
+      change: `${borcluMusteriler.length} borçlu`,
       icon: Users,
       color: "text-secondary",
     },
@@ -52,19 +76,29 @@ export default function Dashboard() {
     },
   ];
 
-  const recentSales = [
-    { customer: "Ahmet Yılmaz", product: "Cila Makinesi XL-200", amount: "₺8,500", time: "10 dk önce" },
-    { customer: "Zeynep Demir", product: "Parlatma Tozu (5kg)", amount: "₺1,200", time: "25 dk önce" },
-    { customer: "Mehmet Kaya", product: "Döküm Kalıbı Set", amount: "₺3,800", time: "1 saat önce" },
-    { customer: "Ayşe Şahin", product: "Ölçüm Terazisi Digital", amount: "₺2,100", time: "2 saat önce" },
-  ];
-
-  const lowStockItems = [
-    { name: "Parlatma Tozu Beyaz", stock: "2 kg", minStock: "10 kg" },
-    { name: "Döküm Silikon", stock: "5 adet", minStock: "20 adet" },
-    { name: "Cila Diski 200mm", stock: "8 adet", minStock: "25 adet" },
-    { name: "Ölçüm Kalibratörü", stock: "1 adet", minStock: "5 adet" },
-  ];
+  const recentSales = bugunkuSatislar.slice(0, 4).map(satis => {
+    const musteri = allMusteriler.find(m => m.id === satis.musteriId);
+    const urunler = satis.kalemler.map(k => k.urunAdi).join(', ');
+    const zamanFarki = new Date().getTime() - new Date(satis.tarih).getTime();
+    const dakika = Math.floor(zamanFarki / 60000);
+    const saat = Math.floor(dakika / 60);
+    
+    let timeStr = '';
+    if (saat > 0) {
+      timeStr = `${saat} saat önce`;
+    } else if (dakika > 0) {
+      timeStr = `${dakika} dk önce`;
+    } else {
+      timeStr = 'Az önce';
+    }
+    
+    return {
+      customer: musteri?.adSoyad || 'Bilinmeyen Müşteri',
+      product: urunler,
+      amount: `₺${satis.genelToplam.toLocaleString('tr-TR')}`,
+      time: timeStr
+    };
+  });
 
   return (
     <div className="space-y-6">
