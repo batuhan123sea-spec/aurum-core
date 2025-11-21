@@ -6,6 +6,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Simple in-memory rate limiting
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(userId: string, maxRequests: number, windowMs: number): boolean {
+  const now = Date.now();
+  const userLimit = rateLimitMap.get(userId);
+  
+  if (!userLimit || now > userLimit.resetTime) {
+    rateLimitMap.set(userId, { count: 1, resetTime: now + windowMs });
+    return true;
+  }
+  
+  if (userLimit.count >= maxRequests) {
+    return false;
+  }
+  
+  userLimit.count++;
+  return true;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -51,11 +71,78 @@ serve(async (req) => {
       });
     }
 
+    // Rate limiting: 5 requests per 10 minutes
+    if (!checkRateLimit(user.id, 5, 600000)) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded. Try again later.' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     // Create new user
     const { username, password, isAdmin: makeAdmin } = await req.json();
 
-    if (!username || !password) {
-      return new Response(JSON.stringify({ error: 'Username and password required' }), {
+    // Validate username
+    if (!username || typeof username !== 'string') {
+      return new Response(JSON.stringify({ error: 'Username is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+    if (username.length < 3 || username.length > 30) {
+      return new Response(JSON.stringify({ error: 'Username must be between 3 and 30 characters' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    if (!usernameRegex.test(username)) {
+      return new Response(JSON.stringify({ error: 'Username can only contain letters, numbers, hyphens, and underscores' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Validate password
+    if (!password || typeof password !== 'string') {
+      return new Response(JSON.stringify({ error: 'Password is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    if (password.length < 12) {
+      return new Response(JSON.stringify({ error: 'Password must be at least 12 characters' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+      return new Response(JSON.stringify({ error: 'Password must contain at least one uppercase letter' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    if (!/[a-z]/.test(password)) {
+      return new Response(JSON.stringify({ error: 'Password must contain at least one lowercase letter' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    if (!/[0-9]/.test(password)) {
+      return new Response(JSON.stringify({ error: 'Password must contain at least one number' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      return new Response(JSON.stringify({ error: 'Password must contain at least one special character' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });

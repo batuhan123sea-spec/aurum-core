@@ -313,9 +313,41 @@ export default function Ayarlar() {
       toast.error('Kullanıcı adı ve şifre gerekli');
       return;
     }
-
-    if (newPassword.length < 6) {
-      toast.error('Şifre en az 6 karakter olmalı');
+    
+    // Username validation
+    const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+    if (newUsername.length < 3) {
+      toast.error('Kullanıcı adı en az 3 karakter olmalı');
+      return;
+    }
+    if (newUsername.length > 30) {
+      toast.error('Kullanıcı adı en fazla 30 karakter olabilir');
+      return;
+    }
+    if (!usernameRegex.test(newUsername)) {
+      toast.error('Kullanıcı adı sadece harf, rakam, tire ve alt çizgi içerebilir');
+      return;
+    }
+    
+    // Password validation
+    if (newPassword.length < 12) {
+      toast.error('Şifre en az 12 karakter olmalı');
+      return;
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      toast.error('Şifre en az bir büyük harf içermelidir');
+      return;
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      toast.error('Şifre en az bir küçük harf içermelidir');
+      return;
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      toast.error('Şifre en az bir rakam içermelidir');
+      return;
+    }
+    if (!/[^A-Za-z0-9]/.test(newPassword)) {
+      toast.error('Şifre en az bir özel karakter içermelidir');
       return;
     }
 
