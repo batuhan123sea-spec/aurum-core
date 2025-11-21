@@ -1,6 +1,7 @@
 import { Urun } from '@/types/stok';
 
 const STORAGE_KEY = 'kuyumcu_stok_urunler';
+const MIGRATION_KEY = 'kuyumcu_urunler_migration_v1';
 
 // Mock data - 8. kategori örnek ürünleri
 const MOCK_URUNLER: Urun[] = [
@@ -141,11 +142,42 @@ const MOCK_URUNLER: Urun[] = [
   }
 ];
 
+// Migration fonksiyonu - eski ürünlere satisFiyatiParaBirimi ekle
+const migrateProductCurrencies = (): void => {
+  const migrated = localStorage.getItem(MIGRATION_KEY);
+  if (migrated) return; // Zaten migrate edilmiş
+  
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) return;
+  
+  try {
+    const urunler: Urun[] = JSON.parse(stored);
+    const updatedUrunler = urunler.map(urun => ({
+      ...urun,
+      satisFiyatiParaBirimi: urun.satisFiyatiParaBirimi || urun.alisFiyatiParaBirimi
+    }));
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUrunler));
+    localStorage.setItem(MIGRATION_KEY, 'done');
+  } catch (error) {
+    console.error('Migration failed:', error);
+  }
+};
+
 export const getUrunler = (): Urun[] => {
+  // Migration kontrolü
+  migrateProductCurrencies();
+  
   const stored = localStorage.getItem(STORAGE_KEY);
   if (!stored) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(MOCK_URUNLER));
-    return MOCK_URUNLER;
+    // İlk kez çalışıyorsa mock data'yı kaydet (migration ile)
+    const migratedMockData = MOCK_URUNLER.map(urun => ({
+      ...urun,
+      satisFiyatiParaBirimi: urun.satisFiyatiParaBirimi || urun.alisFiyatiParaBirimi
+    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(migratedMockData));
+    localStorage.setItem(MIGRATION_KEY, 'done');
+    return migratedMockData;
   }
   return JSON.parse(stored);
 };

@@ -236,7 +236,7 @@ export function hizliSatisYap(
 export function rezervIadeIsle(
   urunId: string,
   iadeMiktari: number,
-  aciklama: string
+  rezervNo: string
 ): void {
   const urunler = getUrunler();
   const urun = urunler.find(u => u.id === urunId);
@@ -253,7 +253,8 @@ export function rezervIadeIsle(
   const oncekiMiktar = urun.stokMiktari;
   const yeniMiktar = oncekiMiktar + iadeMiktari;
   
-  // Stok hareketine kaydet
+  // Stok hareketine kaydet (ürün adını da ekle)
+  const aciklama = `Rezerv İadesi - ${rezervNo} - ${urun.ad}`;
   stokHareketKaydet(
     urunId,
     'giris',

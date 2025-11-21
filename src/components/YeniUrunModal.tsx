@@ -42,6 +42,7 @@ const urunSchema = z.object({
   alisFiyati: z.coerce.number().min(0, "Alış fiyatı 0'dan küçük olamaz"),
   paraBirimi: z.enum(['TRY', 'USD', 'EUR']),
   satisFiyati: z.coerce.number().min(0, "Satış fiyatı 0'dan küçük olamaz"),
+  satisFiyatiParaBirimi: z.enum(['TRY', 'USD', 'EUR']),
   tedarikciId: z.string().min(1, "Tedarikçi seçin"),
   minStokSeviyesi: z.coerce.number().min(0),
   aciklama: z.string().optional(),
@@ -72,6 +73,7 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
       alisFiyati: initialData.alisFiyati,
       paraBirimi: initialData.alisFiyatiParaBirimi,
       satisFiyati: initialData.satisFiyati,
+      satisFiyatiParaBirimi: initialData.satisFiyatiParaBirimi || initialData.alisFiyatiParaBirimi,
       tedarikciId: initialData.tedarikciler?.[0]?.tedarikciId || "",
       minStokSeviyesi: initialData.minStokSeviyesi,
       aciklama: initialData.aciklama || "",
@@ -84,6 +86,7 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
       alisFiyati: 0,
       paraBirimi: "TRY",
       satisFiyati: 0,
+      satisFiyatiParaBirimi: "TRY",
       tedarikciId: "",
       minStokSeviyesi: 10,
       aciklama: "",
@@ -113,6 +116,7 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
         alisFiyati: data.alisFiyati,
         alisFiyatiParaBirimi: data.paraBirimi,
         satisFiyati: data.satisFiyati,
+        satisFiyatiParaBirimi: data.satisFiyatiParaBirimi,
         karMarji: ((data.satisFiyati - data.alisFiyati) / data.alisFiyati) * 100,
         minStokSeviyesi: data.minStokSeviyesi,
         kritikStokSeviyesi: Math.floor(data.minStokSeviyesi / 2),
@@ -156,6 +160,7 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
         alisFiyatiParaBirimi: data.paraBirimi,
         karMarji: ((data.satisFiyati - data.alisFiyati) / data.alisFiyati) * 100,
         satisFiyati: data.satisFiyati,
+        satisFiyatiParaBirimi: data.satisFiyatiParaBirimi,
         minStokSeviyesi: data.minStokSeviyesi,
         kritikStokSeviyesi: Math.floor(data.minStokSeviyesi / 2),
         aciklama: data.aciklama || '',
@@ -349,6 +354,29 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="satisFiyatiParaBirimi"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Satış Fiyatı Para Birimi *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="TRY">₺ TRY</SelectItem>
+                      <SelectItem value="USD">$ USD</SelectItem>
+                      <SelectItem value="EUR">€ EUR</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
