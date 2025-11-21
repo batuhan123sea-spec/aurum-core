@@ -174,7 +174,7 @@ export default function UrunDetay() {
 
                   <div>
                     <p className="text-sm text-muted-foreground">Kar Marjı</p>
-                    <p className="font-semibold text-success">%{urun.karMarji.toFixed(2)}</p>
+                    <p className="font-semibold text-success">%{urun.karMarji?.toFixed(2) || '0.00'}</p>
                   </div>
 
                   {urun.aciklama && (
@@ -294,10 +294,10 @@ export default function UrunDetay() {
                                 {alim.urun?.miktar} adet
                               </TableCell>
                               <TableCell className="text-right">
-                                {alim.urun?.birimFiyat.toFixed(2)} {alim.urun?.paraBirimi}
+                                {alim.urun?.birimFiyat?.toFixed(2) || '0.00'} {alim.urun?.paraBirimi || 'TRY'}
                               </TableCell>
                               <TableCell className="text-right font-semibold">
-                                {alim.urun?.toplamTutar.toFixed(2)} {alim.urun?.paraBirimi}
+                                {alim.urun?.toplamTutar?.toFixed(2) || '0.00'} {alim.urun?.paraBirimi || 'TRY'}
                               </TableCell>
                             </TableRow>
                           ))}
@@ -352,7 +352,7 @@ export default function UrunDetay() {
                                 {satis.kalem.adet} adet
                               </TableCell>
                               <TableCell className="text-right font-semibold">
-                                {satis.kalem.birimFiyati.toFixed(2)} ₺
+                                {satis.kalem.birimFiyati?.toFixed(2) || '0.00'} ₺
                               </TableCell>
                             </TableRow>
                           ))}
