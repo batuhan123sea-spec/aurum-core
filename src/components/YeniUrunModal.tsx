@@ -36,7 +36,6 @@ const urunSchema = z.object({
   ad: z.string().min(2, "Ürün adı en az 2 karakter olmalı"),
   barkod: z.string().min(1, "Barkod gerekli"),
   kategori: z.string().min(1, "Kategori seçiniz"),
-  altKategori: z.string().min(1, "Alt kategori seçiniz"),
   stokMiktari: z.coerce.number().min(0, "Stok miktarı 0'dan küçük olamaz"),
   birim: z.string().min(1, "Birim seçiniz"),
   alisFiyati: z.coerce.number().min(0, "Alış fiyatı 0'dan küçük olamaz"),
@@ -58,7 +57,6 @@ interface YeniUrunModalProps {
 
 export const YeniUrunModal = ({ open, onOpenChange, onSuccess }: YeniUrunModalProps) => {
   const { toast } = useToast();
-  const [selectedKategori, setSelectedKategori] = useState<string>("");
 
   const form = useForm<UrunFormValues>({
     resolver: zodResolver(urunSchema),
@@ -66,7 +64,6 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess }: YeniUrunModalPr
       ad: "",
       barkod: "",
       kategori: "",
-      altKategori: "",
       stokMiktari: 0,
       birim: "Adet",
       alisFiyati: 0,
@@ -79,8 +76,6 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess }: YeniUrunModalPr
     },
   });
 
-  const selectedKategoriData = KATEGORILER.find(k => k.id === selectedKategori);
-
   const onSubmit = (data: UrunFormValues) => {
     const yeniUrun = {
       id: Date.now().toString(),
@@ -88,7 +83,6 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess }: YeniUrunModalPr
       ad: data.ad,
       barkod: data.barkod,
       kategori: data.kategori,
-      altKategori: data.altKategori,
       stokMiktari: data.stokMiktari,
       birim: data.birim,
       tedarikciler: [{
@@ -167,64 +161,30 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess }: YeniUrunModalPr
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="kategori"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Kategori *</FormLabel>
-                    <Select 
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        setSelectedKategori(value);
-                        form.setValue("altKategori", "");
-                      }} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Kategori seçin" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {KATEGORILER.map((kat) => (
-                          <SelectItem key={kat.id} value={kat.id}>
-                            {kat.emoji} {kat.ad}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="altKategori"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Alt Kategori *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Alt kategori seçin" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {selectedKategoriData?.altKategoriler.map((alt) => (
-                          <SelectItem key={alt} value={alt}>
-                            {alt}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="kategori"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Kategori *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Kategori seçin" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {KATEGORILER.map((kat) => (
+                        <SelectItem key={kat.id} value={kat.id}>
+                          {kat.emoji} {kat.ad}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="grid grid-cols-3 gap-4">
               <FormField
