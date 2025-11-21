@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,13 +13,17 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
-  Building2, DollarSign, Receipt, Package, FileText,
-  Save, Settings, RefreshCw, AlertTriangle, Check
+  Building2, DollarSign, Receipt, Package, FileText, Users,
+  Save, Settings, RefreshCw, AlertTriangle, Check, Trash2, UserPlus
 } from "lucide-react";
 import { getAyarlar, saveAyarlar } from "@/lib/ayarlar-data";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 // Validation schemas
 const firmaSchema = z.object({
@@ -98,10 +102,26 @@ type KdvFormData = z.infer<typeof kdvSchema>;
 type StokFormData = z.infer<typeof stokSchema>;
 type FisFormData = z.infer<typeof fisSchema>;
 
+interface UserProfile {
+  id: string;
+  username: string;
+  created_at: string;
+  isAdmin: boolean;
+}
+
 export default function Ayarlar() {
   const [activeTab, setActiveTab] = useState("firma");
   const [saving, setSaving] = useState(false);
   const ayarlar = getAyarlar();
+  const { isAdmin } = useAuth();
+  
+  // User Management State
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newUserIsAdmin, setNewUserIsAdmin] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
 
   // Firma Form
   const firmaForm = useForm<FirmaFormData>({
@@ -253,6 +273,129 @@ export default function Ayarlar() {
     }
   };
 
+  // User Management Functions
+  const fetchUsers = async () => {
+    if (!isAdmin) return;
+    
+    setLoadingUsers(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Oturum bulunamadı');
+        return;
+      }
+
+      const response = await supabase.functions.invoke('list-users', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.error) {
+        console.error('User fetch error:', response.error);
+        toast.error('Kullanıcılar yüklenemedi');
+        return;
+      }
+
+      if (response.data?.users) {
+        setUsers(response.data.users);
+      }
+    } catch (error) {
+      console.error('Fetch users error:', error);
+      toast.error('Kullanıcılar yüklenirken hata oluştu');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const createUser = async () => {
+    if (!newUsername || !newPassword) {
+      toast.error('Kullanıcı adı ve şifre gerekli');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error('Şifre en az 6 karakter olmalı');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Oturum bulunamadı');
+        return;
+      }
+
+      const response = await supabase.functions.invoke('create-user', {
+        body: {
+          username: newUsername,
+          password: newPassword,
+          isAdmin: newUserIsAdmin
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.error) {
+        console.error('User creation error:', response.error);
+        toast.error(response.error.message || 'Kullanıcı oluşturulamadı');
+        return;
+      }
+
+      toast.success('Kullanıcı başarıyla oluşturuldu');
+      setNewUsername('');
+      setNewPassword('');
+      setNewUserIsAdmin(false);
+      fetchUsers();
+    } catch (error) {
+      console.error('Create user error:', error);
+      toast.error('Kullanıcı oluşturulurken hata oluştu');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteUser = async (userId: string) => {
+    setSaving(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Oturum bulunamadı');
+        return;
+      }
+
+      const response = await supabase.functions.invoke('delete-user', {
+        body: { userId },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.error) {
+        console.error('User deletion error:', response.error);
+        toast.error(response.error.message || 'Kullanıcı silinemedi');
+        return;
+      }
+
+      toast.success('Kullanıcı silindi');
+      fetchUsers();
+    } catch (error) {
+      console.error('Delete user error:', error);
+      toast.error('Kullanıcı silinirken hata oluştu');
+    } finally {
+      setSaving(false);
+      setUserToDelete(null);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'users' && isAdmin) {
+      fetchUsers();
+    }
+  }, [activeTab, isAdmin]);
+
   const kurGuncelle = async () => {
     setSaving(true);
     try {
@@ -315,7 +458,7 @@ export default function Ayarlar() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="firma" className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
               <span className="hidden sm:inline">Firma</span>
@@ -336,6 +479,12 @@ export default function Ayarlar() {
               <FileText className="w-4 h-4" />
               <span className="hidden sm:inline">Fiş</span>
             </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="users" className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Kullanıcılar</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* FİRMA AYARLARI */}
@@ -939,7 +1088,178 @@ export default function Ayarlar() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* KULLANICI YÖNETİMİ */}
+          {isAdmin && (
+            <TabsContent value="users">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Kullanıcı Yönetimi
+                  </CardTitle>
+                  <CardDescription>
+                    Sisteme erişebilecek kullanıcıları yönetin
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Yeni Kullanıcı Oluşturma */}
+                  <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <UserPlus className="w-4 h-4" />
+                      Yeni Kullanıcı Ekle
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="newUsername">Kullanıcı Adı</Label>
+                        <Input
+                          id="newUsername"
+                          placeholder="admin"
+                          value={newUsername}
+                          onChange={(e) => setNewUsername(e.target.value)}
+                          disabled={saving}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="newPassword">Şifre (min 6 karakter)</Label>
+                        <Input
+                          id="newPassword"
+                          type="password"
+                          placeholder="••••••••"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          disabled={saving}
+                        />
+                      </div>
+                      <div className="space-y-2 flex items-end">
+                        <div className="flex items-center space-x-2 h-10">
+                          <Switch
+                            id="newUserIsAdmin"
+                            checked={newUserIsAdmin}
+                            onCheckedChange={setNewUserIsAdmin}
+                            disabled={saving}
+                          />
+                          <Label htmlFor="newUserIsAdmin" className="cursor-pointer">
+                            Admin Yetkisi
+                          </Label>
+                        </div>
+                      </div>
+                    </div>
+                    <Button onClick={createUser} disabled={saving || !newUsername || !newPassword}>
+                      {saving ? (
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <UserPlus className="mr-2 h-4 w-4" />
+                      )}
+                      Kullanıcı Oluştur
+                    </Button>
+                  </div>
+
+                  {/* Kullanıcı Listesi */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold">Mevcut Kullanıcılar</h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={fetchUsers}
+                        disabled={loadingUsers}
+                      >
+                        {loadingUsers ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+
+                    {loadingUsers ? (
+                      <div className="flex justify-center py-8">
+                        <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : users.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        Henüz kullanıcı bulunmuyor
+                      </div>
+                    ) : (
+                      <div className="border rounded-lg">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Kullanıcı Adı</TableHead>
+                              <TableHead>Rol</TableHead>
+                              <TableHead>Oluşturulma Tarihi</TableHead>
+                              <TableHead className="text-right">İşlemler</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {users.map((user) => (
+                              <TableRow key={user.id}>
+                                <TableCell className="font-medium">{user.username}</TableCell>
+                                <TableCell>
+                                  {user.isAdmin ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium">
+                                      <Check className="w-3 h-3" />
+                                      Admin
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-muted text-muted-foreground text-xs font-medium">
+                                      Kullanıcı
+                                    </span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">
+                                  {new Date(user.created_at).toLocaleDateString('tr-TR', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => setUserToDelete(user.id)}
+                                    disabled={saving}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
+
+        {/* Silme Onay Dialogu */}
+        <AlertDialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Kullanıcıyı Sil</AlertDialogTitle>
+              <AlertDialogDescription>
+                Bu kullanıcıyı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>İptal</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => userToDelete && deleteUser(userToDelete)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Sil
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );

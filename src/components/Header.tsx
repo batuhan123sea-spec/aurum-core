@@ -6,7 +6,12 @@ import { bigParaKurCek } from "@/lib/kur-api";
 import { kurlarıKaydet, getGuncelKurlar, getKurYasi, formatKurYasi, getKurDurumu } from "@/lib/kur-hesaplama";
 import { tumMusteriBorclariniGuncelle } from "@/lib/musteri-data";
 import { getAyarlar } from "@/lib/ayarlar-data";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+
 export const Header = () => {
+  const { signOut } = useAuth();
+  const [username, setUsername] = useState<string>('Kullanıcı');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [exchangeRates, setExchangeRates] = useState({
     usd: 32.50,
@@ -69,6 +74,25 @@ export const Header = () => {
     });
     setSonGuncelleme(new Date(storedKurlar.guncellemeTarihi));
     kurGuncelle();
+  }, []);
+
+  // Kullanıcı bilgisini getir
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile) {
+          setUsername(profile.username);
+        }
+      }
+    };
+    fetchUserProfile();
   }, []);
 
   // Otomatik kur güncelleme (ayarlara göre)
@@ -152,9 +176,14 @@ export const Header = () => {
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 text-header-foreground">
           <User className="w-5 h-5" />
-          <span className="text-sm font-medium">Admin Kullanıcı</span>
+          <span className="text-sm font-medium">{username}</span>
         </div>
-        <Button variant="outline" size="sm" className="border-header-foreground/20 text-header-foreground hover:bg-header-foreground/10">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="border-header-foreground/20 text-header-foreground hover:bg-header-foreground/10"
+          onClick={signOut}
+        >
           <LogOut className="w-4 h-4 mr-2" />
           Çıkış
         </Button>
