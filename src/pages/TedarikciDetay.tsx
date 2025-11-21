@@ -28,7 +28,7 @@ export default function TedarikciDetay() {
   const tedarikci = tedarikciId ? getTedarikciById(tedarikciId) : null;
   const alimlar = tedarikciId ? getTedarikciAlimlari(tedarikciId) : [];
   const tedarikciUrunleri = tedarikciId 
-    ? getUrunler().filter(u => u.tedarikciler.some(t => t.tedarikciId === tedarikciId))
+    ? getUrunler().filter(u => u.tedarikciler?.some(t => t.tedarikciId === tedarikciId) || false)
     : [];
 
   if (!tedarikci) {
@@ -304,7 +304,7 @@ export default function TedarikciDetay() {
                         </TableHeader>
                         <TableBody>
                           {tedarikciUrunleri.map((urun) => {
-                            const tedarikciInfo = urun.tedarikciler.find(t => t.tedarikciId === tedarikciId);
+                            const tedarikciInfo = urun.tedarikciler?.find(t => t.tedarikciId === tedarikciId);
                             return (
                               <TableRow key={urun.id}>
                                 <TableCell>
