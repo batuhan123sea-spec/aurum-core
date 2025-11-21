@@ -20,7 +20,7 @@ import { Search, Plus, Minus, Trash2, ShoppingCart, DollarSign } from "lucide-re
 import { getUrunler } from "@/lib/stok-data";
 import { getMusteriler } from "@/lib/musteri-data";
 import { hesapliSatisYap, rezervYap, hizliSatisYap } from "@/lib/satis-islemleri";
-import { getGuncelKurlar, paraBirimiTLyeCevir } from "@/lib/kur-hesaplama";
+import { getGuncelKurlar, paraBirimiTLyeCevir, formatCurrency } from "@/lib/kur-hesaplama";
 import { getAyarlar } from "@/lib/ayarlar-data";
 import { SatisKalemi } from "@/types/satis";
 import { Urun } from "@/types/stok";
@@ -406,7 +406,7 @@ export default function YeniSatis() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right font-semibold">
-                            {urun.satisFiyati.toFixed(2)} ₺
+                            {formatCurrency(urun.satisFiyati, urun.alisFiyatiParaBirimi)}
                           </TableCell>
                           <TableCell>
                             <Button
