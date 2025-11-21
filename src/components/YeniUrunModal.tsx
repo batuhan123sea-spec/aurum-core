@@ -30,6 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { KATEGORILER, Urun } from "@/types/stok";
 import { saveUrun, generateUrunKodu } from "@/lib/stok-data";
+import { getTedarikciler } from "@/lib/tedarikci-data";
 import { useToast } from "@/hooks/use-toast";
 
 const urunSchema = z.object({
@@ -58,6 +59,7 @@ interface YeniUrunModalProps {
 
 export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false, initialData }: YeniUrunModalProps) => {
   const { toast } = useToast();
+  const tedarikciler = getTedarikciler().filter(t => t.durum === 'aktif');
 
   const form = useForm<UrunFormValues>({
     resolver: zodResolver(urunSchema),
