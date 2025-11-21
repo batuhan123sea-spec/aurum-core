@@ -7,6 +7,7 @@ import { StokKategoriKart } from "@/components/StokKategoriKart";
 import { YeniUrunModal } from "@/components/YeniUrunModal";
 import { HizliStokGirisiModal } from "@/components/HizliStokGirisiModal";
 import { StokSayimModal } from "@/components/StokSayimModal";
+import { BarkodYazdirModal } from "@/components/BarkodYazdirModal";
 import { KATEGORILER } from "@/types/stok";
 import { getUrunler, searchUrunler } from "@/lib/stok-data";
 import { getStokHareketler } from "@/lib/stok-hareket";
@@ -18,7 +19,8 @@ import {
   AlertTriangle,
   ArrowUpCircle,
   ArrowDownCircle,
-  Edit3
+  Edit3,
+  Printer
 } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,6 +40,8 @@ export default function StokUrunler() {
   const [hizliStokModalOpen, setHizliStokModalOpen] = useState(false);
   const [stokSayimModalOpen, setStokSayimModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [secilenUrunler, setSecilenUrunler] = useState<string[]>([]);
+  const [barkodModalOpen, setBarkodModalOpen] = useState(false);
 
   // Stok Hareketleri filtreleri
   const [hareketFiltreler, setHareketFiltreler] = useState({
@@ -183,6 +187,15 @@ export default function StokUrunler() {
                   <ClipboardCheck className="mr-2" />
                   Stok Sayımı Başlat
                 </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  onClick={() => setBarkodModalOpen(true)}
+                  disabled={secilenUrunler.length === 0}
+                >
+                  <Printer className="mr-2" />
+                  Barkod Yazdır ({secilenUrunler.length})
+                </Button>
               </div>
 
               {/* Arama ve Filtreler */}
@@ -231,6 +244,19 @@ export default function StokUrunler() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-12">
+                            <input
+                              type="checkbox"
+                              checked={secilenUrunler.length === filtrelenmisUrunler.length && filtrelenmisUrunler.length > 0}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSecilenUrunler(filtrelenmisUrunler.map(u => u.id));
+                                } else {
+                                  setSecilenUrunler([]);
+                                }
+                              }}
+                            />
+                          </TableHead>
                           <TableHead>Ürün Kodu</TableHead>
                           <TableHead>Ürün Adı</TableHead>
                           <TableHead>Kategori</TableHead>
@@ -244,7 +270,7 @@ export default function StokUrunler() {
                       <TableBody>
                         {filtrelenmisUrunler.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                               Arama kriterlerine uygun ürün bulunamadı.
                             </TableCell>
                           </TableRow>
@@ -252,23 +278,57 @@ export default function StokUrunler() {
                           filtrelenmisUrunler.map((urun) => (
                             <TableRow 
                               key={urun.id}
-                              className="cursor-pointer hover:bg-muted/50"
-                              onClick={() => navigate(`/stok/urun/${urun.id}`)}
+                              className="hover:bg-muted/50"
                             >
-                              <TableCell className="font-medium">{urun.kod}</TableCell>
-                              <TableCell>{urun.ad}</TableCell>
-                              <TableCell>
+                              <TableCell onClick={(e) => e.stopPropagation()}>
+                                <input
+                                  type="checkbox"
+                                  checked={secilenUrunler.includes(urun.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSecilenUrunler([...secilenUrunler, urun.id]);
+                                    } else {
+                                      setSecilenUrunler(secilenUrunler.filter(id => id !== urun.id));
+                                    }
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell 
+                                className="font-medium cursor-pointer"
+                                onClick={() => navigate(`/stok/urun/${urun.id}`)}
+                              >
+                                {urun.kod}
+                              </TableCell>
+                              <TableCell 
+                                className="cursor-pointer"
+                                onClick={() => navigate(`/stok/urun/${urun.id}`)}
+                              >
+                                {urun.ad}
+                              </TableCell>
+                              <TableCell
+                                className="cursor-pointer"
+                                onClick={() => navigate(`/stok/urun/${urun.id}`)}
+                              >
                                 <Badge variant="outline">
                                   {KATEGORILER.find(k => k.id === urun.kategori)?.ad}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="text-right font-semibold">
+                              <TableCell 
+                                className="text-right font-semibold cursor-pointer"
+                                onClick={() => navigate(`/stok/urun/${urun.id}`)}
+                              >
                                 {urun.stokMiktari} {urun.birim}
                               </TableCell>
-                              <TableCell className="text-right text-muted-foreground">
+                              <TableCell 
+                                className="text-right text-muted-foreground cursor-pointer"
+                                onClick={() => navigate(`/stok/urun/${urun.id}`)}
+                              >
                                 {urun.minStokSeviyesi}
                               </TableCell>
-                              <TableCell>
+                              <TableCell
+                                className="cursor-pointer"
+                                onClick={() => navigate(`/stok/urun/${urun.id}`)}
+                              >
                                 {urun.stokMiktari <= urun.kritikStokSeviyesi ? (
                                   <Badge variant="destructive" className="gap-1">
                                     <AlertTriangle className="w-3 h-3" />
@@ -285,10 +345,16 @@ export default function StokUrunler() {
                                   </Badge>
                                 )}
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell 
+                                className="text-right cursor-pointer"
+                                onClick={() => navigate(`/stok/urun/${urun.id}`)}
+                              >
                                 {urun.alisFiyati.toFixed(2)} {urun.alisFiyatiParaBirimi}
                               </TableCell>
-                              <TableCell className="text-right font-medium">
+                              <TableCell 
+                                className="text-right font-medium cursor-pointer"
+                                onClick={() => navigate(`/stok/urun/${urun.id}`)}
+                              >
                                 {urun.satisFiyati.toFixed(2)} {urun.satisFiyatiParaBirimi || urun.alisFiyatiParaBirimi}
                               </TableCell>
                             </TableRow>
@@ -493,6 +559,11 @@ export default function StokUrunler() {
         open={stokSayimModalOpen}
         onOpenChange={setStokSayimModalOpen}
         onSuccess={handleSuccess}
+      />
+      <BarkodYazdirModal
+        open={barkodModalOpen}
+        onOpenChange={setBarkodModalOpen}
+        urunler={allUrunler.filter(u => secilenUrunler.includes(u.id))}
       />
     </Layout>
   );
