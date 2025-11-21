@@ -51,6 +51,7 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
   const [secilenMusteriId, setSecilenMusteriId] = useState<string>('');
   const [musteriModalAcik, setMusteriModalAcik] = useState(false);
   const [urunIslemleri, setUrunIslemleri] = useState<UrunIslem[]>([]);
+  const [inputValues, setInputValues] = useState<Record<string, { satilan: string; iade: string }>>({});
   const [kurUyarisi, setKurUyarisi] = useState(false);
 
   const rezerv = getSatislar().find(s => s.id === rezervId);
@@ -110,79 +111,76 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
       }));
       
       setUrunIslemleri(baslangicIslemler);
+      
+      // Input değerlerini ilklendir
+      const initialInputs: Record<string, { satilan: string; iade: string }> = {};
+      baslangicIslemler.forEach(islem => {
+        initialInputs[islem.urunId] = {
+          satilan: islem.satilanMiktar.toString(),
+          iade: islem.iadeMiktar.toString()
+        };
+      });
+      setInputValues(initialInputs);
     }
   }, [rezerv, open]);
 
-  const handleSatilanChange = (urunId: string, yeniDeger: string) => {
-    const girilenSayi = parseInt(yeniDeger);
-    
-    // Boş input veya NaN kontrolü
-    if (yeniDeger === '' || isNaN(girilenSayi)) {
-      setUrunIslemleri(prev => prev.map(islem => {
-        if (islem.urunId === urunId) {
-          return {
-            ...islem,
-            satilanMiktar: 0,
-            iadeMiktar: islem.rezervMiktar,
-            kalanMiktar: 0,
-          };
-        }
-        return islem;
-      }));
-      return;
-    }
-
-    setUrunIslemleri(prev => prev.map(islem => {
-      if (islem.urunId === urunId) {
-        // Min 0, Max rezervMiktar kontrolü
-        const guvenliSayi = Math.min(Math.max(0, girilenSayi), islem.rezervMiktar);
-        const yeniIadeMiktar = islem.rezervMiktar - guvenliSayi;
-        
-        return {
-          ...islem,
-          satilanMiktar: guvenliSayi,
-          iadeMiktar: yeniIadeMiktar,
-          kalanMiktar: 0,
-        };
+  const handleInputChange = (urunId: string, tip: 'satilan' | 'iade', value: string) => {
+    setInputValues(prev => ({
+      ...prev,
+      [urunId]: {
+        ...(prev[urunId] || { satilan: '', iade: '' }),
+        [tip]: value
       }
-      return islem;
     }));
   };
 
-  const handleIadeChange = (urunId: string, yeniDeger: string) => {
-    const girilenSayi = parseInt(yeniDeger);
+  const handleInputBlur = (urunId: string, tip: 'satilan' | 'iade') => {
+    const inputVal = inputValues[urunId]?.[tip] || '0';
+    const girilenSayi = parseInt(inputVal) || 0;
     
-    // Boş input veya NaN kontrolü
-    if (yeniDeger === '' || isNaN(girilenSayi)) {
-      setUrunIslemleri(prev => prev.map(islem => {
-        if (islem.urunId === urunId) {
+    setUrunIslemleri(prev => prev.map(islem => {
+      if (islem.urunId === urunId) {
+        const guvenliSayi = Math.min(Math.max(0, girilenSayi), islem.rezervMiktar);
+        
+        if (tip === 'satilan') {
           return {
             ...islem,
-            iadeMiktar: 0,
-            satilanMiktar: islem.rezervMiktar,
+            satilanMiktar: guvenliSayi,
+            iadeMiktar: islem.rezervMiktar - guvenliSayi,
+            kalanMiktar: 0,
+          };
+        } else {
+          return {
+            ...islem,
+            iadeMiktar: guvenliSayi,
+            satilanMiktar: islem.rezervMiktar - guvenliSayi,
             kalanMiktar: 0,
           };
         }
-        return islem;
-      }));
-      return;
-    }
-
-    setUrunIslemleri(prev => prev.map(islem => {
-      if (islem.urunId === urunId) {
-        // Min 0, Max rezervMiktar kontrolü
-        const guvenliSayi = Math.min(Math.max(0, girilenSayi), islem.rezervMiktar);
-        const yeniSatilanMiktar = islem.rezervMiktar - guvenliSayi;
-        
-        return {
-          ...islem,
-          iadeMiktar: guvenliSayi,
-          satilanMiktar: yeniSatilanMiktar,
-          kalanMiktar: 0,
-        };
       }
       return islem;
     }));
+    
+    // Input değerlerini senkronize et
+    setInputValues(prev => {
+      const updated = { ...prev };
+      const islem = urunIslemleri.find(i => i.urunId === urunId);
+      if (islem) {
+        const guvenliSayi = Math.min(Math.max(0, girilenSayi), islem.rezervMiktar);
+        if (tip === 'satilan') {
+          updated[urunId] = {
+            satilan: guvenliSayi.toString(),
+            iade: (islem.rezervMiktar - guvenliSayi).toString()
+          };
+        } else {
+          updated[urunId] = {
+            satilan: (islem.rezervMiktar - guvenliSayi).toString(),
+            iade: guvenliSayi.toString()
+          };
+        }
+      }
+      return updated;
+    });
   };
 
   const dogrulamaYap = (): boolean => {
@@ -354,13 +352,9 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
                             type="number"
                             min="0"
                             max={islem.rezervMiktar}
-                            value={islem.satilanMiktar}
-                            onChange={(e) => handleSatilanChange(islem.urunId, e.target.value)}
-                            onBlur={(e) => {
-                              if (e.target.value === '') {
-                                handleSatilanChange(islem.urunId, '0');
-                              }
-                            }}
+                            value={inputValues[islem.urunId]?.satilan ?? islem.satilanMiktar.toString()}
+                            onChange={(e) => handleInputChange(islem.urunId, 'satilan', e.target.value)}
+                            onBlur={() => handleInputBlur(islem.urunId, 'satilan')}
                             className="w-20 text-center"
                           />
                         </TableCell>
@@ -369,13 +363,9 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
                             type="number"
                             min="0"
                             max={islem.rezervMiktar}
-                            value={islem.iadeMiktar}
-                            onChange={(e) => handleIadeChange(islem.urunId, e.target.value)}
-                            onBlur={(e) => {
-                              if (e.target.value === '') {
-                                handleIadeChange(islem.urunId, '0');
-                              }
-                            }}
+                            value={inputValues[islem.urunId]?.iade ?? islem.iadeMiktar.toString()}
+                            onChange={(e) => handleInputChange(islem.urunId, 'iade', e.target.value)}
+                            onBlur={() => handleInputBlur(islem.urunId, 'iade')}
                             className="w-20 text-center"
                           />
                         </TableCell>
