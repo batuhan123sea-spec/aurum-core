@@ -638,12 +638,13 @@ export default function Raporlar() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                   <Card>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                      <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
                         Toplam Satış
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">
+                      <div className="text-2xl font-bold text-yellow-600">
                         {formatCurrency(karZararRapor.toplamSatis, 'TRY')}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">gelir</p>
@@ -652,12 +653,13 @@ export default function Raporlar() {
 
                   <Card>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                      <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-red-500"></span>
                         Toplam Maliyet
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">
+                      <div className="text-2xl font-bold text-red-600">
                         {formatCurrency(karZararRapor.toplamMaliyet, 'TRY')}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">gider</p>
@@ -666,7 +668,8 @@ export default function Raporlar() {
 
                   <Card>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                      <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-blue-500"></span>
                         Alınan Tahsilat
                       </CardTitle>
                     </CardHeader>
@@ -720,15 +723,15 @@ export default function Raporlar() {
                     config={{
                       satis: {
                         label: "Satış",
-                        color: "hsl(var(--primary))",
+                        color: "hsl(48 96% 53%)",
                       },
                       tahsilat: {
                         label: "Tahsilat",
-                        color: "hsl(var(--chart-1))",
+                        color: "hsl(217 91% 60%)",
                       },
                       maliyet: {
                         label: "Maliyet",
-                        color: "hsl(var(--destructive))",
+                        color: "hsl(0 84% 60%)",
                       },
                     }}
                     className="h-[300px]"
@@ -749,9 +752,9 @@ export default function Raporlar() {
                         <YAxis />
                         <ChartTooltip content={<ChartTooltipContent />} />
                         <ChartLegend content={<ChartLegendContent />} />
-                        <Bar dataKey="satis" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-                        <Bar dataKey="tahsilat" fill="hsl(var(--chart-1))" radius={[8, 8, 0, 0]} />
-                        <Bar dataKey="maliyet" fill="hsl(var(--destructive))" radius={[8, 8, 0, 0]} />
+                        <Bar dataKey="satis" fill="hsl(48 96% 53%)" radius={[8, 8, 0, 0]} />
+                        <Bar dataKey="tahsilat" fill="hsl(217 91% 60%)" radius={[8, 8, 0, 0]} />
+                        <Bar dataKey="maliyet" fill="hsl(0 84% 60%)" radius={[8, 8, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartContainer>
