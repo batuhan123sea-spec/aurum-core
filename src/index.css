@@ -76,12 +76,90 @@ All colors MUST be HSL.
   }
 }
 
-/* Barkod yazdırma stilleri */
+/* ============================================
+   BARKOD YAZDIRMA STİLLERİ
+   ============================================ */
+
+.barkod-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8mm;
+  margin-bottom: 12mm;
+}
+
+.barkod-etiket {
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  width: 99mm;
+  height: 68mm;
+  padding: 4mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  page-break-inside: avoid;
+  background: white;
+}
+
+.kategori-grubu {
+  page-break-before: always;
+}
+
+.kategori-grubu:first-child {
+  page-break-before: auto;
+}
+
+/* Tek ürün barkod yazdırma stilleri */
+.barcode-print-area {
+  page-break-inside: avoid;
+}
+
+/* YAZDIRMA STİLLERİ */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
   body * {
     visibility: hidden;
   }
-  
+
+  .barkod-yazdirma-alani,
+  .barkod-yazdirma-alani * {
+    visibility: visible;
+  }
+
+  .barkod-yazdirma-alani {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  .barkod-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8mm;
+    page-break-inside: avoid;
+  }
+
+  .barkod-etiket {
+    border: 1px solid #333;
+    width: 99mm;
+    height: 68mm;
+    page-break-inside: avoid;
+  }
+
+  .kategori-grubu h2 {
+    font-size: 18pt;
+    margin-bottom: 8mm;
+  }
+
+  /* Dialog header ve butonları gizle */
+  [class*="dialog"] > div:first-child {
+    display: none !important;
+  }
+
+  /* Tek ürün barkod yazdırma */
   .barcode-print-area,
   .barcode-print-area * {
     visibility: visible;

@@ -14,8 +14,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Printer } from "lucide-react";
 import { useState } from "react";
+import { BarkodYazdirModal } from "@/components/BarkodYazdirModal";
 
 export default function StokKategoriDetay() {
   const { kategoriId } = useParams<{ kategoriId: string }>();
@@ -23,6 +24,8 @@ export default function StokKategoriDetay() {
   const [urunler, setUrunler] = useState(() => getUrunByKategori(kategoriId || ""));
   const [duzenlenecekUrun, setDuzenlenecekUrun] = useState<Urun | null>(null);
   const [modalAcik, setModalAcik] = useState(false);
+  const [secilenUrunler, setSecilenUrunler] = useState<string[]>([]);
+  const [barkodModalOpen, setBarkodModalOpen] = useState(false);
 
   const kategori = KATEGORILER.find((k) => k.id === kategoriId);
 
@@ -71,6 +74,14 @@ export default function StokKategoriDetay() {
               </p>
             </div>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setBarkodModalOpen(true)}
+            disabled={secilenUrunler.length === 0}
+          >
+            <Printer className="mr-2 h-4 w-4" />
+            Barkod Yazdır ({secilenUrunler.length})
+          </Button>
         </div>
 
         {/* Ürün Tablosu */}
@@ -88,6 +99,19 @@ export default function StokKategoriDetay() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <input
+                      type="checkbox"
+                      checked={secilenUrunler.length === urunler.length && urunler.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSecilenUrunler(urunler.map(u => u.id));
+                        } else {
+                          setSecilenUrunler([]);
+                        }
+                      }}
+                    />
+                  </TableHead>
                   <TableHead>Ürün Kodu</TableHead>
                   <TableHead>Ürün Adı</TableHead>
                   <TableHead className="text-right">Stok</TableHead>
@@ -100,6 +124,19 @@ export default function StokKategoriDetay() {
               <TableBody>
                 {urunler.map((urun) => (
                   <TableRow key={urun.id}>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={secilenUrunler.includes(urun.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSecilenUrunler([...secilenUrunler, urun.id]);
+                          } else {
+                            setSecilenUrunler(secilenUrunler.filter(id => id !== urun.id));
+                          }
+                        }}
+                      />
+                    </TableCell>
                     <TableCell 
                       className="font-medium cursor-pointer hover:text-primary"
                       onClick={() => navigate(`/stok/urun/${urun.id}`)}
@@ -166,6 +203,11 @@ export default function StokKategoriDetay() {
         }}
         editMode={!!duzenlenecekUrun}
         initialData={duzenlenecekUrun || undefined}
+      />
+      <BarkodYazdirModal
+        open={barkodModalOpen}
+        onOpenChange={setBarkodModalOpen}
+        urunler={urunler.filter(u => secilenUrunler.includes(u.id))}
       />
     </Layout>
   );
