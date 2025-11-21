@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Urun, KATEGORILER } from "@/types/stok";
 import Barcode from "react-barcode";
 import { Printer, X } from "lucide-react";
+import { barkodYazdir } from "@/lib/barkod-yazdir";
 
 interface Props {
   open: boolean;
@@ -21,7 +22,8 @@ export const BarkodYazdirModal = ({ open, onOpenChange, urunler }: Props) => {
   }, {} as Record<string, Urun[]>);
 
   const handleYazdir = () => {
-    window.print();
+    barkodYazdir(urunler);
+    onOpenChange(false);
   };
 
   return (
