@@ -27,11 +27,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card } from "@/components/ui/card";
 import { KATEGORILER, Urun } from "@/types/stok";
 import { saveUrun, generateUrunKodu } from "@/lib/stok-data";
 import { getTedarikciler } from "@/lib/tedarikci-data";
 import { useToast } from "@/hooks/use-toast";
+import { Plus, X } from "lucide-react";
 
 const urunSchema = z.object({
   ad: z.string().min(2, "Ürün adı en az 2 karakter olmalı"),
@@ -43,7 +45,6 @@ const urunSchema = z.object({
   paraBirimi: z.enum(['TRY', 'USD', 'EUR']),
   satisFiyati: z.coerce.number().min(0, "Satış fiyatı 0'dan küçük olamaz"),
   satisFiyatiParaBirimi: z.enum(['TRY', 'USD', 'EUR']),
-  tedarikciId: z.string().min(1, "Tedarikçi seçin"),
   minStokSeviyesi: z.coerce.number().min(0),
   aciklama: z.string().optional(),
 });
@@ -58,9 +59,27 @@ interface YeniUrunModalProps {
   initialData?: Urun;
 }
 
+interface TedarikciItem {
+  tedarikciId: string;
+  alisFiyati: number;
+  paraBirimi: 'TRY' | 'USD' | 'EUR';
+  teslimatSuresi: number;
+  varsayilan: boolean;
+}
+
 export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false, initialData }: YeniUrunModalProps) => {
   const { toast } = useToast();
   const tedarikciler = getTedarikciler().filter(t => t.durum === 'aktif');
+
+  const [tedarikcilerList, setTedarikcilerList] = useState<TedarikciItem[]>(
+    initialData?.tedarikciler?.map(t => ({
+      tedarikciId: t.tedarikciId,
+      alisFiyati: t.alisFiyati,
+      paraBirimi: t.paraBirimi,
+      teslimatSuresi: t.teslimatSuresi,
+      varsayilan: t.varsayilan
+    })) || []
+  );
 
   const form = useForm<UrunFormValues>({
     resolver: zodResolver(urunSchema),
@@ -74,7 +93,6 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
       paraBirimi: initialData.alisFiyatiParaBirimi,
       satisFiyati: initialData.satisFiyati,
       satisFiyatiParaBirimi: initialData.satisFiyatiParaBirimi || initialData.alisFiyatiParaBirimi,
-      tedarikciId: initialData.tedarikciler?.[0]?.tedarikciId || "",
       minStokSeviyesi: initialData.minStokSeviyesi,
       aciklama: initialData.aciklama || "",
     } : {
@@ -87,23 +105,94 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
       paraBirimi: "TRY",
       satisFiyati: 0,
       satisFiyatiParaBirimi: "TRY",
-      tedarikciId: "",
       minStokSeviyesi: 10,
       aciklama: "",
     },
   });
 
+  const addTedarikci = () => {
+    setTedarikcilerList([
+      ...tedarikcilerList,
+      {
+        tedarikciId: "",
+        alisFiyati: 0,
+        paraBirimi: "TRY",
+        teslimatSuresi: 7,
+        varsayilan: tedarikcilerList.length === 0
+      }
+    ]);
+  };
+
+  const removeTedarikci = (index: number) => {
+    const newList = tedarikcilerList.filter((_, i) => i !== index);
+    // Eğer varsayılan olan silindiyse, ilk tedarikciyi varsayılan yap
+    if (newList.length > 0 && tedarikcilerList[index].varsayilan) {
+      newList[0].varsayilan = true;
+    }
+    setTedarikcilerList(newList);
+  };
+
+  const updateTedarikci = (index: number, field: keyof TedarikciItem, value: any) => {
+    const newList = [...tedarikcilerList];
+    if (field === 'varsayilan' && value === true) {
+      // Sadece bir tane varsayılan olabilir
+      newList.forEach((t, i) => {
+        t.varsayilan = i === index;
+      });
+    } else {
+      newList[index] = { ...newList[index], [field]: value };
+    }
+    setTedarikcilerList(newList);
+  };
+
   const onSubmit = (data: UrunFormValues) => {
-    const secilenTedarikci = tedarikciler.find(t => t.id === data.tedarikciId);
-    
-    if (!secilenTedarikci) {
+    // Tedarikçi validasyonu
+    if (tedarikcilerList.length === 0) {
       toast({
         title: "Hata",
-        description: "Tedarikçi bulunamadı",
+        description: "En az bir tedarikçi eklemelisiniz",
         variant: "destructive"
       });
       return;
     }
+
+    const invalidTedarikci = tedarikcilerList.find(t => !t.tedarikciId || t.alisFiyati <= 0);
+    if (invalidTedarikci) {
+      toast({
+        title: "Hata",
+        description: "Tüm tedarikçi bilgilerini eksiksiz doldurun",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const varsayilanCount = tedarikcilerList.filter(t => t.varsayilan).length;
+    if (varsayilanCount !== 1) {
+      toast({
+        title: "Hata",
+        description: "Sadece bir tedarikçi varsayılan olarak işaretlenmelidir",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Tedarikçi detaylarını hazırla
+    const tedarikcilerData = tedarikcilerList.map(t => {
+      const tedarikci = tedarikciler.find(td => td.id === t.tedarikciId);
+      return {
+        id: initialData?.tedarikciler?.find(it => it.tedarikciId === t.tedarikciId)?.id || Date.now().toString() + Math.random(),
+        tedarikciId: t.tedarikciId,
+        tedarikciAdi: tedarikci?.firmaAdi || '',
+        alisFiyati: t.alisFiyati,
+        paraBirimi: t.paraBirimi,
+        teslimatSuresi: t.teslimatSuresi,
+        varsayilan: t.varsayilan,
+        sonAlisTarihi: initialData?.tedarikciler?.find(it => it.tedarikciId === t.tedarikciId)?.sonAlisTarihi
+      };
+    });
+
+    // İlk tedarikçinin fiyatını genel alış fiyatı olarak kullan
+    const varsayilanTedarikci = tedarikcilerData.find(t => t.varsayilan) || tedarikcilerData[0];
 
     if (editMode && initialData) {
       const guncelUrun: Urun = {
@@ -113,24 +202,16 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
         kategori: data.kategori,
         stokMiktari: data.stokMiktari,
         birim: data.birim,
-        alisFiyati: data.alisFiyati,
-        alisFiyatiParaBirimi: data.paraBirimi,
+        alisFiyati: varsayilanTedarikci.alisFiyati,
+        alisFiyatiParaBirimi: varsayilanTedarikci.paraBirimi,
         satisFiyati: data.satisFiyati,
         satisFiyatiParaBirimi: data.satisFiyatiParaBirimi,
-        karMarji: ((data.satisFiyati - data.alisFiyati) / data.alisFiyati) * 100,
+        karMarji: ((data.satisFiyati - varsayilanTedarikci.alisFiyati) / varsayilanTedarikci.alisFiyati) * 100,
         minStokSeviyesi: data.minStokSeviyesi,
         kritikStokSeviyesi: Math.floor(data.minStokSeviyesi / 2),
         aciklama: data.aciklama || '',
         guncellemeTarihi: new Date().toISOString(),
-        tedarikciler: [{
-          id: initialData.tedarikciler[0]?.id || Date.now().toString(),
-          tedarikciId: data.tedarikciId,
-          tedarikciAdi: secilenTedarikci.firmaAdi,
-          alisFiyati: data.alisFiyati,
-          paraBirimi: data.paraBirimi,
-          teslimatSuresi: initialData.tedarikciler[0]?.teslimatSuresi || 7,
-          varsayilan: true
-        }]
+        tedarikciler: tedarikcilerData
       };
       
       saveUrun(guncelUrun);
@@ -139,7 +220,7 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
         description: "Ürün başarıyla güncellendi.",
       });
     } else {
-      const yeniUrun = {
+      const yeniUrun: Urun = {
         id: Date.now().toString(),
         kod: generateUrunKodu(),
         ad: data.ad,
@@ -147,18 +228,10 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
         kategori: data.kategori,
         stokMiktari: data.stokMiktari,
         birim: data.birim,
-        tedarikciler: [{
-          id: Date.now().toString(),
-          tedarikciId: data.tedarikciId,
-          tedarikciAdi: secilenTedarikci.firmaAdi,
-          alisFiyati: data.alisFiyati,
-          paraBirimi: data.paraBirimi,
-          teslimatSuresi: 7,
-          varsayilan: true
-        }],
-        alisFiyati: data.alisFiyati,
-        alisFiyatiParaBirimi: data.paraBirimi,
-        karMarji: ((data.satisFiyati - data.alisFiyati) / data.alisFiyati) * 100,
+        tedarikciler: tedarikcilerData,
+        alisFiyati: varsayilanTedarikci.alisFiyati,
+        alisFiyatiParaBirimi: varsayilanTedarikci.paraBirimi,
+        karMarji: ((data.satisFiyati - varsayilanTedarikci.alisFiyati) / varsayilanTedarikci.alisFiyati) * 100,
         satisFiyati: data.satisFiyati,
         satisFiyatiParaBirimi: data.satisFiyatiParaBirimi,
         minStokSeviyesi: data.minStokSeviyesi,
@@ -176,6 +249,7 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
     }
     
     form.reset();
+    setTedarikcilerList([]);
     onOpenChange(false);
     onSuccess?.();
   };
@@ -302,13 +376,13 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="alisFiyati"
+                name="satisFiyati"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Alış Fiyatı *</FormLabel>
+                    <FormLabel>Satış Fiyatı *</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" {...field} />
                     </FormControl>
@@ -319,10 +393,10 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
 
               <FormField
                 control={form.control}
-                name="paraBirimi"
+                name="satisFiyatiParaBirimi"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Para Birimi *</FormLabel>
+                    <FormLabel>Satış Fiyatı Para Birimi *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -339,69 +413,106 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
                   </FormItem>
                 )}
               />
-
-              <FormField
-                control={form.control}
-                name="satisFiyati"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Satış Fiyatı *</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
 
-            <FormField
-              control={form.control}
-              name="satisFiyatiParaBirimi"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Satış Fiyatı Para Birimi *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="TRY">₺ TRY</SelectItem>
-                      <SelectItem value="USD">$ USD</SelectItem>
-                      <SelectItem value="EUR">€ EUR</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Tedarikçiler Bölümü */}
+            <div className="space-y-3 pt-2">
+              <FormLabel>Tedarikçiler *</FormLabel>
+              {tedarikcilerList.map((ted, idx) => (
+                <Card key={idx} className="p-3">
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 space-y-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs text-muted-foreground">Tedarikçi</label>
+                          <Select 
+                            value={ted.tedarikciId} 
+                            onValueChange={(value) => updateTedarikci(idx, 'tedarikciId', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seçin" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {tedarikciler.map((t) => (
+                                <SelectItem key={t.id} value={t.id}>
+                                  {t.firmaAdi}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-            <FormField
-              control={form.control}
-              name="tedarikciId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tedarikçi *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Tedarikçi seçin" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {tedarikciler.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.firmaAdi}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                        <div>
+                          <label className="text-xs text-muted-foreground">Para Birimi</label>
+                          <Select 
+                            value={ted.paraBirimi}
+                            onValueChange={(value: 'TRY' | 'USD' | 'EUR') => updateTedarikci(idx, 'paraBirimi', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="TRY">₺ TRY</SelectItem>
+                              <SelectItem value="USD">$ USD</SelectItem>
+                              <SelectItem value="EUR">€ EUR</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs text-muted-foreground">Alış Fiyatı</label>
+                          <Input 
+                            type="number" 
+                            step="0.01"
+                            value={ted.alisFiyati}
+                            onChange={(e) => updateTedarikci(idx, 'alisFiyati', parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs text-muted-foreground">Teslimat Süresi (gün)</label>
+                          <Input 
+                            type="number"
+                            value={ted.teslimatSuresi}
+                            onChange={(e) => updateTedarikci(idx, 'teslimatSuresi', parseInt(e.target.value) || 7)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Checkbox 
+                          checked={ted.varsayilan}
+                          onCheckedChange={(checked) => updateTedarikci(idx, 'varsayilan', checked)}
+                        />
+                        <label className="text-sm">Varsayılan Tedarikçi</label>
+                      </div>
+                    </div>
+
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      type="button"
+                      onClick={() => removeTedarikci(idx)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={addTedarikci}
+                className="w-full"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Tedarikçi Ekle
+              </Button>
+            </div>
 
             <FormField
               control={form.control}

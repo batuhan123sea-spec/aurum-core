@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +30,44 @@ export default function TedarikciDetay() {
   const tedarikciUrunleri = tedarikciId 
     ? getUrunler().filter(u => u.tedarikciler?.some(t => t.tedarikciId === tedarikciId) || false)
     : [];
+
+  // Ürün bazında alım özeti hesaplama
+  const urunBazindaOzet = useMemo(() => {
+    const ozet: Record<string, {
+      urunAdi: string;
+      toplamMiktar: number;
+      sonFiyat: number;
+      sonParaBirimi: string;
+      sonTarih: string;
+      toplamHarcama: number;
+    }> = {};
+    
+    alimlar.forEach(alim => {
+      alim.urunler.forEach(urun => {
+        if (!ozet[urun.urunId]) {
+          ozet[urun.urunId] = {
+            urunAdi: urun.urunAdi,
+            toplamMiktar: 0,
+            sonFiyat: urun.birimFiyat,
+            sonParaBirimi: urun.paraBirimi,
+            sonTarih: alim.tarih,
+            toplamHarcama: 0
+          };
+        }
+        ozet[urun.urunId].toplamMiktar += urun.miktar;
+        ozet[urun.urunId].toplamHarcama += urun.toplamTutar;
+        
+        // En son alım bilgilerini güncelle
+        if (new Date(alim.tarih) >= new Date(ozet[urun.urunId].sonTarih)) {
+          ozet[urun.urunId].sonFiyat = urun.birimFiyat;
+          ozet[urun.urunId].sonParaBirimi = urun.paraBirimi;
+          ozet[urun.urunId].sonTarih = alim.tarih;
+        }
+      });
+    });
+    
+    return Object.values(ozet);
+  }, [alimlar]);
 
   if (!tedarikci) {
     return (
@@ -198,8 +236,9 @@ export default function TedarikciDetay() {
           {/* Sağ Panel - Tabs */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="alimlar">
-              <TabsList>
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="alimlar">Alım Geçmişi</TabsTrigger>
+                <TabsTrigger value="urun-bazinda">Ürün Bazında</TabsTrigger>
                 <TabsTrigger value="urunler">Ürünler ({tedarikciUrunleri.length})</TabsTrigger>
               </TabsList>
 
@@ -241,10 +280,17 @@ export default function TedarikciDetay() {
                               </TableCell>
                               <TableCell className="font-medium">{alim.faturaNo}</TableCell>
                               <TableCell>
-                                <div className="text-sm">
+                                <div className="space-y-1">
                                   {alim.urunler.map((u, idx) => (
-                                    <div key={idx} className="text-muted-foreground">
-                                      {u.urunAdi} ({u.miktar} adet)
+                                    <div key={idx} className="flex items-center justify-between text-xs border-b pb-1 last:border-0">
+                                      <span className="font-medium">{u.urunAdi}</span>
+                                      <div className="flex items-center gap-2 text-muted-foreground">
+                                        <span>{u.miktar} adet</span>
+                                        <span>×</span>
+                                        <span>{u.birimFiyat.toFixed(2)} {u.paraBirimi}</span>
+                                        <span>=</span>
+                                        <span className="font-semibold">{u.toplamTutar.toFixed(2)} {u.paraBirimi}</span>
+                                      </div>
                                     </div>
                                   ))}
                                 </div>
@@ -267,6 +313,54 @@ export default function TedarikciDetay() {
                               </TableCell>
                               <TableCell className="text-sm text-muted-foreground">
                                 {alim.aciklama || '-'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Ürün Bazında Alımlar Tab */}
+              <TabsContent value="urun-bazinda">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Ürünlere Göre Alım Özeti</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {urunBazindaOzet.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground">
+                          Henüz alım kaydı bulunmuyor
+                        </p>
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Ürün</TableHead>
+                            <TableHead className="text-right">Toplam Alım</TableHead>
+                            <TableHead className="text-right">Son Alış Fiyatı</TableHead>
+                            <TableHead className="text-right">Son Alış Tarihi</TableHead>
+                            <TableHead className="text-right">Toplam Harcama</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {urunBazindaOzet.map((item, idx) => (
+                            <TableRow key={idx}>
+                              <TableCell className="font-medium">{item.urunAdi}</TableCell>
+                              <TableCell className="text-right">{item.toplamMiktar} adet</TableCell>
+                              <TableCell className="text-right">
+                                {item.sonFiyat.toFixed(2)} {item.sonParaBirimi}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {new Date(item.sonTarih).toLocaleDateString('tr-TR')}
+                              </TableCell>
+                              <TableCell className="text-right font-semibold">
+                                {item.toplamHarcama.toFixed(2)} {item.sonParaBirimi}
                               </TableCell>
                             </TableRow>
                           ))}
