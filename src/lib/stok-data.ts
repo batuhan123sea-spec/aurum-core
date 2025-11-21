@@ -3,13 +3,41 @@ import { Urun } from '@/types/stok';
 const STORAGE_KEY = 'kuyumcu_stok_urunler';
 const MIGRATION_KEY = 'kuyumcu_urunler_migration_v1';
 
+// EAN-13 kontrol hanesi hesaplama
+function calculateEAN13CheckDigit(code: string): string {
+  const digits = code.split('').map(Number);
+  let sum = 0;
+  
+  digits.forEach((digit, index) => {
+    sum += index % 2 === 0 ? digit : digit * 3;
+  });
+  
+  const checkDigit = (10 - (sum % 10)) % 10;
+  return checkDigit.toString();
+}
+
+// Otomatik barkod numarası oluşturma (EAN-13 formatında)
+export const generateBarkod = (): string => {
+  const timestamp = Date.now().toString().slice(-8); // Son 8 hane
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  
+  // 12 haneli barkod (EAN-13 için kontrol hanesi hariç)
+  const prefix = '869'; // Türkiye prefix
+  const code = `${prefix}${timestamp}${random}`.slice(0, 12);
+  
+  // EAN-13 kontrol hanesi hesapla
+  const checkDigit = calculateEAN13CheckDigit(code);
+  
+  return `${code}${checkDigit}`;
+};
+
 // Mock data - 8. kategori örnek ürünleri
 const MOCK_URUNLER: Urun[] = [
   {
     id: '1',
     kod: 'KUT-001',
     ad: 'Lüks Takı Kutusu - Büyük',
-    barkod: '8697123456789',
+    barkod: generateBarkod(),
     kategori: 'kutular-aksesuarlar',
     stokMiktari: 45,
     birim: 'Adet',
@@ -36,7 +64,7 @@ const MOCK_URUNLER: Urun[] = [
     id: '2',
     kod: 'KUT-002',
     ad: 'Yüzük Kutusu - Kadife İç',
-    barkod: '8697123456790',
+    barkod: generateBarkod(),
     kategori: 'kutular-aksesuarlar',
     stokMiktari: 120,
     birim: 'Adet',
@@ -63,7 +91,7 @@ const MOCK_URUNLER: Urun[] = [
     id: '3',
     kod: 'KUT-003',
     ad: 'Kolye Standı - Ahşap',
-    barkod: '8697123456791',
+    barkod: generateBarkod(),
     kategori: 'kutular-aksesuarlar',
     stokMiktari: 30,
     birim: 'Adet',
@@ -90,7 +118,7 @@ const MOCK_URUNLER: Urun[] = [
     id: '4',
     kod: 'KUT-004',
     ad: 'Bileklik Yastığı - Siyah',
-    barkod: '8697123456792',
+    barkod: generateBarkod(),
     kategori: 'kutular-aksesuarlar',
     stokMiktari: 75,
     birim: 'Adet',
@@ -117,7 +145,7 @@ const MOCK_URUNLER: Urun[] = [
     id: '5',
     kod: 'KUT-005',
     ad: 'Takı Temizleme Bezi',
-    barkod: '8697123456793',
+    barkod: generateBarkod(),
     kategori: 'kutular-aksesuarlar',
     stokMiktari: 200,
     birim: 'Adet',
@@ -187,8 +215,23 @@ const migrateTedarikcilerArray = (): void => {
   }
 };
 
+// Barkod validasyon fonksiyonu
+const isValidEAN13 = (barcode: string): boolean => {
+  if (barcode.length !== 13 || !/^\d+$/.test(barcode)) return false;
+  
+  const digits = barcode.slice(0, 12).split('').map(Number);
+  let sum = 0;
+  
+  digits.forEach((digit, index) => {
+    sum += index % 2 === 0 ? digit : digit * 3;
+  });
+  
+  const checkDigit = (10 - (sum % 10)) % 10;
+  return checkDigit === parseInt(barcode[12]);
+};
+
 // Migration fonksiyonu - var olan ürünlere otomatik barkod ataması
-const BARKOD_MIGRATION_KEY = 'kuyumcu_barkod_migration_v1';
+const BARKOD_MIGRATION_KEY = 'kuyumcu_barkod_migration_v2';
 const migrateBarcodes = (): void => {
   const migrated = localStorage.getItem(BARKOD_MIGRATION_KEY);
   if (migrated) return;
@@ -201,8 +244,8 @@ const migrateBarcodes = (): void => {
     let updated = false;
     
     const updatedUrunler = urunler.map(urun => {
-      // Eğer barkod yoksa veya geçersizse yeni oluştur
-      if (!urun.barkod || urun.barkod.length !== 13) {
+      // Eğer barkod yoksa, 13 haneli değilse veya geçersizse yeni oluştur
+      if (!urun.barkod || !isValidEAN13(urun.barkod)) {
         updated = true;
         return {
           ...urun,
@@ -281,32 +324,4 @@ export const generateUrunKodu = (): string => {
     return num > max ? num : max;
   }, 0);
   return `URN-${String(maxKod + 1).padStart(3, '0')}`;
-};
-
-// EAN-13 kontrol hanesi hesaplama
-function calculateEAN13CheckDigit(code: string): string {
-  const digits = code.split('').map(Number);
-  let sum = 0;
-  
-  digits.forEach((digit, index) => {
-    sum += index % 2 === 0 ? digit : digit * 3;
-  });
-  
-  const checkDigit = (10 - (sum % 10)) % 10;
-  return checkDigit.toString();
-}
-
-// Otomatik barkod numarası oluşturma (EAN-13 formatında)
-export const generateBarkod = (): string => {
-  const timestamp = Date.now().toString().slice(-8); // Son 8 hane
-  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-  
-  // 12 haneli barkod (EAN-13 için kontrol hanesi hariç)
-  const prefix = '869'; // Türkiye prefix
-  const code = `${prefix}${timestamp}${random}`.slice(0, 12);
-  
-  // EAN-13 kontrol hanesi hesapla
-  const checkDigit = calculateEAN13CheckDigit(code);
-  
-  return `${code}${checkDigit}`;
 };
