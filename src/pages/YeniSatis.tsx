@@ -423,7 +423,7 @@ export default function YeniSatis() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right font-semibold">
-                            {formatCurrency(urun.satisFiyati, urun.alisFiyatiParaBirimi)}
+                            {formatCurrency(urun.satisFiyati, urun.satisFiyatiParaBirimi || 'TRY')}
                           </TableCell>
                           <TableCell>
                             <Button
