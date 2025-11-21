@@ -119,7 +119,7 @@ export default function StokKategoriDetay() {
                       {urun.satisFiyati.toFixed(2)} ₺
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {urun.tedarikciler[0]?.tedarikciAdi || 'Belirtilmemiş'}
+                      {urun.tedarikciler?.[0]?.tedarikciAdi || 'Belirtilmemiş'}
                     </TableCell>
                     <TableCell>
                       <Badge variant={urun.durum === "aktif" ? "default" : "secondary"}>
