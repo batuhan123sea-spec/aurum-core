@@ -288,11 +288,12 @@ export default function YeniSatis() {
   const seciliMusteriData = seciliMusteri ? musteriler.find(m => m.id === seciliMusteri) : null;
   const filteredUrunler = aramaQuery 
     ? urunler.filter(u => 
-        u.ad.toLowerCase().includes(aramaQuery.toLowerCase()) ||
+        u.durum === 'aktif' &&
+        (u.ad.toLowerCase().includes(aramaQuery.toLowerCase()) ||
         u.barkod.includes(aramaQuery) ||
-        u.kod.toLowerCase().includes(aramaQuery.toLowerCase())
+        u.kod.toLowerCase().includes(aramaQuery.toLowerCase()))
       )
-    : [];
+    : urunler.filter(u => u.durum === 'aktif');
 
   return (
     <Layout>
@@ -368,55 +369,53 @@ export default function YeniSatis() {
               </div>
 
               {/* Ürün Listesi */}
-              {aramaQuery && (
-                <div className="border rounded-lg max-h-96 overflow-y-auto">
-                  {filteredUrunler.length === 0 ? (
-                    <div className="p-8 text-center text-muted-foreground">
-                      Ürün bulunamadı
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Ürün</TableHead>
-                          <TableHead>Stok</TableHead>
-                          <TableHead className="text-right">Fiyat</TableHead>
-                          <TableHead></TableHead>
+              <div className="border rounded-lg max-h-96 overflow-y-auto">
+                {filteredUrunler.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    Aktif ürün bulunamadı
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Ürün</TableHead>
+                        <TableHead>Stok</TableHead>
+                        <TableHead className="text-right">Fiyat</TableHead>
+                        <TableHead></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUrunler.map(urun => (
+                        <TableRow key={urun.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{urun.ad}</p>
+                              <p className="text-xs text-muted-foreground">{urun.kod}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={urun.stokMiktari <= urun.kritikStokSeviyesi ? "destructive" : "default"}>
+                              {urun.stokMiktari} {urun.birim}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {urun.satisFiyati.toFixed(2)} ₺
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              onClick={() => sepeteEkle(urun)}
+                              disabled={urun.stokMiktari === 0}
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredUrunler.map(urun => (
-                          <TableRow key={urun.id}>
-                            <TableCell>
-                              <div>
-                                <p className="font-medium">{urun.ad}</p>
-                                <p className="text-xs text-muted-foreground">{urun.kod}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={urun.stokMiktari <= urun.kritikStokSeviyesi ? "destructive" : "default"}>
-                                {urun.stokMiktari} {urun.birim}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right font-semibold">
-                              {urun.satisFiyati.toFixed(2)} ₺
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                size="sm"
-                                onClick={() => sepeteEkle(urun)}
-                                disabled={urun.stokMiktari === 0}
-                              >
-                                <Plus className="w-4 h-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </div>
-              )}
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
             </CardContent>
           </Card>
 
