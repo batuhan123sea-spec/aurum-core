@@ -35,7 +35,7 @@ export default function StokUrunler() {
       urun.ad.toLowerCase().includes(searchQuery.toLowerCase()) ||
       urun.barkod.toLowerCase().includes(searchQuery.toLowerCase()) ||
       urun.kod.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      urun.tedarikciler.some(t => t.tedarikciAdi.toLowerCase().includes(searchQuery.toLowerCase()));
+      (urun.tedarikciler && urun.tedarikciler.some(t => t.tedarikciAdi.toLowerCase().includes(searchQuery.toLowerCase())));
 
     if (!searchMatch) return false;
 
@@ -53,8 +53,6 @@ export default function StokUrunler() {
         return true;
     }
   });
-
-  const kategoriData = KATEGORILER.find(k => k.id === urunler[0]?.kategori);
 
   return (
     <Layout>
