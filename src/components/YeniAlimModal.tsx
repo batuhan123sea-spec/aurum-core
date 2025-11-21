@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Plus, X } from "lucide-react";
-import { saveTedarikciAlim } from "@/lib/tedarikci-data";
+import { saveTedarikciAlim, getTedarikciById } from "@/lib/tedarikci-data";
 import { getUrunler, saveUrun } from "@/lib/stok-data";
 import { stokHareketKaydet } from "@/lib/stok-hareket";
 import { useToast } from "@/hooks/use-toast";
@@ -147,7 +147,11 @@ export const YeniAlimModal = ({ open, onOpenChange, tedarikciId, onSuccess }: Ye
 
     saveTedarikciAlim(yeniAlim);
     
-    // Stokları arttır ve hareket kaydet
+    // Tedarikçi bilgisini al
+    const tedarikci = getTedarikciById(tedarikciId);
+    const tedarikciAdi = tedarikci?.firmaAdi || 'Bilinmeyen Tedarikçi';
+    
+    // Stokları arttır, hareket kaydet ve tedarikçi bilgisini güncelle
     urunler.forEach(urunItem => {
       const allUrunler = getUrunler();
       const urun = allUrunler.find(u => u.id === urunItem.urunId);
@@ -165,6 +169,36 @@ export const YeniAlimModal = ({ open, onOpenChange, tedarikciId, onSuccess }: Ye
         );
         
         urun.stokMiktari = yeniMiktar;
+        
+        // Tedarikçi bilgisini güncelle veya ekle
+        if (!urun.tedarikciler) {
+          urun.tedarikciler = [];
+        }
+        
+        const mevcutTedarikciIndex = urun.tedarikciler.findIndex(t => t.tedarikciId === tedarikciId);
+        
+        if (mevcutTedarikciIndex >= 0) {
+          // Mevcut tedarikçi bilgisini güncelle
+          urun.tedarikciler[mevcutTedarikciIndex] = {
+            ...urun.tedarikciler[mevcutTedarikciIndex],
+            alisFiyati: urunItem.birimFiyat,
+            paraBirimi: urunItem.paraBirimi,
+            sonAlisTarihi: new Date().toISOString(),
+          };
+        } else {
+          // Yeni tedarikçi ekle
+          urun.tedarikciler.push({
+            id: Date.now().toString() + Math.random(),
+            tedarikciId: tedarikciId,
+            tedarikciAdi: tedarikciAdi,
+            alisFiyati: urunItem.birimFiyat,
+            paraBirimi: urunItem.paraBirimi,
+            teslimatSuresi: 7, // Varsayılan 7 gün
+            sonAlisTarihi: new Date().toISOString(),
+            varsayilan: urun.tedarikciler.length === 0, // İlk tedarikçi varsayılan olur
+          });
+        }
+        
         saveUrun(urun);
       }
     });
