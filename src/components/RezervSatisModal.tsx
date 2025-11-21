@@ -72,31 +72,77 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
         setSecilenMusteriId(rezerv.musteriId);
       }
       
-      // Her ürün için varsayılan değerleri ayarla
-      const baslangicIslemler: UrunIslem[] = rezerv.kalemler.map(kalem => ({
-        urunId: kalem.urunId,
-        urunAdi: kalem.urunAdi,
-        rezervMiktar: kalem.adet,
-        satilanMiktar: kalem.adet,
+      // Aynı ürünleri birleştir
+      const urunGruplari = new Map<string, {
+        urunId: string;
+        urunAdi: string;
+        toplamAdet: number;
+        birimFiyati: number;
+        paraBirimi: 'TRY' | 'USD' | 'EUR';
+      }>();
+
+      rezerv.kalemler.forEach(kalem => {
+        const mevcut = urunGruplari.get(kalem.urunId);
+        if (mevcut) {
+          // Aynı üründen daha önce varsa adetleri topla
+          mevcut.toplamAdet += kalem.adet;
+        } else {
+          urunGruplari.set(kalem.urunId, {
+            urunId: kalem.urunId,
+            urunAdi: kalem.urunAdi,
+            toplamAdet: kalem.adet,
+            birimFiyati: kalem.birimFiyati,
+            paraBirimi: kalem.paraBirimi || 'TRY',
+          });
+        }
+      });
+
+      // Map'ten array'e çevir
+      const baslangicIslemler: UrunIslem[] = Array.from(urunGruplari.values()).map(grup => ({
+        urunId: grup.urunId,
+        urunAdi: grup.urunAdi,
+        rezervMiktar: grup.toplamAdet,
+        satilanMiktar: grup.toplamAdet, // Varsayılan: tümünü sat
         iadeMiktar: 0,
         kalanMiktar: 0,
-        birimFiyati: kalem.birimFiyati,
-        paraBirimi: kalem.paraBirimi || 'TRY',
+        birimFiyati: grup.birimFiyati,
+        paraBirimi: grup.paraBirimi,
       }));
+      
       setUrunIslemleri(baslangicIslemler);
     }
   }, [rezerv, open]);
 
   const handleSatilanChange = (urunId: string, yeniDeger: string) => {
-    const sayi = parseInt(yeniDeger) || 0;
+    const girilenSayi = parseInt(yeniDeger);
+    
+    // Boş input veya NaN kontrolü
+    if (yeniDeger === '' || isNaN(girilenSayi)) {
+      setUrunIslemleri(prev => prev.map(islem => {
+        if (islem.urunId === urunId) {
+          return {
+            ...islem,
+            satilanMiktar: 0,
+            iadeMiktar: islem.rezervMiktar,
+            kalanMiktar: 0,
+          };
+        }
+        return islem;
+      }));
+      return;
+    }
+
     setUrunIslemleri(prev => prev.map(islem => {
       if (islem.urunId === urunId) {
-        const yeniIadeMiktar = islem.rezervMiktar - sayi;
+        // Min 0, Max rezervMiktar kontrolü
+        const guvenliSayi = Math.min(Math.max(0, girilenSayi), islem.rezervMiktar);
+        const yeniIadeMiktar = islem.rezervMiktar - guvenliSayi;
+        
         return {
           ...islem,
-          satilanMiktar: sayi,
-          iadeMiktar: Math.max(0, yeniIadeMiktar),
-          kalanMiktar: Math.max(0, yeniIadeMiktar),
+          satilanMiktar: guvenliSayi,
+          iadeMiktar: yeniIadeMiktar,
+          kalanMiktar: 0,
         };
       }
       return islem;
@@ -104,14 +150,34 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
   };
 
   const handleIadeChange = (urunId: string, yeniDeger: string) => {
-    const sayi = parseInt(yeniDeger) || 0;
+    const girilenSayi = parseInt(yeniDeger);
+    
+    // Boş input veya NaN kontrolü
+    if (yeniDeger === '' || isNaN(girilenSayi)) {
+      setUrunIslemleri(prev => prev.map(islem => {
+        if (islem.urunId === urunId) {
+          return {
+            ...islem,
+            iadeMiktar: 0,
+            satilanMiktar: islem.rezervMiktar,
+            kalanMiktar: 0,
+          };
+        }
+        return islem;
+      }));
+      return;
+    }
+
     setUrunIslemleri(prev => prev.map(islem => {
       if (islem.urunId === urunId) {
-        const yeniSatilanMiktar = islem.rezervMiktar - sayi;
+        // Min 0, Max rezervMiktar kontrolü
+        const guvenliSayi = Math.min(Math.max(0, girilenSayi), islem.rezervMiktar);
+        const yeniSatilanMiktar = islem.rezervMiktar - guvenliSayi;
+        
         return {
           ...islem,
-          iadeMiktar: sayi,
-          satilanMiktar: Math.max(0, yeniSatilanMiktar),
+          iadeMiktar: guvenliSayi,
+          satilanMiktar: yeniSatilanMiktar,
           kalanMiktar: 0,
         };
       }
@@ -290,6 +356,11 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
                             max={islem.rezervMiktar}
                             value={islem.satilanMiktar}
                             onChange={(e) => handleSatilanChange(islem.urunId, e.target.value)}
+                            onBlur={(e) => {
+                              if (e.target.value === '') {
+                                handleSatilanChange(islem.urunId, '0');
+                              }
+                            }}
                             className="w-20 text-center"
                           />
                         </TableCell>
@@ -300,6 +371,11 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
                             max={islem.rezervMiktar}
                             value={islem.iadeMiktar}
                             onChange={(e) => handleIadeChange(islem.urunId, e.target.value)}
+                            onBlur={(e) => {
+                              if (e.target.value === '') {
+                                handleIadeChange(islem.urunId, '0');
+                              }
+                            }}
                             className="w-20 text-center"
                           />
                         </TableCell>
