@@ -343,7 +343,7 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
                             type="number"
                             min="0"
                             max={islem.rezervMiktar}
-                            value={inputValues[islem.urunId]?.satilan ?? islem.satilanMiktar.toString()}
+                            value={inputValues[islem.urunId]?.satilan || ''}
                             onChange={(e) => handleInputChange(islem.urunId, 'satilan', e.target.value)}
                             onBlur={() => handleInputBlur(islem.urunId, 'satilan')}
                             className="w-20 text-center"
@@ -354,7 +354,7 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
                             type="number"
                             min="0"
                             max={islem.rezervMiktar}
-                            value={inputValues[islem.urunId]?.iade ?? islem.iadeMiktar.toString()}
+                            value={inputValues[islem.urunId]?.iade || ''}
                             onChange={(e) => handleInputChange(islem.urunId, 'iade', e.target.value)}
                             onBlur={() => handleInputBlur(islem.urunId, 'iade')}
                             className="w-20 text-center"
