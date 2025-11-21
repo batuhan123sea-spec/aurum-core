@@ -39,7 +39,6 @@ export interface Urun {
   ad: string;
   barkod: string;
   kategori: string;
-  altKategori: string;
   stokMiktari: number;
   birim: string;
   
@@ -69,108 +68,47 @@ export interface Kategori {
   id: string;
   emoji: string;
   ad: string;
-  altKategoriler: string[];
 }
 
 export const KATEGORILER: Kategori[] = [
   {
     id: 'kuyumcu-makineleri',
     emoji: '🛠️',
-    ad: 'KUYUMCU MAKİNELERİ',
-    altKategoriler: [
-      'Döküm Makineleri',
-      'Hadde Makineleri',
-      'Kaynak Makineleri',
-      'CNC Makineleri',
-      'Lazer Kaynak',
-      'Ultrasonik Temizleyiciler'
-    ]
+    ad: 'KUYUMCU MAKİNELERİ'
   },
   {
     id: 'el-aletleri',
     emoji: '🔧',
-    ad: 'EL ALETLERİ',
-    altKategoriler: [
-      'Kuyumcu Pensleri',
-      'Markürler',
-      'Eğeler',
-      'Kerpetenler',
-      'Bileği Taşları',
-      'Çekiçler'
-    ]
+    ad: 'EL ALETLERİ'
   },
   {
     id: 'cila-parlatma',
     emoji: '✨',
-    ad: 'CİLA & PARLATMA',
-    altKategoriler: [
-      'Cila Makineleri',
-      'Polisaj Motorları',
-      'Cila Bezleri',
-      'Parlatma Tozları',
-      'Rodyum Kaplama',
-      'Ultrasonik Cihazlar'
-    ]
+    ad: 'CİLA & PARLATMA'
   },
   {
     id: 'dokum-malzemeleri',
     emoji: '🔥',
-    ad: 'DÖKÜM MALZEMELERİ',
-    altKategoriler: [
-      'Döküm Mumları',
-      'Alçı Kalıplar',
-      'Krüzübler',
-      'Oksijen Kartuşları'
-    ]
+    ad: 'DÖKÜM MALZEMELERİ'
   },
   {
     id: 'kimyasallar',
     emoji: '🧪',
-    ad: 'KİMYASALLAR',
-    altKategoriler: [
-      'Ayar Suları',
-      'Elektrolitler',
-      'Asitler',
-      'Temizleyiciler',
-      'Yağlar',
-      'Sıvılar'
-    ]
+    ad: 'KİMYASALLAR'
   },
   {
     id: 'metaller',
     emoji: '🥈',
-    ad: 'METALLER',
-    altKategoriler: [
-      'Altın Tel',
-      'Gümüş Levha',
-      'Platin',
-      'Palladyum',
-      'Rhodium',
-      'Granül Altın'
-    ]
+    ad: 'METALLER'
   },
   {
     id: 'olcum-cihazlari',
     emoji: '📏',
-    ad: 'ÖLÇÜM CİHAZLARI',
-    altKategoriler: [
-      'Teraziler',
-      'Mikrometreler',
-      'Kumpaslar',
-      'Lüpeler',
-      'Kalınlık Ölçerler'
-    ]
+    ad: 'ÖLÇÜM CİHAZLARI'
   },
   {
     id: 'kutular-aksesuarlar',
     emoji: '💎',
-    ad: 'KUTULAR VE AKSESUARLAR',
-    altKategoriler: [
-      'Takı Kutuları',
-      'Yüzük Kutuları',
-      'Kolye Standları',
-      'Bileklik Yastıkları',
-      'Temizleme Bezleri'
-    ]
+    ad: 'KUTULAR VE AKSESUARLAR'
   }
 ];
