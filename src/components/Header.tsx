@@ -103,9 +103,7 @@ export const Header = () => {
         <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
           <span className="text-primary-foreground font-bold text-lg">K</span>
         </div>
-        <h1 className="text-header-foreground text-left font-serif text-base font-medium">
-          Kuyumcu Makine Malzeme
-        </h1>
+        <h1 className="text-header-foreground text-left font-serif text-base font-medium">Suphi Ticaret </h1>
       </div>
 
       {/* Orta: Canlı Veriler */}
