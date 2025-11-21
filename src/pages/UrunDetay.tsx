@@ -5,69 +5,50 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Package, TrendingUp, TrendingDown, History } from "lucide-react";
 import { getUrunler } from "@/lib/stok-data";
 import { getTedarikciAlimlari } from "@/lib/tedarikci-data";
 import { getSatislar } from "@/lib/satis-data";
 import { getUrunHareketleri } from "@/lib/stok-hareket";
 import { formatCurrency } from "@/lib/kur-hesaplama";
-
 export default function UrunDetay() {
-  const { urunId } = useParams<{ urunId: string }>();
+  const {
+    urunId
+  } = useParams<{
+    urunId: string;
+  }>();
   const navigate = useNavigate();
-
   const urun = getUrunler().find(u => u.id === urunId);
-  
   if (!urun) {
-    return (
-      <Layout>
+    return <Layout>
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold text-foreground">Ürün bulunamadı</h2>
           <Button onClick={() => navigate("/stok/urunler")} className="mt-4">
             Stok Listesine Dön
           </Button>
         </div>
-      </Layout>
-    );
+      </Layout>;
   }
 
   // Alım geçmişi - tüm alımlardan bu ürünü filtrele
   const tumAlimlar = getTedarikciAlimlari('');
-  const urunAlimlari = tumAlimlar
-    .map(alim => ({
-      ...alim,
-      urun: alim.urunler.find(u => u.urunId === urunId)
-    }))
-    .filter(alim => alim.urun);
+  const urunAlimlari = tumAlimlar.map(alim => ({
+    ...alim,
+    urun: alim.urunler.find(u => u.urunId === urunId)
+  })).filter(alim => alim.urun);
 
   // Satış geçmişi
   const tumSatislar = getSatislar();
-  const urunSatislari = tumSatislar
-    .filter(satis => satis.kalemler.some(k => k.urunId === urunId))
-    .map(satis => ({
-      ...satis,
-      kalem: satis.kalemler.find(k => k.urunId === urunId)!
-    }));
+  const urunSatislari = tumSatislar.filter(satis => satis.kalemler.some(k => k.urunId === urunId)).map(satis => ({
+    ...satis,
+    kalem: satis.kalemler.find(k => k.urunId === urunId)!
+  }));
 
   // Stok hareketleri
   const stokHareketleri = getUrunHareketleri(urunId);
-
-  const stokDurumu = urun.stokMiktari <= urun.kritikStokSeviyesi 
-    ? 'kritik' 
-    : urun.stokMiktari <= urun.minStokSeviyesi 
-    ? 'dusuk' 
-    : 'yeterli';
-
-  return (
-    <Layout>
+  const stokDurumu = urun.stokMiktari <= urun.kritikStokSeviyesi ? 'kritik' : urun.stokMiktari <= urun.minStokSeviyesi ? 'dusuk' : 'yeterli';
+  return <Layout>
       <div className="space-y-6">
         {/* Breadcrumb */}
         <div className="text-sm text-muted-foreground">
@@ -81,11 +62,7 @@ export default function UrunDetay() {
         {/* Başlık */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate(-1)}
-            >
+            <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft />
             </Button>
             <div>
@@ -94,8 +71,8 @@ export default function UrunDetay() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">Düzenle</Button>
-            <Button variant="outline">Yazdır</Button>
+            
+            
           </div>
         </div>
 
@@ -108,11 +85,7 @@ export default function UrunDetay() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-                  <img 
-                    src="/placeholder.svg" 
-                    alt={urun.ad} 
-                    className="w-full h-full object-cover"
-                  />
+                  <img src="/placeholder.svg" alt={urun.ad} className="w-full h-full object-cover" />
                 </div>
 
                 <Separator />
@@ -134,14 +107,8 @@ export default function UrunDetay() {
                     <p className="text-sm text-muted-foreground mb-2">Stok Durumu</p>
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-2xl">{urun.stokMiktari}</span>
-                      <Badge variant={
-                        stokDurumu === 'kritik' ? 'destructive' :
-                        stokDurumu === 'dusuk' ? 'outline' :
-                        'default'
-                      }>
-                        {stokDurumu === 'kritik' ? 'KRİTİK' :
-                         stokDurumu === 'dusuk' ? 'DÜŞÜK' :
-                         'YETER Lİ'}
+                      <Badge variant={stokDurumu === 'kritik' ? 'destructive' : stokDurumu === 'dusuk' ? 'outline' : 'default'}>
+                        {stokDurumu === 'kritik' ? 'KRİTİK' : stokDurumu === 'dusuk' ? 'DÜŞÜK' : 'YETER Lİ'}
                       </Badge>
                     </div>
                     <div className="text-xs text-muted-foreground space-y-1">
@@ -177,15 +144,13 @@ export default function UrunDetay() {
                     <p className="font-semibold text-success">%{urun.karMarji?.toFixed(2) || '0.00'}</p>
                   </div>
 
-                  {urun.aciklama && (
-                    <>
+                  {urun.aciklama && <>
                       <Separator />
                       <div>
                         <p className="text-sm text-muted-foreground mb-1">Açıklama</p>
                         <p className="text-sm">{urun.aciklama}</p>
                       </div>
-                    </>
-                  )}
+                    </>}
                 </div>
               </CardContent>
             </Card>
@@ -208,12 +173,9 @@ export default function UrunDetay() {
                     <CardTitle>Tedarikçi Bilgileri</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {!urun.tedarikciler || urun.tedarikciler.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">
+                    {!urun.tedarikciler || urun.tedarikciler.length === 0 ? <p className="text-center text-muted-foreground py-8">
                         Tedarikçi bilgisi bulunamadı
-                      </p>
-                    ) : (
-                      <Table>
+                      </p> : <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Tedarikçi</TableHead>
@@ -223,13 +185,9 @@ export default function UrunDetay() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {urun.tedarikciler.map((tedarikci) => (
-                            <TableRow key={tedarikci.id}>
+                          {urun.tedarikciler.map(tedarikci => <TableRow key={tedarikci.id}>
                               <TableCell>
-                                <div
-                                  className="font-medium cursor-pointer hover:text-primary"
-                                  onClick={() => navigate(`/tedarikci/detay/${tedarikci.tedarikciId}`)}
-                                >
+                                <div className="font-medium cursor-pointer hover:text-primary" onClick={() => navigate(`/tedarikci/detay/${tedarikci.tedarikciId}`)}>
                                   {tedarikci.tedarikciAdi}
                                 </div>
                               </TableCell>
@@ -240,15 +198,11 @@ export default function UrunDetay() {
                                 {tedarikci.teslimatSuresi} gün
                               </TableCell>
                               <TableCell className="text-center">
-                                {tedarikci.varsayilan && (
-                                  <Badge variant="default">Varsayılan</Badge>
-                                )}
+                                {tedarikci.varsayilan && <Badge variant="default">Varsayılan</Badge>}
                               </TableCell>
-                            </TableRow>
-                          ))}
+                            </TableRow>)}
                         </TableBody>
-                      </Table>
-                    )}
+                      </Table>}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -268,12 +222,9 @@ export default function UrunDetay() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {urunAlimlari.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">
+                    {urunAlimlari.length === 0 ? <p className="text-center text-muted-foreground py-8">
                         Alım kaydı bulunamadı
-                      </p>
-                    ) : (
-                      <Table>
+                      </p> : <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Tarih</TableHead>
@@ -284,8 +235,7 @@ export default function UrunDetay() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {urunAlimlari.map((alim) => (
-                            <TableRow key={alim.id}>
+                          {urunAlimlari.map(alim => <TableRow key={alim.id}>
                               <TableCell>
                                 {new Date(alim.tarih).toLocaleDateString('tr-TR')}
                               </TableCell>
@@ -299,11 +249,9 @@ export default function UrunDetay() {
                               <TableCell className="text-right font-semibold">
                                 {alim.urun?.toplamTutar?.toFixed(2) || '0.00'} {alim.urun?.paraBirimi || 'TRY'}
                               </TableCell>
-                            </TableRow>
-                          ))}
+                            </TableRow>)}
                         </TableBody>
-                      </Table>
-                    )}
+                      </Table>}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -323,12 +271,9 @@ export default function UrunDetay() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {urunSatislari.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">
+                    {urunSatislari.length === 0 ? <p className="text-center text-muted-foreground py-8">
                         Satış kaydı bulunamadı
-                      </p>
-                    ) : (
-                      <Table>
+                      </p> : <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Tarih</TableHead>
@@ -339,8 +284,7 @@ export default function UrunDetay() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {urunSatislari.map((satis) => (
-                            <TableRow key={satis.id}>
+                          {urunSatislari.map(satis => <TableRow key={satis.id}>
                               <TableCell>
                                 {new Date(satis.tarih).toLocaleDateString('tr-TR')}
                               </TableCell>
@@ -354,11 +298,9 @@ export default function UrunDetay() {
                               <TableCell className="text-right font-semibold">
                                 {satis.kalem.birimFiyati?.toFixed(2) || '0.00'} ₺
                               </TableCell>
-                            </TableRow>
-                          ))}
+                            </TableRow>)}
                         </TableBody>
-                      </Table>
-                    )}
+                      </Table>}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -373,12 +315,9 @@ export default function UrunDetay() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {stokHareketleri.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">
+                    {stokHareketleri.length === 0 ? <p className="text-center text-muted-foreground py-8">
                         Stok hareketi bulunamadı
-                      </p>
-                    ) : (
-                      <Table>
+                      </p> : <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Tarih</TableHead>
@@ -390,17 +329,12 @@ export default function UrunDetay() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {stokHareketleri.map((hareket) => (
-                            <TableRow key={hareket.id}>
+                          {stokHareketleri.map(hareket => <TableRow key={hareket.id}>
                               <TableCell>
                                 {new Date(hareket.tarih).toLocaleString('tr-TR')}
                               </TableCell>
                               <TableCell>
-                                <Badge variant={
-                                  hareket.islemTuru === 'giris' ? 'default' :
-                                  hareket.islemTuru === 'cikis' ? 'destructive' :
-                                  'outline'
-                                }>
+                                <Badge variant={hareket.islemTuru === 'giris' ? 'default' : hareket.islemTuru === 'cikis' ? 'destructive' : 'outline'}>
                                   {hareket.islemTuru.toUpperCase()}
                                 </Badge>
                               </TableCell>
@@ -416,11 +350,9 @@ export default function UrunDetay() {
                               <TableCell className="text-sm text-muted-foreground">
                                 {hareket.aciklama}
                               </TableCell>
-                            </TableRow>
-                          ))}
+                            </TableRow>)}
                         </TableBody>
-                      </Table>
-                    )}
+                      </Table>}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -428,6 +360,5 @@ export default function UrunDetay() {
           </div>
         </div>
       </div>
-    </Layout>
-  );
+    </Layout>;
 }
