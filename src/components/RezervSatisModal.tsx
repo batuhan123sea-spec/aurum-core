@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -54,7 +54,7 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
   const [inputValues, setInputValues] = useState<Record<string, { satilan: string; iade: string }>>({});
   const [kurUyarisi, setKurUyarisi] = useState(false);
 
-  const rezerv = getSatislar().find(s => s.id === rezervId);
+  const rezerv = useMemo(() => getSatislar().find(s => s.id === rezervId), [rezervId]);
   const musteriler = getMusteriler();
   const secilenMusteri = secilenMusteriId ? musteriler.find(m => m.id === secilenMusteriId) : null;
 
@@ -122,7 +122,7 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
       });
       setInputValues(initialInputs);
     }
-  }, [rezerv, open]);
+  }, [rezervId, open]);
 
   const handleInputChange = (urunId: string, tip: 'satilan' | 'iade', value: string) => {
     setInputValues(prev => ({
@@ -340,22 +340,32 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
                         </TableCell>
                         <TableCell className="text-center">
                           <Input
-                            type="number"
-                            min="0"
-                            max={islem.rezervMiktar}
+                            type="text"
+                            pattern="[0-9]*"
+                            inputMode="numeric"
                             value={inputValues[islem.urunId]?.satilan || ''}
-                            onChange={(e) => handleInputChange(islem.urunId, 'satilan', e.target.value)}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/[^0-9]/g, '');
+                              if (value === '' || parseInt(value) <= islem.rezervMiktar) {
+                                handleInputChange(islem.urunId, 'satilan', value);
+                              }
+                            }}
                             onBlur={() => handleInputBlur(islem.urunId, 'satilan')}
                             className="w-20 text-center"
                           />
                         </TableCell>
                         <TableCell className="text-center">
                           <Input
-                            type="number"
-                            min="0"
-                            max={islem.rezervMiktar}
+                            type="text"
+                            pattern="[0-9]*"
+                            inputMode="numeric"
                             value={inputValues[islem.urunId]?.iade || ''}
-                            onChange={(e) => handleInputChange(islem.urunId, 'iade', e.target.value)}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/[^0-9]/g, '');
+                              if (value === '' || parseInt(value) <= islem.rezervMiktar) {
+                                handleInputChange(islem.urunId, 'iade', value);
+                              }
+                            }}
                             onBlur={() => handleInputBlur(islem.urunId, 'iade')}
                             className="w-20 text-center"
                           />
