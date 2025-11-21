@@ -22,6 +22,8 @@ import { getMusteriler } from "@/lib/musteri-data";
 import { hesapliSatisYap, rezervYap, hizliSatisYap } from "@/lib/satis-islemleri";
 import { getGuncelKurlar, paraBirimiTLyeCevir, formatCurrency } from "@/lib/kur-hesaplama";
 import { getAyarlar } from "@/lib/ayarlar-data";
+import { getSatislar } from "@/lib/satis-data";
+import { rezervFisiOlustur, fisYazdir } from "@/lib/fis-yazdir";
 import { SatisKalemi } from "@/types/satis";
 import { Urun } from "@/types/stok";
 import { MusteriSecModal } from "@/components/MusteriSecModal";
@@ -266,6 +268,16 @@ export default function YeniSatis() {
         kdvDahil,
         rezervNotu
       );
+      
+      // Rezerv fişini yazdır
+      setTimeout(() => {
+        const rezervler = getSatislar().filter(s => s.satisTuru === 'rezerv');
+        const sonRezerv = rezervler[rezervler.length - 1];
+        if (sonRezerv) {
+          const fis = rezervFisiOlustur(sonRezerv);
+          fisYazdir(fis);
+        }
+      }, 100);
     }
     
     sepetiTemizle();

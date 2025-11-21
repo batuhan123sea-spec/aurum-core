@@ -233,13 +233,143 @@ export function hizliSatisYap(
   });
 }
 
+export function rezervIadeIsle(
+  urunId: string,
+  iadeMiktari: number,
+  aciklama: string
+): void {
+  const urunler = getUrunler();
+  const urun = urunler.find(u => u.id === urunId);
+  
+  if (!urun) {
+    toast({
+      title: "Hata",
+      description: "Ürün bulunamadı",
+      variant: "destructive"
+    });
+    return;
+  }
+
+  const oncekiMiktar = urun.stokMiktari;
+  const yeniMiktar = oncekiMiktar + iadeMiktari;
+  
+  // Stok hareketine kaydet
+  stokHareketKaydet(
+    urunId,
+    'giris',
+    iadeMiktari,
+    aciklama,
+    oncekiMiktar,
+    yeniMiktar
+  );
+  
+  // Stoğu artır
+  urun.stokMiktari = yeniMiktar;
+  saveUrun(urun);
+}
+
+export function rezervKismiSatisYap(
+  rezervId: string,
+  urunIslemleri: Array<{
+    urunId: string;
+    satilanMiktar: number;
+    iadeMiktar: number;
+  }>,
+  odemeTuru: 'hesapli' | 'nakit' | 'kredi-karti',
+  musteriId?: string
+): void {
+  const satislar = JSON.parse(localStorage.getItem('kuyumcu_satislar') || '[]');
+  const rezerv = satislar.find((s: any) => s.id === rezervId);
+  
+  if (!rezerv || rezerv.satisTuru !== 'rezerv') {
+    toast({
+      title: "Hata",
+      description: "Rezerv bulunamadı",
+      variant: "destructive"
+    });
+    return;
+  }
+
+  // İade edilen ürünleri stoğa ekle
+  urunIslemleri.forEach(islem => {
+    if (islem.iadeMiktar > 0) {
+      rezervIadeIsle(
+        islem.urunId,
+        islem.iadeMiktar,
+        `Rezerv İadesi - ${rezerv.satisNo}`
+      );
+    }
+  });
+
+  // Satılan ürünler için yeni kalemler oluştur
+  const satilanKalemler = rezerv.kalemler
+    .map((kalem: any) => {
+      const islem = urunIslemleri.find(i => i.urunId === kalem.urunId);
+      if (!islem || islem.satilanMiktar === 0) return null;
+      
+      return {
+        ...kalem,
+        adet: islem.satilanMiktar,
+        toplamTutar: kalem.birimFiyati * islem.satilanMiktar,
+      };
+    })
+    .filter(Boolean);
+
+  if (satilanKalemler.length === 0) {
+    toast({
+      title: "Uyarı",
+      description: "Satılan ürün yok. Tüm ürünler iade edildi.",
+    });
+  } else {
+    // Yeni toplam hesapla
+    const yeniAraToplam = satilanKalemler.reduce((sum: number, k: any) => sum + k.toplamTutar, 0);
+    const yeniToplamKDV = satilanKalemler.reduce((sum: number, k: any) => sum + k.kdvTutari, 0);
+    const yeniGenelToplam = yeniAraToplam + yeniToplamKDV;
+
+    // Satış yap
+    if (odemeTuru === 'hesapli' && musteriId) {
+      hesapliSatisYap(
+        musteriId,
+        satilanKalemler,
+        yeniAraToplam,
+        yeniToplamKDV,
+        0,
+        0,
+        yeniGenelToplam,
+        rezerv.kdvDahil
+      );
+    } else if (odemeTuru === 'nakit' || odemeTuru === 'kredi-karti') {
+      hizliSatisYap(
+        satilanKalemler,
+        yeniAraToplam,
+        yeniToplamKDV,
+        0,
+        0,
+        yeniGenelToplam,
+        rezerv.kdvDahil,
+        odemeTuru
+      );
+    }
+  }
+  
+  // Rezerv durumunu güncelle
+  rezerv.rezervDurumu = 'tamamlandi';
+  rezerv.durum = 'iptal';
+  saveSatis(rezerv);
+  
+  toast({
+    title: "İşlem Tamamlandı",
+    description: `${rezerv.satisNo} nolu rezerv başarıyla işleme alındı.`,
+  });
+}
+
 export function rezervSatisaDonustur(
   rezervId: string,
   musteriId: string,
   odemeTuru: 'hesapli' | 'nakit' | 'kredi-karti'
 ): void {
   const satislar = JSON.parse(localStorage.getItem('kuyumcu_satislar') || '[]');
-  const rezerv = satislar.find((s: Satis) => s.id === rezervId);
+  const rezerv = satislar.find((s: any) => s.id === rezervId);
   
   if (!rezerv || rezerv.satisTuru !== 'rezerv') {
     toast({

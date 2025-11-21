@@ -131,6 +131,60 @@ ${satislarText}║ Toplam satışlar: ${padRight(formatCurrency(toplamSatis, 'TR
   `.trim();
 }
 
+export function rezervFisiOlustur(rezerv: any): string {
+  const tarih = new Date(rezerv.tarih);
+  const formatTarih = tarih.toLocaleDateString('tr-TR');
+  const formatSaat = tarih.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  
+  const pad = (text: string, length: number = 20) => text.substring(0, length).padEnd(length);
+  const padRight = (text: string, length: number = 14) => text.padStart(length);
+  
+  let urunlerText = '';
+  rezerv.kalemler.forEach((kalem: any) => {
+    const urunAdi = kalem.urunAdi.substring(0, 15).padEnd(15);
+    const adet = String(kalem.adet).padStart(2);
+    const fiyat = (kalem.birimFiyati * kalem.adet).toFixed(2).padStart(10);
+    urunlerText += `║ • ${urunAdi} ${adet} ${fiyat}₺ ║\n`;
+  });
+
+  const kdvText = rezerv.kdvDahil ? 'KDV DAHİL' : 'KDV HARİÇ';
+  
+  let notText = '';
+  if (rezerv.rezervNotu) {
+    const lines = rezerv.rezervNotu.match(/.{1,29}/g) || [];
+    lines.forEach((line: string) => {
+      notText += `║ ${pad(line, 29)} ║\n`;
+    });
+  }
+
+  return `
+╔═══════════════════════════════╗
+║   KUYUMCU MAKİNE MALZEME      ║
+║       LTD. ŞTİ.               ║
+╠═══════════════════════════════╣
+║      BİLGİ FİŞİ               ║
+║   MALİ DEĞERİ YOKTUR          ║
+║                               ║
+║  Rezerv No: ${pad(rezerv.satisNo, 17)} ║
+║  Tarih: ${formatTarih} ${formatSaat}  ║
+╠═══════════════════════════════╣
+║ ÜRÜNLER:                      ║
+${urunlerText}╠═══════════════════════════════╣
+║ TOPLAM:       ${padRight(rezerv.genelToplam.toFixed(2) + ' ₺')} ║
+║ (${kdvText})${' '.repeat(Math.max(0, 22 - kdvText.length))} ║
+╠═══════════════════════════════╣
+${notText ? `║ Not:                          ║\n${notText}╠═══════════════════════════════╣\n` : ''}║  Bu fiş mali değer taşımaz.   ║
+║  Ürünler denenecek olup,      ║
+║  satın alınanlar sonradan     ║
+║  tahsil edilecektir.          ║
+╠═══════════════════════════════╣
+║       Teşekkür Ederiz!        ║
+║     📞 0212 123 45 67         ║
+║   www.kuyumcumakine.com       ║
+╚═══════════════════════════════╝
+  `.trim();
+}
+
 export function fisYazdir(fisIcerigi: string): void {
   const printWindow = window.open('', '', 'width=300,height=600');
   if (!printWindow) {
@@ -141,7 +195,7 @@ export function fisYazdir(fisIcerigi: string): void {
   printWindow.document.write(`
     <html>
       <head>
-        <title>Tahsilat Fişi</title>
+        <title>Fiş</title>
         <style>
           @page { 
             size: 80mm auto; 
