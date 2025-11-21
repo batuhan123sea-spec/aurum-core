@@ -1,7 +1,7 @@
 import { Urun } from '@/types/stok';
 
 const STORAGE_KEY = 'kuyumcu_stok_urunler';
-const MIGRATION_KEY = 'kuyumcu_urunler_migration_v2';
+const MIGRATION_KEY = 'kuyumcu_urunler_migration_v1';
 
 // Mock data - 8. kategori örnek ürünleri
 const MOCK_URUNLER: Urun[] = [
@@ -26,7 +26,6 @@ const MOCK_URUNLER: Urun[] = [
     alisFiyatiParaBirimi: 'EUR',
     karMarji: 40,
     satisFiyati: 3.50,
-    satisFiyatiParaBirimi: 'EUR',
     minStokSeviyesi: 20,
     kritikStokSeviyesi: 10,
     aciklama: 'Kadife iç kaplama, manyetik kapak',
@@ -54,7 +53,6 @@ const MOCK_URUNLER: Urun[] = [
     alisFiyatiParaBirimi: 'TRY',
     karMarji: 35,
     satisFiyati: 28.00,
-    satisFiyatiParaBirimi: 'TRY',
     minStokSeviyesi: 50,
     kritikStokSeviyesi: 25,
     aciklama: 'Siyah kadife iç, 5x5 cm',
@@ -82,7 +80,6 @@ const MOCK_URUNLER: Urun[] = [
     alisFiyatiParaBirimi: 'USD',
     karMarji: 40,
     satisFiyati: 120,
-    satisFiyatiParaBirimi: 'USD',
     minStokSeviyesi: 10,
     kritikStokSeviyesi: 5,
     aciklama: 'Ceviz ağacı, 30 cm yükseklik',
@@ -110,7 +107,6 @@ const MOCK_URUNLER: Urun[] = [
     alisFiyatiParaBirimi: 'EUR',
     karMarji: 50,
     satisFiyati: 1.05,
-    satisFiyatiParaBirimi: 'EUR',
     minStokSeviyesi: 30,
     kritikStokSeviyesi: 15,
     aciklama: 'Kadife kaplı, yuvarlak yastık',
@@ -138,7 +134,6 @@ const MOCK_URUNLER: Urun[] = [
     alisFiyatiParaBirimi: 'TRY',
     karMarji: 60,
     satisFiyati: 8.00,
-    satisFiyatiParaBirimi: 'TRY',
     minStokSeviyesi: 100,
     kritikStokSeviyesi: 50,
     aciklama: 'Mikrofiber, 20x20 cm',
@@ -159,7 +154,7 @@ const migrateProductCurrencies = (): void => {
     const urunler: Urun[] = JSON.parse(stored);
     const updatedUrunler = urunler.map(urun => ({
       ...urun,
-      satisFiyatiParaBirimi: urun.satisFiyatiParaBirimi || 'TRY'
+      satisFiyatiParaBirimi: urun.satisFiyatiParaBirimi || urun.alisFiyatiParaBirimi
     }));
     
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUrunler));
@@ -178,7 +173,7 @@ export const getUrunler = (): Urun[] => {
     // İlk kez çalışıyorsa mock data'yı kaydet (migration ile)
     const migratedMockData = MOCK_URUNLER.map(urun => ({
       ...urun,
-      satisFiyatiParaBirimi: urun.satisFiyatiParaBirimi || 'TRY'
+      satisFiyatiParaBirimi: urun.satisFiyatiParaBirimi || urun.alisFiyatiParaBirimi
     }));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(migratedMockData));
     localStorage.setItem(MIGRATION_KEY, 'done');

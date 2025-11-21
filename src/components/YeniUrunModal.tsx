@@ -364,7 +364,7 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Para birimi seçin" />
+                        <SelectValue />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
