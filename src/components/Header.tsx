@@ -6,12 +6,11 @@ import { bigParaKurCek } from "@/lib/kur-api";
 import { kurlarıKaydet, getGuncelKurlar, getKurYasi, formatKurYasi, getKurDurumu } from "@/lib/kur-hesaplama";
 import { tumMusteriBorclariniGuncelle } from "@/lib/musteri-data";
 import { getAyarlar } from "@/lib/ayarlar-data";
-
 export const Header = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [exchangeRates, setExchangeRates] = useState({
     usd: 32.50,
-    eur: 35.20,
+    eur: 35.20
   });
   const [kurGuncelleniyor, setKurGuncelleniyor] = useState(false);
   const [sonGuncelleme, setSonGuncelleme] = useState<Date | null>(null);
@@ -21,29 +20,23 @@ export const Header = () => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
-
     return () => clearInterval(timer);
   }, []);
 
   // Kurları güncelleme fonksiyonu
   const kurGuncelle = async () => {
     setKurGuncelleniyor(true);
-    
     try {
       console.log('BigPara\'dan gerçek piyasa kurları çekiliyor...');
-      
       const kurlar = await bigParaKurCek();
-      
       if (kurlar) {
         setExchangeRates({
           usd: kurlar.usd,
           eur: kurlar.eur
         });
-        
         kurlarıKaydet(kurlar.usd, kurlar.eur);
         tumMusteriBorclariniGuncelle();
         setSonGuncelleme(new Date());
-        
         toast.success('Piyasa kurları güncellendi', {
           description: `USD: ${kurlar.usd.toFixed(2)} ₺ | EUR: ${kurlar.eur.toFixed(2)} ₺ (BigPara)`
         });
@@ -52,17 +45,13 @@ export const Header = () => {
       }
     } catch (error) {
       console.error('Kur güncelleme hatası:', error);
-      
       const ayarlar = getAyarlar();
       const manuelKurlar = ayarlar.paraBirimi.manuelKurlar;
-      
       setExchangeRates({
         usd: manuelKurlar.usd,
         eur: manuelKurlar.eur
       });
-      
       kurlarıKaydet(manuelKurlar.usd, manuelKurlar.eur);
-      
       toast.warning('BigPara\'dan kur alınamadı', {
         description: 'Ayarlardaki manuel kurlar kullanılıyor'
       });
@@ -78,52 +67,43 @@ export const Header = () => {
       usd: storedKurlar.usd,
       eur: storedKurlar.eur
     });
-    
     setSonGuncelleme(new Date(storedKurlar.guncellemeTarihi));
-    
     kurGuncelle();
   }, []);
 
   // Otomatik kur güncelleme (ayarlara göre)
   useEffect(() => {
     const ayarlar = getAyarlar();
-    
     if (ayarlar.paraBirimi.otomatikKurGuncelleme) {
       const intervalMs = ayarlar.paraBirimi.kurGuncellemeSikligi * 60 * 1000;
-      
       const interval = setInterval(() => {
         console.log('Otomatik kur güncelleme çalışıyor...');
         kurGuncelle();
       }, intervalMs);
-      
       return () => clearInterval(interval);
     }
   }, []);
-
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("tr-TR", {
       hour: "2-digit",
       minute: "2-digit",
-      second: "2-digit",
+      second: "2-digit"
     });
   };
-
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("tr-TR", {
       day: "2-digit",
       month: "2-digit",
-      year: "numeric",
+      year: "numeric"
     });
   };
-
-  return (
-    <header className="h-[60px] bg-header border-b border-header-foreground/10 px-6 flex items-center justify-between">
+  return <header className="h-[60px] bg-header border-b border-header-foreground/10 px-6 flex items-center justify-between">
       {/* Sol: Logo */}
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
           <span className="text-primary-foreground font-bold text-lg">K</span>
         </div>
-        <h1 className="text-header-foreground font-semibold text-lg">
+        <h1 className="text-header-foreground text-left font-serif text-base font-medium">
           Kuyumcu Makine Malzeme
         </h1>
       </div>
@@ -162,21 +142,12 @@ export const Header = () => {
             </span>
           </div>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={kurGuncelle}
-            disabled={kurGuncelleniyor}
-            className="h-8 w-8 p-0 hover:bg-header-foreground/10"
-            title="Kurları Güncelle"
-          >
+          <Button variant="ghost" size="sm" onClick={kurGuncelle} disabled={kurGuncelleniyor} className="h-8 w-8 p-0 hover:bg-header-foreground/10" title="Kurları Güncelle">
             <RefreshCw className={`w-4 h-4 ${kurGuncelleniyor ? 'animate-spin' : ''}`} />
           </Button>
         </div>
         
-        {sonGuncelleme && (
-          <KurYasiGosterge sonGuncelleme={sonGuncelleme} />
-        )}
+        {sonGuncelleme && <KurYasiGosterge sonGuncelleme={sonGuncelleme} />}
       </div>
 
       {/* Sağ: Kullanıcı */}
@@ -185,41 +156,34 @@ export const Header = () => {
           <User className="w-5 h-5" />
           <span className="text-sm font-medium">Admin Kullanıcı</span>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm"
-          className="border-header-foreground/20 text-header-foreground hover:bg-header-foreground/10"
-        >
+        <Button variant="outline" size="sm" className="border-header-foreground/20 text-header-foreground hover:bg-header-foreground/10">
           <LogOut className="w-4 h-4 mr-2" />
           Çıkış
         </Button>
       </div>
-    </header>
-  );
+    </header>;
 };
 
 // Kur yaşı gösterge komponenti
-const KurYasiGosterge = ({ sonGuncelleme }: { sonGuncelleme: Date }) => {
+const KurYasiGosterge = ({
+  sonGuncelleme
+}: {
+  sonGuncelleme: Date;
+}) => {
   const [kurYasi, setKurYasi] = useState(0);
-  
   useEffect(() => {
     const updateYas = () => {
       setKurYasi(getKurYasi());
     };
-    
     updateYas();
     const interval = setInterval(updateYas, 30000); // 30 saniyede bir güncelle
-    
+
     return () => clearInterval(interval);
   }, [sonGuncelleme]);
-  
   const durum = getKurDurumu(kurYasi);
   const emoji = durum === 'yeni' ? '🟢' : durum === 'eski' ? '🟡' : '🔴';
   const uyari = durum === 'eski' ? ' (ESKİ)' : durum === 'cok-eski' ? ' (ÇOK ESKİ!)' : '';
-  
-  return (
-    <div className={`text-xs ${durum === 'yeni' ? 'opacity-50' : 'opacity-100 font-medium'}`}>
+  return <div className={`text-xs ${durum === 'yeni' ? 'opacity-50' : 'opacity-100 font-medium'}`}>
       {emoji} {formatKurYasi(kurYasi)}{uyari}
-    </div>
-  );
+    </div>;
 };
