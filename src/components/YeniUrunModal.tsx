@@ -41,7 +41,7 @@ const urunSchema = z.object({
   alisFiyati: z.coerce.number().min(0, "Alış fiyatı 0'dan küçük olamaz"),
   paraBirimi: z.enum(['TRY', 'USD', 'EUR']),
   satisFiyati: z.coerce.number().min(0, "Satış fiyatı 0'dan küçük olamaz"),
-  tedarikci: z.string().min(1, "Tedarikçi gerekli"),
+  tedarikciId: z.string().min(1, "Tedarikçi seçin"),
   minStokSeviyesi: z.coerce.number().min(0),
   aciklama: z.string().optional(),
 });
@@ -70,7 +70,7 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
       alisFiyati: initialData.alisFiyati,
       paraBirimi: initialData.alisFiyatiParaBirimi,
       satisFiyati: initialData.satisFiyati,
-      tedarikci: initialData.tedarikciler?.[0]?.tedarikciAdi || "",
+      tedarikciId: initialData.tedarikciler?.[0]?.tedarikciId || "",
       minStokSeviyesi: initialData.minStokSeviyesi,
       aciklama: initialData.aciklama || "",
     } : {
@@ -82,13 +82,24 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
       alisFiyati: 0,
       paraBirimi: "TRY",
       satisFiyati: 0,
-      tedarikci: "",
+      tedarikciId: "",
       minStokSeviyesi: 10,
       aciklama: "",
     },
   });
 
   const onSubmit = (data: UrunFormValues) => {
+    const secilenTedarikci = tedarikciler.find(t => t.id === data.tedarikciId);
+    
+    if (!secilenTedarikci) {
+      toast({
+        title: "Hata",
+        description: "Tedarikçi bulunamadı",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (editMode && initialData) {
       const guncelUrun: Urun = {
         ...initialData,
@@ -106,10 +117,13 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
         aciklama: data.aciklama || '',
         guncellemeTarihi: new Date().toISOString(),
         tedarikciler: [{
-          ...initialData.tedarikciler[0],
-          tedarikciAdi: data.tedarikci,
+          id: initialData.tedarikciler[0]?.id || Date.now().toString(),
+          tedarikciId: data.tedarikciId,
+          tedarikciAdi: secilenTedarikci.firmaAdi,
           alisFiyati: data.alisFiyati,
           paraBirimi: data.paraBirimi,
+          teslimatSuresi: initialData.tedarikciler[0]?.teslimatSuresi || 7,
+          varsayilan: true
         }]
       };
       
@@ -129,8 +143,8 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
         birim: data.birim,
         tedarikciler: [{
           id: Date.now().toString(),
-          tedarikciId: 'temp',
-          tedarikciAdi: data.tedarikci,
+          tedarikciId: data.tedarikciId,
+          tedarikciAdi: secilenTedarikci.firmaAdi,
           alisFiyati: data.alisFiyati,
           paraBirimi: data.paraBirimi,
           teslimatSuresi: 7,
@@ -336,13 +350,24 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
 
             <FormField
               control={form.control}
-              name="tedarikci"
+              name="tedarikciId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tedarikçi *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Tedarikçi adı" {...field} />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Tedarikçi seçin" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {tedarikciler.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.firmaAdi}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

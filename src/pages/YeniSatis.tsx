@@ -97,6 +97,8 @@ export default function YeniSatis() {
         barkod: urun.barkod,
         adet: 1,
         birimFiyati: birimFiyatiTL,
+        paraBirimi: urun.alisFiyatiParaBirimi,
+        orijinalBirimFiyati: urun.satisFiyati,
         kdvOrani: ayarlar.kdv.varsayilanKDVOrani,
         kdvTutari: 0,
         indirimTL: 0,
