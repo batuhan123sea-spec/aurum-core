@@ -29,11 +29,6 @@ const menuItems: MenuItem[] = [
     path: "/stok/urunler",
   },
   {
-    title: "Stok Hareketleri",
-    icon: ClipboardList,
-    path: "/stok/hareketler",
-  },
-  {
     title: "Yeni Satış",
     icon: ShoppingCart,
     path: "/satis/yeni",
