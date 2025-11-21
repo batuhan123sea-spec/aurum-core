@@ -3,6 +3,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import Login from "./pages/Login";
 import Index from "./pages/Index";
 import StokUrunler from "./pages/StokUrunler";
 import StokKategoriDetay from "./pages/StokKategoriDetay";
@@ -27,25 +30,28 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/stok/urunler" element={<StokUrunler />} />
-          <Route path="/stok/kategori/:kategoriId" element={<StokKategoriDetay />} />
-          <Route path="/stok/urun/:urunId" element={<UrunDetay />} />
-          <Route path="/stok/uyarilar" element={<StokUyarilar />} />
-          <Route path="/satis/yeni" element={<YeniSatis />} />
-          <Route path="/satis/rezervler" element={<RezervListe />} />
-          <Route path="/tedarikci/liste" element={<TedarikciListe />} />
-          <Route path="/tedarikci/detay/:tedarikciId" element={<TedarikciDetay />} />
-          <Route path="/raporlar" element={<Raporlar />} />
-          <Route path="/ayarlar" element={<Ayarlar />} />
-          <Route path="/musteri/liste" element={<MusteriListe />} />
-          <Route path="/musteri/detay/:musteriId" element={<MusteriDetay />} />
-          <Route path="/musteri/yeni" element={<MusteriForm />} />
-          <Route path="/musteri/duzenle/:musteriId" element={<MusteriForm />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/stok/urunler" element={<ProtectedRoute><StokUrunler /></ProtectedRoute>} />
+            <Route path="/stok/kategori/:kategoriId" element={<ProtectedRoute><StokKategoriDetay /></ProtectedRoute>} />
+            <Route path="/stok/urun/:urunId" element={<ProtectedRoute><UrunDetay /></ProtectedRoute>} />
+            <Route path="/stok/uyarilar" element={<ProtectedRoute><StokUyarilar /></ProtectedRoute>} />
+            <Route path="/satis/yeni" element={<ProtectedRoute><YeniSatis /></ProtectedRoute>} />
+            <Route path="/satis/rezervler" element={<ProtectedRoute><RezervListe /></ProtectedRoute>} />
+            <Route path="/tedarikci/liste" element={<ProtectedRoute><TedarikciListe /></ProtectedRoute>} />
+            <Route path="/tedarikci/detay/:tedarikciId" element={<ProtectedRoute><TedarikciDetay /></ProtectedRoute>} />
+            <Route path="/raporlar" element={<ProtectedRoute><Raporlar /></ProtectedRoute>} />
+            <Route path="/ayarlar" element={<ProtectedRoute><Ayarlar /></ProtectedRoute>} />
+            <Route path="/musteri/liste" element={<ProtectedRoute><MusteriListe /></ProtectedRoute>} />
+            <Route path="/musteri/detay/:musteriId" element={<ProtectedRoute><MusteriDetay /></ProtectedRoute>} />
+            <Route path="/musteri/yeni" element={<ProtectedRoute><MusteriForm /></ProtectedRoute>} />
+            <Route path="/musteri/duzenle/:musteriId" element={<ProtectedRoute><MusteriForm /></ProtectedRoute>} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
