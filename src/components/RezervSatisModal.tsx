@@ -24,6 +24,9 @@ import { MusteriSecModal } from "./MusteriSecModal";
 import { rezervKismiSatisYap } from "@/lib/satis-islemleri";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { getKurYasi, getGuncelKurlar, formatKurYasi } from "@/lib/kur-hesaplama";
+import { AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface UrunIslem {
   urunId: string;
@@ -33,6 +36,7 @@ interface UrunIslem {
   iadeMiktar: number;
   kalanMiktar: number;
   birimFiyati: number;
+  paraBirimi: 'TRY' | 'USD' | 'EUR';
 }
 
 interface RezervSatisModalProps {
@@ -47,22 +51,37 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
   const [secilenMusteriId, setSecilenMusteriId] = useState<string>('');
   const [musteriModalAcik, setMusteriModalAcik] = useState(false);
   const [urunIslemleri, setUrunIslemleri] = useState<UrunIslem[]>([]);
+  const [kurUyarisi, setKurUyarisi] = useState(false);
 
   const rezerv = getSatislar().find(s => s.id === rezervId);
   const musteriler = getMusteriler();
   const secilenMusteri = secilenMusteriId ? musteriler.find(m => m.id === secilenMusteriId) : null;
 
+  // Modal açıldığında kur yaşını kontrol et
+  useEffect(() => {
+    if (open) {
+      const kurYasi = getKurYasi();
+      setKurUyarisi(kurYasi > 10);
+    }
+  }, [open]);
+
   useEffect(() => {
     if (rezerv && open) {
+      // Rezervde müşteri ID'si varsa otomatik seç
+      if (rezerv.musteriId) {
+        setSecilenMusteriId(rezerv.musteriId);
+      }
+      
       // Her ürün için varsayılan değerleri ayarla
       const baslangicIslemler: UrunIslem[] = rezerv.kalemler.map(kalem => ({
         urunId: kalem.urunId,
         urunAdi: kalem.urunAdi,
         rezervMiktar: kalem.adet,
-        satilanMiktar: kalem.adet, // Varsayılan: tümü satıldı
-        iadeMiktar: 0, // Varsayılan: iade yok
+        satilanMiktar: kalem.adet,
+        iadeMiktar: 0,
         kalanMiktar: 0,
         birimFiyati: kalem.birimFiyati,
+        paraBirimi: kalem.paraBirimi || 'TRY',
       }));
       setUrunIslemleri(baslangicIslemler);
     }
@@ -188,6 +207,16 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
           </DialogHeader>
 
           <div className="space-y-6">
+            {/* Kur Uyarısı */}
+            {kurUyarisi && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  ⚠️ Kurlar {formatKurYasi(getKurYasi())} güncellendi. Satışa dönüştürmeden önce güncel kurları kontrol etmeniz önerilir.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Ödeme Türü Seçimi */}
             <div className="space-y-2">
               <Label>Ödeme Türü *</Label>
@@ -238,6 +267,7 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
                     <TableHead className="text-center">Rezerv</TableHead>
                     <TableHead className="text-center">Satılan</TableHead>
                     <TableHead className="text-center">İade</TableHead>
+                    <TableHead className="text-center">Para Birimi</TableHead>
                     <TableHead className="text-right">Birim Fiyat</TableHead>
                     <TableHead className="text-right">Satış Tutarı</TableHead>
                   </TableRow>
@@ -273,9 +303,12 @@ export const RezervSatisModal = ({ open, onOpenChange, rezervId, onSuccess }: Re
                             className="w-20 text-center"
                           />
                         </TableCell>
-                        <TableCell className="text-right">{islem.birimFiyati.toFixed(2)} ₺</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline">{islem.paraBirimi}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">{islem.birimFiyati.toFixed(2)} {islem.paraBirimi === 'TRY' ? '₺' : islem.paraBirimi === 'USD' ? '$' : '€'}</TableCell>
                         <TableCell className="text-right font-medium">
-                          {(islem.satilanMiktar * islem.birimFiyati).toFixed(2)} ₺
+                          {(islem.satilanMiktar * islem.birimFiyati).toFixed(2)} {islem.paraBirimi === 'TRY' ? '₺' : islem.paraBirimi === 'USD' ? '$' : '€'}
                         </TableCell>
                       </TableRow>
                     );

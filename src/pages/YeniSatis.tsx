@@ -20,7 +20,7 @@ import { Search, Plus, Minus, Trash2, ShoppingCart, DollarSign } from "lucide-re
 import { getUrunler } from "@/lib/stok-data";
 import { getMusteriler } from "@/lib/musteri-data";
 import { hesapliSatisYap, rezervYap, hizliSatisYap } from "@/lib/satis-islemleri";
-import { getGuncelKurlar, paraBirimiTLyeCevir, formatCurrency } from "@/lib/kur-hesaplama";
+import { getGuncelKurlar, paraBirimiTLyeCevir, formatCurrency, getKurYasi } from "@/lib/kur-hesaplama";
 import { getAyarlar } from "@/lib/ayarlar-data";
 import { getSatislar } from "@/lib/satis-data";
 import { rezervFisiOlustur, fisYazdir } from "@/lib/fis-yazdir";
@@ -28,6 +28,9 @@ import { SatisKalemi } from "@/types/satis";
 import { Urun } from "@/types/stok";
 import { MusteriSecModal } from "@/components/MusteriSecModal";
 import { useToast } from "@/hooks/use-toast";
+import { bigParaKurCek } from "@/lib/kur-api";
+import { kurlarıKaydet } from "@/lib/kur-hesaplama";
+import { tumMusteriBorclariniGuncelle } from "@/lib/musteri-data";
 
 export default function YeniSatis() {
   const { toast } = useToast();
@@ -48,6 +51,29 @@ export default function YeniSatis() {
   const urunler = getUrunler();
   const musteriler = getMusteriler();
   const ayarlar = getAyarlar();
+
+  // Sayfa açıldığında kurları kontrol et ve gerekirse güncelle
+  useEffect(() => {
+    const kurYasi = getKurYasi();
+    
+    if (kurYasi > 10) {
+      console.log(`Kurlar ${kurYasi} dakika önce güncellenmiş, yenileniyor...`);
+      
+      bigParaKurCek().then(yeniKurlar => {
+        if (yeniKurlar) {
+          kurlarıKaydet(yeniKurlar.usd, yeniKurlar.eur);
+          tumMusteriBorclariniGuncelle();
+          
+          toast({
+            title: "Kurlar Güncellendi",
+            description: `USD: ${yeniKurlar.usd.toFixed(2)} ₺ | EUR: ${yeniKurlar.eur.toFixed(2)} ₺`,
+          });
+        }
+      }).catch(error => {
+        console.error('Kur güncelleme hatası:', error);
+      });
+    }
+  }, []);
 
   // Barkod input'a otomatik focus
   useEffect(() => {
