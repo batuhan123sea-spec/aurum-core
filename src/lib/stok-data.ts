@@ -164,9 +164,33 @@ const migrateProductCurrencies = (): void => {
   }
 };
 
+// Migration fonksiyonu - tedarikciler array'inin undefined olmaması için
+const TEDARIKCILER_MIGRATION_KEY = 'kuyumcu_urunler_tedarikciler_v1';
+const migrateTedarikcilerArray = (): void => {
+  const migrated = localStorage.getItem(TEDARIKCILER_MIGRATION_KEY);
+  if (migrated) return;
+  
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) return;
+  
+  try {
+    const urunler: Urun[] = JSON.parse(stored);
+    const updatedUrunler = urunler.map(urun => ({
+      ...urun,
+      tedarikciler: urun.tedarikciler && urun.tedarikciler.length > 0 ? urun.tedarikciler : []
+    }));
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUrunler));
+    localStorage.setItem(TEDARIKCILER_MIGRATION_KEY, 'done');
+  } catch (error) {
+    console.error('Tedarikciler migration failed:', error);
+  }
+};
+
 export const getUrunler = (): Urun[] => {
   // Migration kontrolü
   migrateProductCurrencies();
+  migrateTedarikcilerArray();
   
   const stored = localStorage.getItem(STORAGE_KEY);
   if (!stored) {

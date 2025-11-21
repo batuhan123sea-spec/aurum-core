@@ -187,6 +187,7 @@ export default function UrunDetay() {
                             <TableHead>Tedarikçi</TableHead>
                             <TableHead className="text-right">Alış Fiyatı</TableHead>
                             <TableHead className="text-center">Teslimat Süresi</TableHead>
+                            <TableHead className="text-center">Son Alış</TableHead>
                             <TableHead className="text-center">Durum</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -202,6 +203,12 @@ export default function UrunDetay() {
                               </TableCell>
                               <TableCell className="text-center">
                                 {tedarikci.teslimatSuresi} gün
+                              </TableCell>
+                              <TableCell className="text-center text-sm">
+                                {tedarikci.sonAlisTarihi 
+                                  ? new Date(tedarikci.sonAlisTarihi).toLocaleDateString('tr-TR')
+                                  : '-'
+                                }
                               </TableCell>
                               <TableCell className="text-center">
                                 {tedarikci.varsayilan && <Badge variant="default">Varsayılan</Badge>}
