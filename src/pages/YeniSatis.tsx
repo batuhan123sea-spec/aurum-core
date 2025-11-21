@@ -20,7 +20,8 @@ import { Search, Plus, Minus, Trash2, ShoppingCart, DollarSign } from "lucide-re
 import { getUrunler } from "@/lib/stok-data";
 import { getMusteriler } from "@/lib/musteri-data";
 import { hesapliSatisYap, rezervYap, hizliSatisYap } from "@/lib/satis-islemleri";
-import { getGuncelKurlar } from "@/lib/kur-hesaplama";
+import { getGuncelKurlar, paraBirimiTLyeCevir } from "@/lib/kur-hesaplama";
+import { getAyarlar } from "@/lib/ayarlar-data";
 import { SatisKalemi } from "@/types/satis";
 import { Urun } from "@/types/stok";
 import { MusteriSecModal } from "@/components/MusteriSecModal";
@@ -44,6 +45,7 @@ export default function YeniSatis() {
   const kurlar = getGuncelKurlar();
   const urunler = getUrunler();
   const musteriler = getMusteriler();
+  const ayarlar = getAyarlar();
 
   // Barkod input'a otomatik focus
   useEffect(() => {
@@ -73,6 +75,12 @@ export default function YeniSatis() {
   const sepeteEkle = (urun: Urun) => {
     const mevcutKalem = sepet.find(k => k.urunId === urun.id);
     
+    // Satış fiyatını TL'ye çevir
+    const birimFiyatiTL = paraBirimiTLyeCevir(
+      urun.satisFiyati,
+      urun.alisFiyatiParaBirimi
+    );
+    
     if (mevcutKalem) {
       // Mevcut ürünün adedini artır
       setSepet(sepet.map(k => 
@@ -88,12 +96,12 @@ export default function YeniSatis() {
         urunAdi: urun.ad,
         barkod: urun.barkod,
         adet: 1,
-        birimFiyati: urun.satisFiyati,
-        kdvOrani: urun.kdvOrani,
+        birimFiyati: birimFiyatiTL,
+        kdvOrani: ayarlar.kdv.varsayilanKDVOrani,
         kdvTutari: 0,
         indirimTL: 0,
         indirimYuzde: 0,
-        toplamTutar: urun.satisFiyati
+        toplamTutar: birimFiyatiTL
       };
       
       yeniKalem.toplamTutar = hesaplaKalemToplam(
@@ -288,12 +296,11 @@ export default function YeniSatis() {
   const seciliMusteriData = seciliMusteri ? musteriler.find(m => m.id === seciliMusteri) : null;
   const filteredUrunler = aramaQuery 
     ? urunler.filter(u => 
-        u.durum === 'aktif' &&
-        (u.ad.toLowerCase().includes(aramaQuery.toLowerCase()) ||
+        u.ad.toLowerCase().includes(aramaQuery.toLowerCase()) ||
         u.barkod.includes(aramaQuery) ||
-        u.kod.toLowerCase().includes(aramaQuery.toLowerCase()))
+        u.kod.toLowerCase().includes(aramaQuery.toLowerCase())
       )
-    : urunler.filter(u => u.durum === 'aktif');
+    : urunler;
 
   return (
     <Layout>

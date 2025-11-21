@@ -91,7 +91,6 @@ export default function StokKategoriDetay() {
                   <TableHead className="text-right">Alış Fiyatı</TableHead>
                   <TableHead className="text-right">Satış Fiyatı</TableHead>
                   <TableHead>Tedarikçi</TableHead>
-                  <TableHead>Durum</TableHead>
                   <TableHead className="text-right">İşlemler</TableHead>
                 </TableRow>
               </TableHeader>
@@ -113,18 +112,13 @@ export default function StokKategoriDetay() {
                     </TableCell>
                     <TableCell>{urun.birim}</TableCell>
                     <TableCell className="text-right">
-                      {urun.alisFiyati.toFixed(2)} ₺
+                      {urun.alisFiyati.toFixed(2)} {urun.alisFiyatiParaBirimi === 'TRY' ? '₺' : urun.alisFiyatiParaBirimi}
                     </TableCell>
                     <TableCell className="text-right">
-                      {urun.satisFiyati.toFixed(2)} ₺
+                      {urun.satisFiyati.toFixed(2)} {urun.alisFiyatiParaBirimi === 'TRY' ? '₺' : urun.alisFiyatiParaBirimi}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {urun.tedarikciler?.[0]?.tedarikciAdi || 'Belirtilmemiş'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={urun.durum === "aktif" ? "default" : "secondary"}>
-                        {urun.durum}
-                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
