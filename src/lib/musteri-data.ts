@@ -181,35 +181,26 @@ export function musteriDovizBorclariniHesapla(musteriId: string): {
 } {
   const hareketler = getHareketlerByMusteriId(musteriId);
   
-  const borclar = {
-    TRY: 0,
-    USD: 0,
-    EUR: 0
-  };
+  // Sadece TL bazında hesaplama yap
+  let toplamTL = 0;
   
   hareketler.forEach(hareket => {
-    const miktar = hareket.tutar;
-    const paraBirimi = hareket.paraBirimi;
-    
     if (hareket.islemTuru === 'satis') {
-      borclar[paraBirimi] += miktar;
+      toplamTL += hareket.tlKarsiligi;
     } else if (hareket.islemTuru === 'odeme') {
-      borclar[paraBirimi] -= miktar;
+      toplamTL -= hareket.tlKarsiligi;
     } else if (hareket.islemTuru === 'iade') {
-      borclar[paraBirimi] -= miktar;
+      toplamTL -= hareket.tlKarsiligi;
     }
   });
   
-  // Güncel kurlarla TL karşılığını hesapla
-  const kurlar = getGuncelKurlar();
-  const toplamTL = 
-    borclar.TRY + 
-    (borclar.USD * kurlar.usd) + 
-    (borclar.EUR * kurlar.eur);
-  
+  // Para birimi bazında borçlar artık kullanılmıyor
+  // Sadece geriye dönük uyumluluk için 0 döndürüyoruz
   return {
-    ...borclar,
-    toplamTL
+    TRY: toplamTL,  // Tüm borç TRY olarak gösterilecek
+    USD: 0,
+    EUR: 0,
+    toplamTL: Math.max(0, toplamTL)  // Negatif olamaz
   };
 }
 
