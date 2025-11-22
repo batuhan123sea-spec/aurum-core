@@ -52,6 +52,17 @@ export function yukle5HaftalikTestVerisi(musteriId: string): {
   });
   toplamSatir++;
 
+  // 27 Ekim (Cumartesi) - Hafta sonu tahsilatı
+  olusturOdeme({
+    musteriId: musteriIdStr,
+    tarih: '2025-10-27T17:00:00',
+    tutar: 300,
+    paraBirimi: 'TRY',
+    kur: 1,
+    aciklama: 'Hafta sonu tahsilatı'
+  });
+  toplamSatir++;
+
   // HAFTA 2: 28 Ekim - 3 Kasım 2025
   console.log('📅 HAFTA 2: 28 Ekim - 3 Kasım 2025 yükleniyor...');
   kurlarıKaydet(38.45, 43.75);
@@ -180,6 +191,17 @@ export function yukle5HaftalikTestVerisi(musteriId: string): {
   });
   toplamSatir++;
 
+  // 14 Kasım (Perşembe) - EUR tahsilatı
+  olusturOdeme({
+    musteriId: musteriIdStr,
+    tarih: '2025-11-14T18:00:00',
+    tutar: 50,
+    paraBirimi: 'EUR',
+    kur: 44.10,
+    aciklama: 'Euro tahsilatı'
+  });
+  toplamSatir++;
+
   // 16 Kasım (Cumartesi) - TRY toplu satış
   olusturSatis({
     musteriId: musteriIdStr,
@@ -215,6 +237,17 @@ export function yukle5HaftalikTestVerisi(musteriId: string): {
       { urunAdi: 'Yüzük Kutusu', barkod: 'YK001', adet: 3, birimFiyati: 28, paraBirimi: 'TRY', kur: 1 },
       { urunAdi: 'Bileklik Yastığı', barkod: 'BY001', adet: 4, birimFiyati: 1.05, paraBirimi: 'EUR', kur: 43.80 }
     ]
+  });
+  toplamSatir++;
+
+  // 20 Kasım (Çarşamba) - Ara tahsilat
+  olusturOdeme({
+    musteriId: musteriIdStr,
+    tarih: '2025-11-20T16:00:00',
+    tutar: 800,
+    paraBirimi: 'TRY',
+    kur: 1,
+    aciklama: 'Ara tahsilat'
   });
   toplamSatir++;
 
@@ -257,11 +290,10 @@ function olusturSatis(params: {
 }) {
   const { musteriId, tarih, satisNo, kalemler } = params;
 
-  // Satış kalemlerini oluştur
+  // Satış kalemlerini oluştur (KDV HARİÇ)
   const satisKalemleri: SatisKalemi[] = kalemler.map((k, index) => {
     const tlFiyat = k.birimFiyati * k.kur;
     const toplamTutar = tlFiyat * k.adet;
-    const kdvTutari = toplamTutar * 0.10; // %10 KDV
 
     return {
       id: `kalem-${Date.now()}-${index}`,
@@ -272,18 +304,18 @@ function olusturSatis(params: {
       birimFiyati: tlFiyat,
       paraBirimi: k.paraBirimi,
       orijinalBirimFiyati: k.birimFiyati,
-      kdvOrani: 10,
-      kdvTutari: kdvTutari,
+      kdvOrani: 0,
+      kdvTutari: 0,
       indirimTL: 0,
       indirimYuzde: 0,
-      toplamTutar: toplamTutar + kdvTutari
+      toplamTutar: toplamTutar
     };
   });
 
   // Ara toplam ve genel toplam hesapla
   const araToplam = satisKalemleri.reduce((sum, k) => sum + (k.birimFiyati * k.adet), 0);
-  const toplamKDV = satisKalemleri.reduce((sum, k) => sum + k.kdvTutari, 0);
-  const genelToplam = araToplam + toplamKDV;
+  const toplamKDV = 0;
+  const genelToplam = araToplam;
 
   // Satış kaydı oluştur
   const satis: Satis = {
@@ -295,11 +327,11 @@ function olusturSatis(params: {
     musteriAdi: 'Test Müşteri',
     kalemler: satisKalemleri,
     araToplam: araToplam,
-    toplamKDV: toplamKDV,
+    toplamKDV: 0,
     genelIndirimTL: 0,
     genelIndirimYuzde: 0,
     genelToplam: genelToplam,
-    kdvDahil: true,
+    kdvDahil: false,
     durum: 'tamamlandi',
     kullanici: 'Test Kullanıcı'
   };
