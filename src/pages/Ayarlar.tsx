@@ -19,7 +19,10 @@ import {
   Building2, DollarSign, Receipt, Package, FileText, Users,
   Save, Settings, RefreshCw, AlertTriangle, Check, Trash2, UserPlus
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { getAyarlar, saveAyarlar } from "@/lib/ayarlar-data";
+import { getMusteriler, updateMusteri } from "@/lib/musteri-data";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -122,6 +125,7 @@ export default function Ayarlar() {
   const [newPassword, setNewPassword] = useState('');
   const [newUserIsAdmin, setNewUserIsAdmin] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [veriTemizlemeTeyit, setVeriTemizlemeTeyit] = useState(false);
 
   // Firma Form
   const firmaForm = useForm<FirmaFormData>({
@@ -477,6 +481,37 @@ export default function Ayarlar() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleVeriTemizle = () => {
+    if (!veriTemizlemeTeyit) {
+      toast.error("⚠️ Uyarı", {
+        description: "Lütfen önce onay kutusunu işaretleyin"
+      });
+      return;
+    }
+
+    // localStorage'daki tüm verileri temizle
+    localStorage.removeItem('kuyumcu_satislar');
+    localStorage.removeItem('kuyumcu_hareketler');
+    
+    // Tüm müşterilerin borçlarını sıfırla
+    const musteriler = getMusteriler();
+    musteriler.forEach(musteri => {
+      updateMusteri({
+        ...musteri,
+        borclar: { TRY: 0, USD: 0, EUR: 0 },
+        toplamBorcTL: 0
+      });
+    });
+
+    toast.success("✅ Başarılı", {
+      description: "Tüm satış ve rapor verileri temizlendi. Sayfa yenileniyor..."
+    });
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
   };
 
   return (
@@ -1271,6 +1306,49 @@ export default function Ayarlar() {
             </TabsContent>
           )}
         </Tabs>
+
+        {/* Veri Temizleme Bölümü */}
+        <Card className="border-destructive/50">
+          <CardHeader>
+            <CardTitle className="text-destructive flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              Tehlikeli Alan - Veri Temizleme
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Dikkat!</AlertTitle>
+              <AlertDescription>
+                Bu işlem geri alınamaz. Tüm satış kayıtları, hesap hareketleri ve müşteri borçları silinecektir.
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="veri-temizle-onay" 
+                checked={veriTemizlemeTeyit}
+                onCheckedChange={(checked) => setVeriTemizlemeTeyit(checked as boolean)}
+              />
+              <label
+                htmlFor="veri-temizle-onay"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Tüm verilerin kalıcı olarak silineceğini anlıyorum ve onaylıyorum
+              </label>
+            </div>
+
+            <Button 
+              variant="destructive" 
+              onClick={handleVeriTemizle}
+              className="w-full"
+              disabled={!veriTemizlemeTeyit}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Tüm Satış ve Rapor Verilerini Temizle
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Silme Onay Dialogu */}
         <AlertDialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
