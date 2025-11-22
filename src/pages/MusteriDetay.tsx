@@ -240,49 +240,52 @@ const MusteriDetay = () => {
           {/* Sağ Panel - Hesap Ekstresi ve Satış Geçmişi */}
           <div className="lg:col-span-2">
             <Card>
-              <Tabs defaultValue="hesap-ekstresi" className="w-full">
+              <Tabs defaultValue="defter" className="w-full">
                 <CardHeader>
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="hesap-ekstresi">Hesap Ekstresi</TabsTrigger>
-                    <TabsTrigger value="satis-gecmisi">Satış Geçmişi</TabsTrigger>
-                    <TabsTrigger value="timeline">Borç Timeline</TabsTrigger>
-                    <TabsTrigger value="defter">Defter Görünümü</TabsTrigger>
-                  </TabsList>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="defter">📖 Defter Görünümü</TabsTrigger>
+              <TabsTrigger value="hesap-ekstresi">Hesap Ekstresi</TabsTrigger>
+              <TabsTrigger value="satis-gecmisi">Satış Geçmişi</TabsTrigger>
+              <TabsTrigger value="timeline">Borç Timeline</TabsTrigger>
+            </TabsList>
                 </CardHeader>
 
-                <CardContent>
-                  <TabsContent value="hesap-ekstresi">
-                    <Tabs value={activeTab} onValueChange={setActiveTab}>
-                      <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="tum">Tümü</TabsTrigger>
-                        <TabsTrigger value="satis">Satışlar</TabsTrigger>
-                        <TabsTrigger value="odeme">Ödemeler</TabsTrigger>
-                      </TabsList>
+            <CardContent>
+              <TabsContent value="defter" className="mt-4">
+                <MusteriDefterGorunumu musteriId={musteri.id} />
+              </TabsContent>
 
-                      <TabsContent value="tum" className="mt-4">
-                        <HesapEkstresiTable musteriId={musteri.id} filter="tum" />
-                      </TabsContent>
-                      <TabsContent value="satis" className="mt-4">
-                        <HesapEkstresiTable musteriId={musteri.id} filter="satis" />
-                      </TabsContent>
-                      <TabsContent value="odeme" className="mt-4">
-                        <HesapEkstresiTable musteriId={musteri.id} filter="odeme" />
-                      </TabsContent>
-                    </Tabs>
+              <TabsContent value="hesap-ekstresi">
+                <Tabs defaultValue="tum" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="tum">Tümü</TabsTrigger>
+                    <TabsTrigger value="satis">Satışlar</TabsTrigger>
+                    <TabsTrigger value="odeme">Tahsilatlar</TabsTrigger>
+                    <TabsTrigger value="iade">İadeler</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="tum" className="mt-4">
+                    <HesapEkstresiTable musteriId={musteri.id} filter="tum" />
                   </TabsContent>
+                  <TabsContent value="satis" className="mt-4">
+                    <HesapEkstresiTable musteriId={musteri.id} filter="satis" />
+                  </TabsContent>
+                  <TabsContent value="odeme" className="mt-4">
+                    <HesapEkstresiTable musteriId={musteri.id} filter="odeme" />
+                  </TabsContent>
+                  <TabsContent value="iade" className="mt-4">
+                    <HesapEkstresiTable musteriId={musteri.id} filter="tum" />
+                  </TabsContent>
+                </Tabs>
+              </TabsContent>
 
-                  <TabsContent value="satis-gecmisi" className="mt-4">
-                    <SatisGecmisiTable musteriId={musteri.id} />
-                  </TabsContent>
+              <TabsContent value="satis-gecmisi" className="mt-4">
+                <SatisGecmisiTable musteriId={musteri.id} />
+              </TabsContent>
 
-                  <TabsContent value="timeline" className="mt-4">
-                    <MusteriBorcTimeline musteriId={musteri.id} />
-                  </TabsContent>
-
-                  <TabsContent value="defter" className="mt-4">
-                    <MusteriDefterGorunumu musteriId={musteri.id} />
-                  </TabsContent>
-                </CardContent>
+              <TabsContent value="timeline" className="mt-4">
+                <MusteriBorcTimeline musteriId={musteri.id} />
+              </TabsContent>
+            </CardContent>
               </Tabs>
             </Card>
           </div>
