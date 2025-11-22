@@ -70,20 +70,17 @@ const MusteriDetay = () => {
   const handleTestVeriYukle = () => {
     if (!musteriId) return;
     
-    if (confirm('5 haftalık test verisi yüklenecek. Devam etmek istiyor musunuz?')) {
-      const sonuc = yukle5HaftalikTestVerisi(musteriId);
-      toast({
-        title: sonuc.yuklendiMi ? "✅ Başarılı!" : "❌ Hata",
-        description: sonuc.mesaj,
-        duration: 5000,
-      });
-      
-      // Sayfayı yenile
-      if (sonuc.yuklendiMi) {
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
-      }
+    const sonuc = yukle5HaftalikTestVerisi(musteriId);
+    toast({
+      title: sonuc.yuklendiMi ? "✅ Başarılı!" : "❌ Hata",
+      description: sonuc.mesaj,
+      duration: 5000,
+    });
+    
+    if (sonuc.yuklendiMi) {
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     }
   };
 
