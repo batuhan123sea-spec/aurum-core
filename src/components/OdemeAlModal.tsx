@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { Musteri, HesapHareketi, ParaBirimi, OdemeTuru } from "@/types/musteri";
 import { getKur, formatCurrency, paraBirimiTLyeCevir } from "@/lib/kur-hesaplama";
-import { saveHareket, musteriBalanceGuncelle, getMusteriById } from "@/lib/musteri-data";
+import { odemeIsle, musteriBalanceGuncelle, getMusteriById } from "@/lib/musteri-data";
 import { tahsilatFisiOlustur, fisYazdir } from "@/lib/fis-yazdir";
 import { Printer } from "lucide-react";
 
@@ -79,21 +79,25 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
 
     const oncekiBorc = musteri.toplamBorcTL;
 
-    const hareket: HesapHareketi = {
-      id: Date.now().toString(),
-      musteriId: musteri.id,
-      tarih: new Date(formData.odemeTarihi).toISOString(),
-      islemTuru: 'odeme',
-      aciklama: formData.aciklama || 'Ödeme alındı',
-      paraBirimi: formData.odemeParaBirimi,
+    // Yeni ödeme işleme fonksiyonunu kullan
+    const sonuc = odemeIsle(
+      musteri.id,
       tutar,
-      kur: anlikKur,
-      tlKarsiligi,
-      bakiye: yeniBakiye,
-      odemeTuru: formData.odemeTuru,
-    };
+      formData.odemeParaBirimi,
+      formData.odemeTarihi,
+      formData.odemeTuru,
+      formData.aciklama || 'Ödeme alındı'
+    );
 
-    saveHareket(hareket);
+    if (!sonuc.success) {
+      toast({
+        title: "Hata",
+        description: sonuc.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
     musteriBalanceGuncelle(musteri.id);
 
     toast({
@@ -103,8 +107,9 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
 
     if (yazdır) {
       const guncelMusteri = getMusteriById(musteri.id);
-      if (guncelMusteri) {
-        const fisIcerigi = tahsilatFisiOlustur(guncelMusteri, hareket, oncekiBorc);
+      if (guncelMusteri && sonuc.hareketler.length > 0) {
+        // İlk hareketi kullanarak fiş oluştur
+        const fisIcerigi = tahsilatFisiOlustur(guncelMusteri, sonuc.hareketler[0], oncekiBorc);
         fisYazdir(fisIcerigi);
       }
     }
