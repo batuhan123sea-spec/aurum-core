@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { FileDown } from "lucide-react";
 import { getSatislar } from "@/lib/satis-data";
-import { getHareketlerByMusteriId } from "@/lib/musteri-data";
+import { getHareketlerByMusteriId, getMusteriById } from "@/lib/musteri-data";
 import { formatCurrency } from "@/lib/kur-hesaplama";
+import { musteriDefterExcelAktar } from "@/lib/excel-export";
 import { format, startOfWeek, endOfWeek, isSaturday, isMonday, parseISO, isSameDay } from "date-fns";
 import { tr } from "date-fns/locale";
 
@@ -37,6 +40,12 @@ interface MusteriDefterGorunumuProps {
 
 const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
   const [gunlukVeriler, setGunlukVeriler] = useState<GunlukSatis[]>([]);
+  const musteri = getMusteriById(musteriId);
+
+  const handleExcelExport = () => {
+    if (!musteri) return;
+    musteriDefterExcelAktar(musteri.adSoyad, gunlukVeriler);
+  };
 
   useEffect(() => {
     const tumSatislar = getSatislar().filter(
@@ -151,8 +160,22 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
   }
 
   return (
-    <ScrollArea className="h-[600px]">
-      <div className="space-y-4 pr-4">
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Müşteri Defteri</h3>
+        <Button 
+          variant="outline" 
+          onClick={handleExcelExport}
+          className="gap-2"
+          disabled={gunlukVeriler.length === 0}
+        >
+          <FileDown className="w-4 h-4" />
+          Excel'e Aktar
+        </Button>
+      </div>
+
+      <ScrollArea className="h-[600px]">
+        <div className="space-y-4 pr-4">
         {gunlukVeriler.map((gun, index) => (
           <Card 
             key={index}
@@ -267,8 +290,9 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
             </CardContent>
           </Card>
         ))}
-      </div>
-    </ScrollArea>
+        </div>
+      </ScrollArea>
+    </div>
   );
 };
 

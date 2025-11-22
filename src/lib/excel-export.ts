@@ -160,3 +160,162 @@ export function karZararExcelAktar(analiz: any, baslangic: Date, bitis: Date): v
   const dosyaAdi = `kar_zarar_analizi_${tarih}.xlsx`;
   XLSX.writeFile(wb, dosyaAdi);
 }
+
+interface GunlukKalem {
+  satisNo: string;
+  musteriAdi: string;
+  urunAdi: string;
+  adet: number;
+  birimFiyat: number;
+  toplam: number;
+}
+
+interface GunlukSatis {
+  tarih: Date;
+  gun: string;
+  kalemler: GunlukKalem[];
+  gunlukToplam: number;
+  isCumartesi: boolean;
+  isPazartesi: boolean;
+  haftalikToplam?: number;
+  tahsilEdilen?: number;
+  kalanBorc?: number;
+  acilisBakiyesi?: number;
+}
+
+export function musteriDefterExcelAktar(
+  musteriAdi: string,
+  gunlukVeriler: GunlukSatis[]
+): void {
+  // Sheet 1: Günlük Satışlar
+  const gunlukData: any[] = [];
+  
+  gunlukVeriler.forEach(gun => {
+    const tarihStr = gun.tarih.toLocaleDateString('tr-TR');
+    const gunStr = gun.gun;
+    
+    // Pazartesi açılış bakiyesi
+    if (gun.isPazartesi && gun.acilisBakiyesi !== undefined) {
+      gunlukData.push({
+        'Tarih': tarihStr,
+        'Gün': gunStr,
+        'Açıklama': '📖 AÇILIŞ BAKİYESİ',
+        'Ürün Adı': 'Geçen haftadan devreden',
+        'Adet': '',
+        'Birim Fiyat': '',
+        'Toplam': formatCurrency(gun.acilisBakiyesi, 'TRY'),
+      });
+      gunlukData.push({
+        'Tarih': '', 'Gün': '', 'Açıklama': '', 'Ürün Adı': '', 'Adet': '', 'Birim Fiyat': '', 'Toplam': ''
+      });
+    }
+    
+    // Günlük satış kalemleri
+    gun.kalemler.forEach(kalem => {
+      gunlukData.push({
+        'Tarih': tarihStr,
+        'Gün': gunStr,
+        'Açıklama': kalem.satisNo,
+        'Ürün Adı': kalem.urunAdi,
+        'Adet': kalem.adet,
+        'Birim Fiyat': formatCurrency(kalem.birimFiyat, 'TRY'),
+        'Toplam': formatCurrency(kalem.toplam, 'TRY'),
+      });
+    });
+    
+    // Günlük toplam
+    gunlukData.push({
+      'Tarih': tarihStr,
+      'Gün': gunStr,
+      'Açıklama': '--- GÜN TOPLAMI ---',
+      'Ürün Adı': '',
+      'Adet': '',
+      'Birim Fiyat': '',
+      'Toplam': formatCurrency(gun.gunlukToplam, 'TRY'),
+    });
+    
+    // Cumartesi haftalık özet
+    if (gun.isCumartesi && gun.haftalikToplam !== undefined) {
+      gunlukData.push({
+        'Tarih': '', 'Gün': '', 'Açıklama': '', 'Ürün Adı': '', 'Adet': '', 'Birim Fiyat': '', 'Toplam': ''
+      });
+      gunlukData.push({
+        'Tarih': tarihStr,
+        'Gün': gunStr,
+        'Açıklama': '⭐ HAFTALİK TOPLAM SATIŞ',
+        'Ürün Adı': '',
+        'Adet': '',
+        'Birim Fiyat': '',
+        'Toplam': formatCurrency(gun.haftalikToplam, 'TRY'),
+      });
+      gunlukData.push({
+        'Tarih': tarihStr,
+        'Gün': gunStr,
+        'Açıklama': '💰 TAHSİL EDİLEN',
+        'Ürün Adı': '',
+        'Adet': '',
+        'Birim Fiyat': '',
+        'Toplam': formatCurrency(gun.tahsilEdilen || 0, 'TRY'),
+      });
+      gunlukData.push({
+        'Tarih': tarihStr,
+        'Gün': gunStr,
+        'Açıklama': '📉 KALAN BORÇ',
+        'Ürün Adı': '',
+        'Adet': '',
+        'Birim Fiyat': '',
+        'Toplam': formatCurrency(gun.kalanBorc || 0, 'TRY'),
+      });
+    }
+    
+    // Boş satır ekle
+    gunlukData.push({
+      'Tarih': '', 'Gün': '', 'Açıklama': '', 'Ürün Adı': '', 'Adet': '', 'Birim Fiyat': '', 'Toplam': ''
+    });
+  });
+
+  // Sheet 2: Haftalık Özetler
+  const haftalikData: any[] = [];
+  gunlukVeriler
+    .filter(g => g.isCumartesi && g.haftalikToplam !== undefined)
+    .forEach(g => {
+      haftalikData.push({
+        'Hafta Sonu': g.tarih.toLocaleDateString('tr-TR'),
+        'Toplam Satış': formatCurrency(g.haftalikToplam || 0, 'TRY'),
+        'Tahsilat': formatCurrency(g.tahsilEdilen || 0, 'TRY'),
+        'Kalan': formatCurrency(g.kalanBorc || 0, 'TRY'),
+      });
+    });
+
+  // Workbook oluştur
+  const wb = XLSX.utils.book_new();
+  
+  // Günlük Satışlar Sheet
+  const wsGunluk = XLSX.utils.json_to_sheet(gunlukData);
+  wsGunluk['!cols'] = [
+    { wch: 12 }, // Tarih
+    { wch: 12 }, // Gün
+    { wch: 25 }, // Açıklama
+    { wch: 30 }, // Ürün Adı
+    { wch: 8 },  // Adet
+    { wch: 15 }, // Birim Fiyat
+    { wch: 15 }, // Toplam
+  ];
+  XLSX.utils.book_append_sheet(wb, wsGunluk, 'Günlük Satışlar');
+  
+  // Haftalık Özetler Sheet (sadece veri varsa)
+  if (haftalikData.length > 0) {
+    const wsHaftalik = XLSX.utils.json_to_sheet(haftalikData);
+    wsHaftalik['!cols'] = [
+      { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
+    ];
+    XLSX.utils.book_append_sheet(wb, wsHaftalik, 'Haftalık Özetler');
+  }
+  
+  // Dosya adı
+  const tarih = new Date().toISOString().split('T')[0];
+  const dosyaAdi = `${musteriAdi.replace(/\s+/g, '_')}_defter_${tarih}.xlsx`;
+  
+  // Excel dosyasını indir
+  XLSX.writeFile(wb, dosyaAdi);
+}
