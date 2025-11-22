@@ -160,11 +160,30 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader className="space-y-2">
           <DialogTitle className="text-xl">💰 Ödeme Al - {musteri.adSoyad}</DialogTitle>
-          <div className="flex items-center justify-between px-2 py-1.5 bg-destructive/5 rounded border border-destructive/20">
-            <span className="text-xs text-muted-foreground">Mevcut Borç:</span>
-            <span className="text-sm font-semibold text-destructive">
-              {formatCurrency(musteri.toplamBorcTL, 'TRY')}
-            </span>
+          
+          <div className="space-y-1">
+            {/* Toplam Borç */}
+            <div className="flex items-center justify-between px-2 py-1.5 bg-destructive/5 rounded border border-destructive/20">
+              <span className="text-xs text-muted-foreground">Toplam Borç:</span>
+              <span className="text-sm font-semibold text-destructive">
+                {formatCurrency(musteri.toplamBorcTL, 'TRY')}
+              </span>
+            </div>
+            
+            {/* Döviz Detayları - Sadece 0'dan farklı olanlar */}
+            {(musteri.borclar.USD !== 0 || musteri.borclar.EUR !== 0 || musteri.borclar.TRY !== 0) && (
+              <div className="flex gap-3 justify-end text-[10px] text-muted-foreground/70 px-1 font-mono">
+                {musteri.borclar.USD !== 0 && (
+                  <span>$ {musteri.borclar.USD.toFixed(2)}</span>
+                )}
+                {musteri.borclar.EUR !== 0 && (
+                  <span>€ {musteri.borclar.EUR.toFixed(2)}</span>
+                )}
+                {musteri.borclar.TRY !== 0 && (
+                  <span>₺ {musteri.borclar.TRY.toFixed(2)}</span>
+                )}
+              </div>
+            )}
           </div>
         </DialogHeader>
 
