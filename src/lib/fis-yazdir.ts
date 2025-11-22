@@ -109,14 +109,11 @@ export function haftalikTahsilatFisiOlustur(
   fis += center(firma.firmaAdi || 'FİRMA ADI') + '\n';
   fis += center(fisAyarlari.baslik || 'HAFTALİK TAHSİLAT FİŞİ') + '\n';
   fis += line('=') + '\n';
-  fis += `Tarih: ${formatTarih(baslangicTarihi)} - ${formatTarih(bitisTarihi)}\n`;
   fis += `Müşteri: ${musteri.adSoyad.substring(0, 28)}\n`;
   fis += `Tel: ${musteri.telefon}\n`;
-  fis += line('=') + '\n';
   fis += '\n';
-  
-  // Önceki bakiye
-  fis += `Önceki Bakiye:  ${rightAlign(formatCurrency(baslangicBakiyesi, 'TRY'), 23)}\n`;
+  fis += `Önceki Bakiye: ${formatCurrency(baslangicBakiyesi, 'TRY')}\n`;
+  fis += line('=') + '\n';
   fis += '\n';
   
   // Ürün listesi
@@ -138,8 +135,12 @@ export function haftalikTahsilatFisiOlustur(
   fis += line('-') + '\n';
   fis += `Toplam:         ${rightAlign(formatCurrency(toplamSatis, 'TRY'), 23)}\n`;
   fis += '\n';
+  fis += '\n';
   fis += line('=') + '\n';
-  fis += `Güncel Bakiye:  ${rightAlign(formatCurrency(guncelBakiye, 'TRY'), 23)}\n`;
+  fis += '\n';
+  fis += center('GÜNCEL BAKİYE') + '\n';
+  fis += center(formatCurrency(guncelBakiye, 'TRY')) + '\n';
+  fis += '\n';
   fis += line('=') + '\n';
   fis += '\n';
   fis += center(fisAyarlari.altBilgi || 'Teşekkür Ederiz!') + '\n';
