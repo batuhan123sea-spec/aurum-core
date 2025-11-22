@@ -1,5 +1,6 @@
 import { Musteri, HesapHareketi } from "@/types/musteri";
 import { paraBirimiTLyeCevir, getGuncelKurlar, getKur } from "./kur-hesaplama";
+import { getSatislar } from "./satis-data";
 
 const MUSTERI_KEY = 'kuyumcu_musteriler';
 const HAREKET_KEY = 'kuyumcu_hesap_hareketleri';
@@ -59,6 +60,59 @@ export function saveHareket(hareket: HesapHareketi): void {
   const hareketler = getHareketler();
   hareketler.push(hareket);
   localStorage.setItem(HAREKET_KEY, JSON.stringify(hareketler));
+}
+
+// Satışları hesaba aktar - Senkronizasyon fonksiyonu
+export function satislariHesabaAktar(musteriId: string): {
+  aktarilanSatislar: number;
+  basarili: boolean;
+  mesaj: string;
+} {
+  const satislar = getSatislar().filter(
+    s => s.musteriId === musteriId && 
+         s.satisTuru === 'hesapli' && 
+         s.durum === 'tamamlandi'
+  );
+  
+  const mevcutHareketler = getHareketlerByMusteriId(musteriId);
+  let aktarilanSayisi = 0;
+  
+  satislar.forEach(satis => {
+    // Bu satış için hesap hareketi var mı kontrol et
+    const hareketVar = mevcutHareketler.some(h => 
+      h.aciklama.includes(satis.satisNo) && h.islemTuru === 'satis'
+    );
+    
+    if (!hareketVar) {
+      // Satış TL cinsinden, direkt ekle
+      const hareket: HesapHareketi = {
+        id: `hareket-${Date.now()}-${Math.random()}`,
+        musteriId: satis.musteriId!,
+        tarih: satis.tarih,
+        islemTuru: 'satis',
+        aciklama: `Satış ${satis.satisNo} - ${satis.kalemler.length} ürün`,
+        paraBirimi: 'TRY',
+        tutar: satis.genelToplam,
+        kur: 1,
+        tlKarsiligi: satis.genelToplam,
+        bakiye: 0 // Sonra hesaplanacak
+      };
+      
+      saveHareket(hareket);
+      aktarilanSayisi++;
+    }
+  });
+  
+  // Bakiyeleri yeniden hesapla
+  if (aktarilanSayisi > 0) {
+    musteriBalanceGuncelle(musteriId);
+  }
+  
+  return {
+    aktarilanSatislar: aktarilanSayisi,
+    basarili: true,
+    mesaj: `${aktarilanSayisi} satış hesaba aktarıldı`
+  };
 }
 
 // Ödeme işlemi - para birimi öncelikli

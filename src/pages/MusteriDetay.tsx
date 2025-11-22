@@ -8,8 +8,9 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Edit, DollarSign, Receipt } from "lucide-react";
-import { getMusteriById } from "@/lib/musteri-data";
+import { ArrowLeft, Edit, DollarSign, Receipt, RefreshCw } from "lucide-react";
+import { getMusteriById, satislariHesabaAktar } from "@/lib/musteri-data";
+import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, getGuncelKurlar } from "@/lib/kur-hesaplama";
 import HesapEkstresiTable from "@/components/HesapEkstresiTable";
 import OdemeAlModal from "@/components/OdemeAlModal";
@@ -25,6 +26,7 @@ const MusteriDetay = () => {
   const [odemeModalOpen, setOdemeModalOpen] = useState(false);
   const [tahsilatFisiModalOpen, setTahsilatFisiModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("tum");
+  const { toast } = useToast();
 
   useEffect(() => {
     if (musteriId) {
@@ -61,6 +63,22 @@ const MusteriDetay = () => {
   const handleOdemeSuccess = () => {
     if (musteriId) {
       setMusteri(getMusteriById(musteriId));
+    }
+  };
+
+  const handleSenkronize = () => {
+    if (!musteriId) return;
+    
+    const sonuc = satislariHesabaAktar(musteriId);
+    toast({
+      title: sonuc.basarili ? "Başarılı" : "Hata",
+      description: sonuc.mesaj,
+      variant: sonuc.basarili ? "default" : "destructive"
+    });
+    
+    // Sayfayı yenile
+    if (sonuc.basarili && sonuc.aktarilanSatislar > 0) {
+      window.location.reload();
     }
   };
 
@@ -249,7 +267,18 @@ const MusteriDetay = () => {
                 </CardHeader>
 
             <CardContent>
-              <TabsContent value="defter" className="mt-4">
+              <TabsContent value="defter" className="mt-4 space-y-4">
+                <div className="flex justify-end">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleSenkronize}
+                    className="gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Satışları Hesaba Aktar
+                  </Button>
+                </div>
                 <MusteriDefterGorunumu musteriId={musteri.id} />
               </TabsContent>
 
