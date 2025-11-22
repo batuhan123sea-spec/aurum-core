@@ -8,10 +8,9 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Edit, DollarSign, Receipt, TestTube2 } from "lucide-react";
+import { ArrowLeft, Edit, DollarSign, Receipt } from "lucide-react";
 import { getMusteriById } from "@/lib/musteri-data";
 import { useToast } from "@/hooks/use-toast";
-import { yukle5HaftalikTestVerisi } from "@/lib/test-veri-yukleyici";
 import { formatCurrency, getGuncelKurlar } from "@/lib/kur-hesaplama";
 import HesapEkstresiTable from "@/components/HesapEkstresiTable";
 import OdemeAlModal from "@/components/OdemeAlModal";
@@ -67,22 +66,6 @@ const MusteriDetay = () => {
     }
   };
 
-  const handleTestVeriYukle = () => {
-    if (!musteriId) return;
-    
-    const sonuc = yukle5HaftalikTestVerisi(musteriId);
-    toast({
-      title: sonuc.yuklendiMi ? "✅ Başarılı!" : "❌ Hata",
-      description: sonuc.mesaj,
-      duration: 5000,
-    });
-    
-    if (sonuc.yuklendiMi) {
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    }
-  };
 
   return (
     <Layout>
@@ -276,17 +259,6 @@ const MusteriDetay = () => {
 
             <CardContent>
               <TabsContent value="defter" className="mt-4 space-y-4">
-                <div className="flex justify-end">
-                  <Button 
-                    variant="secondary" 
-                    size="sm"
-                    onClick={handleTestVeriYukle}
-                    className="gap-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 hover:from-purple-500/30 hover:to-blue-500/30 border-purple-500/50"
-                  >
-                    <TestTube2 className="w-4 h-4" />
-                    🧪 Test Verisi Yükle (5 Hafta)
-                  </Button>
-                </div>
                 <MusteriDefterGorunumu musteriId={musteri.id} />
               </TabsContent>
 
