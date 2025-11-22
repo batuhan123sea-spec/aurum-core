@@ -191,12 +191,18 @@ const MusteriDetay = () => {
                   
                   <div className="text-center">
                     <div className="text-sm text-muted-foreground mb-1">Toplam Borç (TL Karşılığı)</div>
-                    <div
-                      className={`text-3xl font-bold ${
-                        musteri.toplamBorcTL > 0 ? "text-destructive" : "text-green-600"
-                      }`}
-                    >
-                      {formatCurrency(musteri.toplamBorcTL, "TRY")}
+                    <div className="text-3xl font-bold">
+                      {musteri.toplamBorcTL > 0 ? (
+                        <span className="text-destructive">
+                          {formatCurrency(musteri.toplamBorcTL, "TRY")}
+                        </span>
+                      ) : musteri.toplamBorcTL < 0 ? (
+                        <span className="text-blue-600">
+                          Alacak: {formatCurrency(Math.abs(musteri.toplamBorcTL), "TRY")}
+                        </span>
+                      ) : (
+                        <span className="text-green-600">Borçsuz</span>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       Güncel kurlarla hesaplanmış toplam

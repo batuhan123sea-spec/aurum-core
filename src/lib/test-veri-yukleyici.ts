@@ -195,7 +195,7 @@ export function yukle5HaftalikTestVerisi(musteriId: string): {
   olusturOdeme({
     musteriId: musteriIdStr,
     tarih: '2025-11-17T14:00:00',
-    tutar: 300,
+    tutar: 50,
     paraBirimi: 'USD',
     kur: 38.75,
     aciklama: 'Döviz tahsilatı'

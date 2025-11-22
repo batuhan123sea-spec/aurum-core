@@ -70,8 +70,8 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
 
     if (tlKarsiligi > musteri.toplamBorcTL) {
       toast({
-        title: "Uyarı",
-        description: "Ödeme tutarı mevcut borçtan fazla olamaz.",
+        title: "❌ Fazla Ödeme",
+        description: `Ödeme tutarı (${formatCurrency(tlKarsiligi, 'TRY')}) mevcut borçtan (${formatCurrency(musteri.toplamBorcTL, 'TRY')}) fazla! Lütfen tutarı azaltın.`,
         variant: "destructive",
       });
       return;

@@ -1,5 +1,5 @@
 import { Musteri, HesapHareketi } from "@/types/musteri";
-import { paraBirimiTLyeCevir, getGuncelKurlar, getKur } from "./kur-hesaplama";
+import { paraBirimiTLyeCevir, getGuncelKurlar, getKur, formatCurrency } from "./kur-hesaplama";
 import { getSatislar } from "./satis-data";
 
 const MUSTERI_KEY = 'kuyumcu_musteriler';
@@ -135,6 +135,16 @@ export function odemeIsle(
   const mevcutBorclar = musteriDovizBorclariniHesapla(musteriId);
   console.log('📊 Mevcut borçlar:', mevcutBorclar);
 
+  // Fazla ödeme kontrolü
+  const odemeTLKarsiligi = odemeTutari * getKur(odemeParaBirimi);
+  if (odemeTLKarsiligi > mevcutBorclar.toplamTL) {
+    return {
+      success: false,
+      message: `Hata: Ödeme tutarı (${formatCurrency(odemeTLKarsiligi, 'TRY')}) mevcut borçtan (${formatCurrency(mevcutBorclar.toplamTL, 'TRY')}) fazla olamaz.`,
+      hareketler: []
+    };
+  }
+
   // Ödeme önceliği: Önce ödeme yapılan para birimi, sonra TRY, USD, EUR
   const oncelikSirasi: Array<'TRY' | 'USD' | 'EUR'> = [
     odemeParaBirimi,
@@ -241,9 +251,10 @@ export function musteriDovizBorclariniHesapla(musteriId: string): {
     if (hareket.islemTuru === 'satis') {
       borclar[paraBirimi] += miktar;
     } else if (hareket.islemTuru === 'odeme') {
-      borclar[paraBirimi] -= miktar;
+      // Borç asla negatif olamaz - fazla ödeme engelle
+      borclar[paraBirimi] = Math.max(0, borclar[paraBirimi] - miktar);
     } else if (hareket.islemTuru === 'iade') {
-      borclar[paraBirimi] -= miktar;
+      borclar[paraBirimi] = Math.max(0, borclar[paraBirimi] - miktar);
     }
   });
   
@@ -303,6 +314,8 @@ export function hesapEkstresiniHesapla(musteriId: string): HesapHareketi[] {
       bakiye += hareket.tlKarsiligi;
     } else {
       bakiye -= hareket.tlKarsiligi;
+      // Bakiye negatif olamaz
+      bakiye = Math.max(0, bakiye);
     }
     
     return { ...hareket, bakiye };
