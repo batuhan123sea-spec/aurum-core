@@ -2,7 +2,7 @@ import { Satis, SatisKalemi } from '@/types/satis';
 import { saveSatis, generateSatisNo, generateRezervNo } from './satis-data';
 import { stokHareketKaydet } from './stok-hareket';
 import { getUrunler, saveUrun } from './stok-data';
-import { getMusteriler, saveHareket, musteriBalanceGuncelle } from './musteri-data';
+import { getMusteriler, saveHareket, musteriBalanceGuncelle, musteriDovizBorclariniHesapla } from './musteri-data';
 import { getKur } from './kur-hesaplama';
 import { toast } from '@/hooks/use-toast';
 
@@ -16,6 +16,8 @@ export function hesapliSatisYap(
   genelToplam: number,
   kdvDahil: boolean
 ): void {
+  console.log('🔵 Hesaplı satış başladı:', { musteriId, genelToplam });
+  
   const musteri = getMusteriler().find(m => m.id === musteriId);
   if (!musteri) {
     toast({
@@ -26,103 +28,126 @@ export function hesapliSatisYap(
     return;
   }
 
-  // Satış kaydı oluştur
-  const satis: Satis = {
-    id: Date.now().toString(),
-    satisNo: generateSatisNo(),
-    tarih: new Date().toISOString(),
-    satisTuru: 'hesapli',
-    musteriId,
-    musteriAdi: musteri.adSoyad,
-    kalemler,
-    araToplam,
-    toplamKDV,
-    genelIndirimTL,
-    genelIndirimYuzde,
-    genelToplam,
-    kdvDahil,
-    durum: 'tamamlandi',
-    kullanici: 'Admin'
-  };
-  
-  saveSatis(satis);
-  
-  // Stokları düş
-  kalemler.forEach(kalem => {
-    const urunler = getUrunler();
-    const urun = urunler.find(u => u.id === kalem.urunId);
-    if (urun) {
-      const oncekiMiktar = urun.stokMiktari;
-      const yeniMiktar = oncekiMiktar - kalem.adet;
-      
-      stokHareketKaydet(
-        kalem.urunId,
-        'cikis',
-        kalem.adet,
-        `Satış - ${satis.satisNo}`,
-        oncekiMiktar,
-        yeniMiktar
-      );
-      
-      urun.stokMiktari = yeniMiktar;
-      saveUrun(urun);
+  try {
+    // Satış kaydı oluştur
+    const satis: Satis = {
+      id: Date.now().toString(),
+      satisNo: generateSatisNo(),
+      tarih: new Date().toISOString(),
+      satisTuru: 'hesapli',
+      musteriId,
+      musteriAdi: musteri.adSoyad,
+      kalemler,
+      araToplam,
+      toplamKDV,
+      genelIndirimTL,
+      genelIndirimYuzde,
+      genelToplam,
+      kdvDahil,
+      durum: 'tamamlandi',
+      kullanici: 'Admin'
+    };
+    
+    // Stokları düş
+    kalemler.forEach(kalem => {
+      const urunler = getUrunler();
+      const urun = urunler.find(u => u.id === kalem.urunId);
+      if (urun) {
+        const oncekiMiktar = urun.stokMiktari;
+        const yeniMiktar = oncekiMiktar - kalem.adet;
+        
+        stokHareketKaydet(
+          kalem.urunId,
+          'cikis',
+          kalem.adet,
+          `Satış - ${satis.satisNo}`,
+          oncekiMiktar,
+          yeniMiktar
+        );
+        
+        urun.stokMiktari = yeniMiktar;
+        saveUrun(urun);
 
-      // Stok uyarısı kontrolü
-      if (yeniMiktar <= urun.kritikStokSeviyesi) {
-        toast({
-          title: "🚨 Kritik Stok Uyarısı!",
-          description: `${urun.ad} kritik seviyede! (Kalan: ${yeniMiktar})`,
-          variant: "destructive"
-        });
-      } else if (yeniMiktar <= urun.minStokSeviyesi) {
-        toast({
-          title: "⚠️ Düşük Stok",
-          description: `${urun.ad} minimum seviyeye yaklaştı! (Kalan: ${yeniMiktar})`
-        });
+        // Stok uyarısı kontrolü
+        if (yeniMiktar <= urun.kritikStokSeviyesi) {
+          toast({
+            title: "🚨 Kritik Stok Uyarısı!",
+            description: `${urun.ad} kritik seviyede! (Kalan: ${yeniMiktar})`,
+            variant: "destructive"
+          });
+        } else if (yeniMiktar <= urun.minStokSeviyesi) {
+          toast({
+            title: "⚠️ Düşük Stok",
+            description: `${urun.ad} minimum seviyeye yaklaştı! (Kalan: ${yeniMiktar})`
+          });
+        }
       }
-    }
-  });
-  
-  // Sepetteki her kalemin para birimini grupla
-  const paraBirimiGroups: { [key: string]: number } = {
-    TRY: 0,
-    USD: 0,
-    EUR: 0
-  };
+    });
+    
+    // Mevcut borcu hesapla (hareket kaydetmeden ÖNCE)
+    const mevcutBorclar = musteriDovizBorclariniHesapla(musteriId);
+    let bakiye = mevcutBorclar.toplamTL;
+    
+    // Sepetteki her kalemin para birimini grupla
+    const paraBirimiGroups: { [key: string]: number } = {
+      TRY: 0,
+      USD: 0,
+      EUR: 0
+    };
 
-  kalemler.forEach(kalem => {
-    const orijinalTutar = kalem.orijinalBirimFiyati * kalem.adet;
-    paraBirimiGroups[kalem.paraBirimi] += orijinalTutar;
-  });
+    kalemler.forEach(kalem => {
+      const orijinalTutar = kalem.orijinalBirimFiyati * kalem.adet;
+      paraBirimiGroups[kalem.paraBirimi] += orijinalTutar;
+    });
 
-  // Her para birimi için ayrı hareket kaydet
-  Object.keys(paraBirimiGroups).forEach((pb) => {
-    const paraBirimi = pb as 'TRY' | 'USD' | 'EUR';
-    if (paraBirimiGroups[pb] > 0) {
-      const kur = paraBirimi === 'TRY' ? 1 : getKur(paraBirimi);
-      const tlKarsiligi = paraBirimiGroups[pb] * kur;
-      
-      saveHareket({
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        musteriId,
-        tarih: satis.tarih,
-        islemTuru: 'satis',
-        aciklama: `Satış - ${satis.satisNo} (${paraBirimi})`,
-        paraBirimi,
-        tutar: paraBirimiGroups[pb],
-        kur,
-        tlKarsiligi,
-        bakiye: 0
-      });
-    }
-  });
-  
-  musteriBalanceGuncelle(musteriId);
-  
-  toast({
-    title: "Satış Tamamlandı",
-    description: `${satis.satisNo} nolu satış müşteri hesabına kaydedildi.`,
-  });
+    // Her para birimi için ayrı hareket kaydet
+    const hareketler: any[] = [];
+    Object.keys(paraBirimiGroups).forEach((pb) => {
+      const paraBirimi = pb as 'TRY' | 'USD' | 'EUR';
+      if (paraBirimiGroups[pb] > 0) {
+        const kur = paraBirimi === 'TRY' ? 1 : getKur(paraBirimi);
+        const tlKarsiligi = paraBirimiGroups[pb] * kur;
+        
+        // Yeni bakiyeyi hesapla
+        bakiye += tlKarsiligi;
+        
+        const hareket = {
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          musteriId,
+          tarih: satis.tarih,
+          islemTuru: 'satis',
+          aciklama: `Satış - ${satis.satisNo} (${paraBirimi})`,
+          paraBirimi,
+          tutar: paraBirimiGroups[pb],
+          kur,
+          tlKarsiligi,
+          bakiye // ✅ Doğru hesaplanmış bakiye
+        };
+        
+        hareketler.push(hareket);
+        console.log('✅ Hareket hazırlandı:', hareket);
+      }
+    });
+    
+    // Tüm işlemler başarılıysa, kaydet
+    saveSatis(satis);
+    hareketler.forEach(h => saveHareket(h));
+    musteriBalanceGuncelle(musteriId);
+    
+    console.log('📊 Yeni bakiye:', bakiye);
+    
+    toast({
+      title: "Satış Tamamlandı",
+      description: `${satis.satisNo} nolu satış müşteri hesabına kaydedildi.`,
+    });
+  } catch (error) {
+    console.error('❌ Satış hatası:', error);
+    toast({
+      title: "Hata",
+      description: "Satış kaydedilirken bir hata oluştu.",
+      variant: "destructive"
+    });
+  }
 }
 
 export function rezervYap(

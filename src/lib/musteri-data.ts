@@ -1,5 +1,5 @@
 import { Musteri, HesapHareketi } from "@/types/musteri";
-import { paraBirimiTLyeCevir, getGuncelKurlar } from "./kur-hesaplama";
+import { paraBirimiTLyeCevir, getGuncelKurlar, getKur } from "./kur-hesaplama";
 
 const MUSTERI_KEY = 'kuyumcu_musteriler';
 const HAREKET_KEY = 'kuyumcu_hesap_hareketleri';
@@ -59,6 +59,110 @@ export function saveHareket(hareket: HesapHareketi): void {
   const hareketler = getHareketler();
   hareketler.push(hareket);
   localStorage.setItem(HAREKET_KEY, JSON.stringify(hareketler));
+}
+
+// Ödeme işlemi - para birimi öncelikli
+export function odemeIsle(
+  musteriId: string,
+  odemeTutari: number,
+  odemeParaBirimi: 'TRY' | 'USD' | 'EUR',
+  odemeTarihi: string,
+  odemeTuru: string,
+  aciklama: string
+): { success: boolean; message: string; hareketler: HesapHareketi[] } {
+  console.log('🔵 Ödeme işlemi başladı:', { musteriId, odemeTutari, odemeParaBirimi });
+  
+  const musteri = getMusteriById(musteriId);
+  if (!musteri) {
+    return { success: false, message: 'Müşteri bulunamadı', hareketler: [] };
+  }
+
+  // Mevcut borçları hesapla
+  const mevcutBorclar = musteriDovizBorclariniHesapla(musteriId);
+  console.log('📊 Mevcut borçlar:', mevcutBorclar);
+
+  // Ödeme önceliği: Önce ödeme yapılan para birimi, sonra TRY, USD, EUR
+  const oncelikSirasi: Array<'TRY' | 'USD' | 'EUR'> = [
+    odemeParaBirimi,
+    ...(['TRY', 'USD', 'EUR'] as Array<'TRY' | 'USD' | 'EUR'>).filter(pb => pb !== odemeParaBirimi)
+  ];
+
+  const hareketler: HesapHareketi[] = [];
+  let kalanOdeme = odemeTutari;
+  let bakiye = mevcutBorclar.toplamTL;
+
+  oncelikSirasi.forEach(paraBirimi => {
+    if (kalanOdeme <= 0) return;
+    if (mevcutBorclar[paraBirimi] <= 0) return;
+
+    // Bu para biriminden ne kadar düşebiliriz?
+    let dusulecekTutar = 0;
+
+    if (paraBirimi === odemeParaBirimi) {
+      // Aynı para birimindeyse direkt düş
+      dusulecekTutar = Math.min(kalanOdeme, mevcutBorclar[paraBirimi]);
+    } else {
+      // Farklı para birimindeyse, önce kurla çevir
+      const odemeKuru = getKur(odemeParaBirimi);
+      const borcKuru = getKur(paraBirimi);
+      
+      // Ödemeyi hedef para birimine çevir
+      const odemeTLKarsiligi = kalanOdeme * odemeKuru;
+      const borcTLKarsiligi = mevcutBorclar[paraBirimi] * borcKuru;
+      
+      // Hedef para biriminde ne kadar düşebiliriz?
+      const dusulecekTL = Math.min(odemeTLKarsiligi, borcTLKarsiligi);
+      dusulecekTutar = dusulecekTL / borcKuru;
+    }
+
+    if (dusulecekTutar > 0) {
+      const kur = getKur(paraBirimi);
+      const tlKarsiligi = dusulecekTutar * kur;
+      
+      // Bakiyeyi güncelle
+      bakiye -= tlKarsiligi;
+
+      const hareket: HesapHareketi = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        musteriId,
+        tarih: new Date(odemeTarihi).toISOString(),
+        islemTuru: 'odeme',
+        aciklama: aciklama || `Ödeme alındı (${odemeParaBirimi} → ${paraBirimi})`,
+        paraBirimi,
+        tutar: dusulecekTutar,
+        kur,
+        tlKarsiligi,
+        bakiye,
+        odemeTuru: odemeTuru as any,
+      };
+
+      hareketler.push(hareket);
+      console.log('✅ Hareket kaydedildi:', hareket);
+
+      // Kalan ödemeyi güncelle
+      if (paraBirimi === odemeParaBirimi) {
+        kalanOdeme -= dusulecekTutar;
+      } else {
+        const odemeKuru = getKur(odemeParaBirimi);
+        const borcKuru = getKur(paraBirimi);
+        kalanOdeme -= (dusulecekTutar * borcKuru) / odemeKuru;
+      }
+
+      // Borçtan düş
+      mevcutBorclar[paraBirimi] -= dusulecekTutar;
+    }
+  });
+
+  // Tüm hareketleri kaydet
+  hareketler.forEach(h => saveHareket(h));
+
+  console.log('📊 Yeni bakiye:', bakiye);
+  
+  return {
+    success: true,
+    message: 'Ödeme başarıyla kaydedildi',
+    hareketler
+  };
 }
 
 // Müşterinin döviz borçlarını hesapla
