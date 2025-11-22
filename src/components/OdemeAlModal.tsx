@@ -101,8 +101,8 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
     musteriBalanceGuncelle(musteri.id);
 
     toast({
-      title: "Başarılı",
-      description: "Ödeme kaydedildi.",
+      title: "✅ Başarılı",
+      description: "Ödeme kaydedildi, sayfa yenileniyor...",
     });
 
     if (yazdır) {
@@ -114,8 +114,12 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
       }
     }
 
-    onSuccess();
     onOpenChange(false);
+    
+    // Senkronizasyon için sayfa yenileme
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   const handleFisOnizleme = () => {
@@ -153,133 +157,139 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Ödeme Al - {musteri.adSoyad}</DialogTitle>
-          <p className="text-destructive font-semibold">
-            Mevcut Borç: {formatCurrency(musteri.toplamBorcTL, 'TRY')}
-          </p>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader className="space-y-2">
+          <DialogTitle className="text-xl">💰 Ödeme Al - {musteri.adSoyad}</DialogTitle>
+          <div className="flex items-center justify-between p-3 bg-destructive/10 rounded-lg">
+            <span className="text-sm font-medium">Mevcut Borç:</span>
+            <span className="text-lg font-bold text-destructive">
+              {formatCurrency(musteri.toplamBorcTL, 'TRY')}
+            </span>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="odemeTarihi">Ödeme Tarihi</Label>
-            <Input
-              id="odemeTarihi"
-              type="date"
-              value={formData.odemeTarihi}
-              onChange={(e) => setFormData({ ...formData, odemeTarihi: e.target.value })}
-            />
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="odemeTarihi" className="text-xs">Ödeme Tarihi</Label>
+              <Input
+                id="odemeTarihi"
+                type="date"
+                value={formData.odemeTarihi}
+                onChange={(e) => setFormData({ ...formData, odemeTarihi: e.target.value })}
+                className="h-9"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="odemeTutari" className="text-xs">Ödeme Tutarı</Label>
+              <Input
+                id="odemeTutari"
+                type="number"
+                step="0.01"
+                value={formData.odemeTutari}
+                onChange={(e) => setFormData({ ...formData, odemeTutari: e.target.value })}
+                placeholder="0.00"
+                className="h-9 text-lg font-semibold"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="odemeTutari">Ödeme Tutarı</Label>
-            <Input
-              id="odemeTutari"
-              type="number"
-              step="0.01"
-              value={formData.odemeTutari}
-              onChange={(e) => setFormData({ ...formData, odemeTutari: e.target.value })}
-              placeholder="0.00"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Ödeme Para Birimi</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Para Birimi</Label>
             <RadioGroup
               value={formData.odemeParaBirimi}
               onValueChange={(value) => setFormData({ ...formData, odemeParaBirimi: value as ParaBirimi })}
+              className="flex gap-2"
             >
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5 flex-1 p-2 border rounded-lg cursor-pointer hover:bg-accent" onClick={() => setFormData({ ...formData, odemeParaBirimi: 'TRY' })}>
                 <RadioGroupItem value="TRY" id="pay-try" />
-                <Label htmlFor="pay-try" className="font-normal cursor-pointer">TRY (₺)</Label>
+                <Label htmlFor="pay-try" className="font-normal cursor-pointer text-sm">₺ TRY</Label>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5 flex-1 p-2 border rounded-lg cursor-pointer hover:bg-accent" onClick={() => setFormData({ ...formData, odemeParaBirimi: 'USD' })}>
                 <RadioGroupItem value="USD" id="pay-usd" />
-                <Label htmlFor="pay-usd" className="font-normal cursor-pointer">USD ($)</Label>
+                <Label htmlFor="pay-usd" className="font-normal cursor-pointer text-sm">$ USD</Label>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5 flex-1 p-2 border rounded-lg cursor-pointer hover:bg-accent" onClick={() => setFormData({ ...formData, odemeParaBirimi: 'EUR' })}>
                 <RadioGroupItem value="EUR" id="pay-eur" />
-                <Label htmlFor="pay-eur" className="font-normal cursor-pointer">EUR (€)</Label>
+                <Label htmlFor="pay-eur" className="font-normal cursor-pointer text-sm">€ EUR</Label>
               </div>
             </RadioGroup>
           </div>
 
           {formData.odemeParaBirimi !== 'TRY' && (
-            <Alert>
-              <AlertDescription>
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span>Anlık Kur:</span>
-                    <span className="font-semibold">{anlikKur.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>TL Karşılığı:</span>
-                    <span className="font-semibold">{formatCurrency(tlKarsiligi, 'TRY')}</span>
-                  </div>
+            <div className="p-2.5 bg-muted/50 rounded-lg border">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Kur:</span>
+                  <span className="font-semibold">{anlikKur.toFixed(2)}</span>
                 </div>
-              </AlertDescription>
-            </Alert>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">TL:</span>
+                  <span className="font-semibold">{formatCurrency(tlKarsiligi, 'TRY')}</span>
+                </div>
+              </div>
+            </div>
           )}
 
-          <div className="space-y-2">
-            <Label>Ödeme Yöntemi</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Ödeme Yöntemi</Label>
             <RadioGroup
               value={formData.odemeTuru}
               onValueChange={(value) => setFormData({ ...formData, odemeTuru: value as OdemeTuru })}
+              className="grid grid-cols-2 gap-2"
             >
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5 p-2 border rounded-lg cursor-pointer hover:bg-accent" onClick={() => setFormData({ ...formData, odemeTuru: 'nakit' })}>
                 <RadioGroupItem value="nakit" id="nakit" />
-                <Label htmlFor="nakit" className="font-normal cursor-pointer">💵 Nakit</Label>
+                <Label htmlFor="nakit" className="font-normal cursor-pointer text-sm">💵 Nakit</Label>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5 p-2 border rounded-lg cursor-pointer hover:bg-accent" onClick={() => setFormData({ ...formData, odemeTuru: 'kredi-karti' })}>
                 <RadioGroupItem value="kredi-karti" id="kredi-karti" />
-                <Label htmlFor="kredi-karti" className="font-normal cursor-pointer">💳 Kredi Kartı</Label>
+                <Label htmlFor="kredi-karti" className="font-normal cursor-pointer text-sm">💳 Kart</Label>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5 p-2 border rounded-lg cursor-pointer hover:bg-accent" onClick={() => setFormData({ ...formData, odemeTuru: 'eft' })}>
                 <RadioGroupItem value="eft" id="eft" />
-                <Label htmlFor="eft" className="font-normal cursor-pointer">🏦 EFT</Label>
+                <Label htmlFor="eft" className="font-normal cursor-pointer text-sm">🏦 EFT</Label>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5 p-2 border rounded-lg cursor-pointer hover:bg-accent" onClick={() => setFormData({ ...formData, odemeTuru: 'havale' })}>
                 <RadioGroupItem value="havale" id="havale" />
-                <Label htmlFor="havale" className="font-normal cursor-pointer">📤 Havale</Label>
+                <Label htmlFor="havale" className="font-normal cursor-pointer text-sm">📤 Havale</Label>
               </div>
             </RadioGroup>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="aciklama">Açıklama (Opsiyonel)</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="aciklama" className="text-xs">Açıklama</Label>
             <Textarea
               id="aciklama"
               value={formData.aciklama}
               onChange={(e) => setFormData({ ...formData, aciklama: e.target.value })}
               placeholder="Ödeme notu..."
               rows={2}
+              className="text-sm resize-none"
             />
           </div>
 
-          <Alert>
-            <AlertDescription>
-              <div className="flex justify-between items-center">
-                <span className="font-semibold">Yeni Borç:</span>
-                <span className={`text-lg font-bold ${yeniBakiye > 0 ? 'text-destructive' : 'text-green-600'}`}>
-                  {formatCurrency(yeniBakiye, 'TRY')}
-                </span>
-              </div>
-            </AlertDescription>
-          </Alert>
+          <div className="p-3 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950/30 dark:to-green-950/30 rounded-lg border-2 border-dashed">
+            <div className="flex justify-between items-center">
+              <span className="font-semibold text-sm">Yeni Borç:</span>
+              <span className={`text-2xl font-bold ${yeniBakiye > 0 ? 'text-destructive' : 'text-green-600'}`}>
+                {formatCurrency(yeniBakiye, 'TRY')}
+              </span>
+            </div>
+          </div>
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button type="button" variant="outline" onClick={handleFisOnizleme}>
-            <Printer className="w-4 h-4 mr-2" />
-            Fiş Önizleme
+        <DialogFooter className="gap-2 pt-4 border-t">
+          <Button type="button" variant="outline" onClick={handleFisOnizleme} className="flex-1">
+            <Printer className="w-4 h-4 mr-1" />
+            Önizle
           </Button>
-          <Button type="button" onClick={() => handleKaydet(false)}>
+          <Button type="button" onClick={() => handleKaydet(false)} className="flex-1">
             💾 Kaydet
           </Button>
-          <Button type="button" variant="default" onClick={() => handleKaydet(true)}>
-            🖨️ Kaydet ve Fiş Yazdır
+          <Button type="button" variant="default" onClick={() => handleKaydet(true)} className="flex-1">
+            🖨️ Kaydet + Yazdır
           </Button>
         </DialogFooter>
       </DialogContent>
