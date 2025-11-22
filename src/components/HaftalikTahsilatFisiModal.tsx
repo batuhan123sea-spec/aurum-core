@@ -105,7 +105,8 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
       .map(s => ({
         tarih: s.tarih,
         satisNo: s.satisNo,
-        tutar: s.genelToplam
+        tutar: s.genelToplam,
+        kalemler: s.kalemler
       }));
 
     // Güncel bakiyeyi hesapla
