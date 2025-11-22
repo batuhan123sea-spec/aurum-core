@@ -20,6 +20,7 @@ import MusteriDetay from "./pages/MusteriDetay";
 import MusteriForm from "./components/MusteriForm";
 import Raporlar from "./pages/Raporlar";
 import Ayarlar from "./pages/Ayarlar";
+import TestRapor from "./pages/TestRapor";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/musteri/detay/:musteriId" element={<ProtectedRoute><MusteriDetay /></ProtectedRoute>} />
             <Route path="/musteri/yeni" element={<ProtectedRoute><MusteriForm /></ProtectedRoute>} />
             <Route path="/musteri/duzenle/:musteriId" element={<ProtectedRoute><MusteriForm /></ProtectedRoute>} />
+            <Route path="/test-rapor" element={<ProtectedRoute><TestRapor /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
