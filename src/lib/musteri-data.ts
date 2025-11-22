@@ -2,8 +2,8 @@ import { Musteri, HesapHareketi } from "@/types/musteri";
 import { paraBirimiTLyeCevir, getGuncelKurlar, getKur, formatCurrency } from "./kur-hesaplama";
 import { getSatislar } from "./satis-data";
 
-const MUSTERI_KEY = 'kuyumcu_musteriler';
-const HAREKET_KEY = 'kuyumcu_hesap_hareketleri';
+export const MUSTERI_KEY = 'kuyumcu_musteriler';
+export const HAREKET_KEY = 'kuyumcu_hesap_hareketleri';
 
 // Müşteri CRUD
 export function getMusteriler(): Musteri[] {
