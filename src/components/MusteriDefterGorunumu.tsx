@@ -175,18 +175,18 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
       </div>
 
       <ScrollArea className="h-[600px]">
-        <div className="space-y-4 pr-4">
+        <div className="space-y-2 pr-4">
         {gunlukVeriler.map((gun, index) => (
           <Card 
             key={index}
             className={gun.isCumartesi ? "border-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20" : ""}
           >
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2 py-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-lg">📅</span>
+                  <span className="text-sm">📅</span>
                   <div>
-                    <h3 className="text-lg font-semibold">
+                    <h3 className="text-sm font-semibold">
                       {format(gun.tarih, 'dd MMMM yyyy', { locale: tr })} - {gun.gun}
                     </h3>
                     {gun.isCumartesi && (
@@ -199,14 +199,14 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
               </div>
 
               {gun.isPazartesi && gun.acilisBakiyesi !== undefined && (
-                <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">📖</span>
+                    <span className="text-sm">📖</span>
                     <div>
-                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      <p className="text-xs font-medium text-blue-900 dark:text-blue-100">
                         Açılış Bakiyesi
                       </p>
-                      <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                      <p className="text-base font-bold text-blue-600 dark:text-blue-400">
                         {formatCurrency(gun.acilisBakiyesi, 'TRY')}
                       </p>
                     </div>
@@ -215,29 +215,29 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
               )}
             </CardHeader>
 
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-2 py-2">
               {/* Günlük Satış Tablosu */}
               <div className="border rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Satış No</TableHead>
-                      <TableHead>Ürün Adı</TableHead>
-                      <TableHead className="text-right">Adet</TableHead>
-                      <TableHead className="text-right">Birim Fiyat</TableHead>
-                      <TableHead className="text-right">Toplam</TableHead>
+                      <TableHead className="text-xs py-2">Satış No</TableHead>
+                      <TableHead className="text-xs py-2">Ürün Adı</TableHead>
+                      <TableHead className="text-xs text-right py-2">Adet</TableHead>
+                      <TableHead className="text-xs text-right py-2">Birim Fiyat</TableHead>
+                      <TableHead className="text-xs text-right py-2">Toplam</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {gun.kalemler.map((kalem, idx) => (
                       <TableRow key={idx}>
-                        <TableCell className="font-medium">{kalem.satisNo}</TableCell>
-                        <TableCell>{kalem.urunAdi}</TableCell>
-                        <TableCell className="text-right">{kalem.adet}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-xs font-medium py-1">{kalem.satisNo}</TableCell>
+                        <TableCell className="text-xs py-1">{kalem.urunAdi}</TableCell>
+                        <TableCell className="text-xs text-right py-1">{kalem.adet}</TableCell>
+                        <TableCell className="text-xs text-right py-1">
                           {formatCurrency(kalem.birimFiyat, 'TRY')}
                         </TableCell>
-                        <TableCell className="text-right font-semibold">
+                        <TableCell className="text-xs text-right font-semibold py-1">
                           {formatCurrency(kalem.toplam, 'TRY')}
                         </TableCell>
                       </TableRow>
@@ -248,9 +248,9 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
 
               {/* Günlük Toplam */}
               <div className="flex justify-end">
-                <div className="bg-muted px-4 py-2 rounded-lg">
-                  <span className="text-sm text-muted-foreground mr-2">Günlük Toplam:</span>
-                  <span className="text-lg font-bold">
+                <div className="bg-muted px-3 py-1 rounded-lg">
+                  <span className="text-xs text-muted-foreground mr-2">Günlük Toplam:</span>
+                  <span className="text-sm font-bold">
                     {formatCurrency(gun.gunlukToplam, 'TRY')}
                   </span>
                 </div>
@@ -258,30 +258,30 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
 
               {/* Cumartesi Özet */}
               {gun.isCumartesi && (
-                <div className="mt-4 space-y-2 p-4 bg-yellow-100/50 dark:bg-yellow-900/20 rounded-lg border-2 border-yellow-300 dark:border-yellow-700">
+                <div className="mt-2 space-y-1 p-2 bg-yellow-100/50 dark:bg-yellow-900/20 rounded-lg border-2 border-yellow-300 dark:border-yellow-700">
                   <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 text-sm font-medium">
+                    <span className="flex items-center gap-1 text-xs font-medium">
                       <span>📊</span> Haftalık Toplam Satış:
                     </span>
-                    <span className="text-lg font-bold">
+                    <span className="text-sm font-bold">
                       {formatCurrency(gun.haftalikToplam || 0, 'TRY')}
                     </span>
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 text-sm font-medium">
+                    <span className="flex items-center gap-1 text-xs font-medium">
                       <span>💰</span> Tahsil Edilen Tutar:
                     </span>
-                    <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                    <span className="text-sm font-bold text-green-600 dark:text-green-400">
                       {formatCurrency(gun.tahsilEdilen || 0, 'TRY')}
                     </span>
                   </div>
                   
-                  <div className="flex items-center justify-between pt-2 border-t border-yellow-300 dark:border-yellow-700">
-                    <span className="flex items-center gap-2 text-sm font-medium">
+                  <div className="flex items-center justify-between pt-1 border-t border-yellow-300 dark:border-yellow-700">
+                    <span className="flex items-center gap-1 text-xs font-medium">
                       <span>📉</span> Kalan Borç:
                     </span>
-                    <span className="text-xl font-bold text-red-600 dark:text-red-400">
+                    <span className="text-base font-bold text-red-600 dark:text-red-400">
                       {formatCurrency(gun.kalanBorc || 0, 'TRY')}
                     </span>
                   </div>
