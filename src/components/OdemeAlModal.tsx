@@ -160,9 +160,9 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader className="space-y-2">
           <DialogTitle className="text-xl">💰 Ödeme Al - {musteri.adSoyad}</DialogTitle>
-          <div className="flex items-center justify-between p-3 bg-destructive/10 rounded-lg">
-            <span className="text-sm font-medium">Mevcut Borç:</span>
-            <span className="text-lg font-bold text-destructive">
+          <div className="flex items-center justify-between px-2 py-1.5 bg-destructive/5 rounded border border-destructive/20">
+            <span className="text-xs text-muted-foreground">Mevcut Borç:</span>
+            <span className="text-sm font-semibold text-destructive">
               {formatCurrency(musteri.toplamBorcTL, 'TRY')}
             </span>
           </div>
