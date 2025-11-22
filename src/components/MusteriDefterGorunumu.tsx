@@ -17,6 +17,9 @@ interface GunlukKalem {
   musteriAdi: string;
   urunAdi: string;
   adet: number;
+  paraBirimi: 'TRY' | 'USD' | 'EUR';
+  orijinalBirimFiyat: number;
+  orijinalToplam: number;
   birimFiyat: number;
   toplam: number;
 }
@@ -65,14 +68,17 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
           tarihMap.set(tarihStr, []);
         }
         
-        tarihMap.get(tarihStr)!.push({
-          satisNo: satis.satisNo,
-          musteriAdi: satis.musteriAdi || 'Müşteri',
-          urunAdi: kalem.urunAdi,
-          adet: kalem.adet,
-          birimFiyat: kalem.birimFiyati,
-          toplam: kalem.toplamTutar
-        });
+              tarihMap.get(tarihStr)!.push({
+                satisNo: satis.satisNo,
+                musteriAdi: satis.musteriAdi || 'Müşteri',
+                urunAdi: kalem.urunAdi,
+                adet: kalem.adet,
+                paraBirimi: kalem.paraBirimi,
+                orijinalBirimFiyat: kalem.orijinalBirimFiyati,
+                orijinalToplam: kalem.orijinalBirimFiyati * kalem.adet,
+                birimFiyat: kalem.birimFiyati,
+                toplam: kalem.toplamTutar
+              });
       });
     });
 
@@ -234,12 +240,30 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
                         <TableCell className="text-xs font-medium py-1">{kalem.satisNo}</TableCell>
                         <TableCell className="text-xs py-1">{kalem.urunAdi}</TableCell>
                         <TableCell className="text-xs text-right py-1">{kalem.adet}</TableCell>
-                        <TableCell className="text-xs text-right py-1">
-                          {formatCurrency(kalem.birimFiyat, 'TRY')}
-                        </TableCell>
-                        <TableCell className="text-xs text-right font-semibold py-1">
-                          {formatCurrency(kalem.toplam, 'TRY')}
-                        </TableCell>
+                      <TableCell className="text-xs text-right py-1">
+                        <div className="flex flex-col items-end">
+                          <span className="font-medium">
+                            {formatCurrency(kalem.orijinalBirimFiyat, kalem.paraBirimi)}
+                          </span>
+                          {kalem.paraBirimi !== 'TRY' && (
+                            <span className="text-[10px] text-muted-foreground/60 italic">
+                              ({formatCurrency(kalem.birimFiyat, 'TRY')})
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs text-right font-semibold py-1">
+                        <div className="flex flex-col items-end">
+                          <span className="font-semibold">
+                            {formatCurrency(kalem.orijinalToplam, kalem.paraBirimi)}
+                          </span>
+                          {kalem.paraBirimi !== 'TRY' && (
+                            <span className="text-[10px] text-muted-foreground/60 italic">
+                              ({formatCurrency(kalem.toplam, 'TRY')})
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
