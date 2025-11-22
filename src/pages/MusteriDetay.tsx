@@ -8,9 +8,10 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Edit, DollarSign, Receipt, RefreshCw } from "lucide-react";
-import { getMusteriById, satislariHesabaAktar } from "@/lib/musteri-data";
+import { ArrowLeft, Edit, DollarSign, Receipt, TestTube2 } from "lucide-react";
+import { getMusteriById } from "@/lib/musteri-data";
 import { useToast } from "@/hooks/use-toast";
+import { yukle5HaftalikTestVerisi } from "@/lib/test-veri-yukleyici";
 import { formatCurrency, getGuncelKurlar } from "@/lib/kur-hesaplama";
 import HesapEkstresiTable from "@/components/HesapEkstresiTable";
 import OdemeAlModal from "@/components/OdemeAlModal";
@@ -66,19 +67,23 @@ const MusteriDetay = () => {
     }
   };
 
-  const handleSenkronize = () => {
+  const handleTestVeriYukle = () => {
     if (!musteriId) return;
     
-    const sonuc = satislariHesabaAktar(musteriId);
-    toast({
-      title: sonuc.basarili ? "Başarılı" : "Hata",
-      description: sonuc.mesaj,
-      variant: sonuc.basarili ? "default" : "destructive"
-    });
-    
-    // Sayfayı yenile
-    if (sonuc.basarili && sonuc.aktarilanSatislar > 0) {
-      window.location.reload();
+    if (confirm('5 haftalık test verisi yüklenecek. Devam etmek istiyor musunuz?')) {
+      const sonuc = yukle5HaftalikTestVerisi(musteriId);
+      toast({
+        title: sonuc.yuklendiMi ? "✅ Başarılı!" : "❌ Hata",
+        description: sonuc.mesaj,
+        duration: 5000,
+      });
+      
+      // Sayfayı yenile
+      if (sonuc.yuklendiMi) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      }
     }
   };
 
@@ -270,13 +275,13 @@ const MusteriDetay = () => {
               <TabsContent value="defter" className="mt-4 space-y-4">
                 <div className="flex justify-end">
                   <Button 
-                    variant="outline" 
+                    variant="secondary" 
                     size="sm"
-                    onClick={handleSenkronize}
-                    className="gap-2"
+                    onClick={handleTestVeriYukle}
+                    className="gap-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 hover:from-purple-500/30 hover:to-blue-500/30 border-purple-500/50"
                   >
-                    <RefreshCw className="w-4 h-4" />
-                    Satışları Hesaba Aktar
+                    <TestTube2 className="w-4 h-4" />
+                    🧪 Test Verisi Yükle (5 Hafta)
                   </Button>
                 </div>
                 <MusteriDefterGorunumu musteriId={musteri.id} />
