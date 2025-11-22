@@ -22,7 +22,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { getAyarlar, saveAyarlar } from "@/lib/ayarlar-data";
-import { getMusteriler, updateMusteri } from "@/lib/musteri-data";
+import { getMusteriler, updateMusteri, HAREKET_KEY } from "@/lib/musteri-data";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -493,7 +493,7 @@ export default function Ayarlar() {
 
     // localStorage'daki tüm verileri temizle
     localStorage.removeItem('kuyumcu_satislar');
-    localStorage.removeItem('kuyumcu_hareketler');
+    localStorage.removeItem(HAREKET_KEY);
     
     // Tüm müşterilerin borçlarını sıfırla
     const musteriler = getMusteriler();
@@ -501,7 +501,8 @@ export default function Ayarlar() {
       updateMusteri({
         ...musteri,
         borclar: { TRY: 0, USD: 0, EUR: 0 },
-        toplamBorcTL: 0
+        toplamBorcTL: 0,
+        sonIslemTarihi: new Date().toISOString()
       });
     });
 
