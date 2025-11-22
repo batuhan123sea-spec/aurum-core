@@ -74,7 +74,17 @@ export function haftalikTahsilatFisiOlustur(
   bitisTarihi: string,
   baslangicBakiyesi: number,
   buHaftaOdemeler: Array<{ tarih: string; aciklama: string; tutar: number }>,
-  buHaftaSatislar: Array<{ tarih: string; satisNo: string; tutar: number }>,
+  buHaftaSatislar: Array<{ 
+    tarih: string; 
+    satisNo: string; 
+    tutar: number;
+    kalemler: Array<{
+      urunAdi: string;
+      adet: number;
+      birimFiyati: number;
+      toplamTutar: number;
+    }>
+  }>,
   guncelBakiye: number
 ): string {
   const ayarlar = getAyarlar();
@@ -82,67 +92,71 @@ export function haftalikTahsilatFisiOlustur(
   const fisAyarlari = ayarlar.fis;
   
   const formatTarih = (tarih: string) => new Date(tarih).toLocaleDateString('tr-TR');
-  const pad = (text: string, length: number = 20) => text.substring(0, length).padEnd(length);
-  const padRight = (text: string, length: number = 14) => text.padStart(length);
+  const W = 38; // Genişlik
+  const line = (char: string = '=') => char.repeat(W);
+  const center = (text: string) => {
+    const padding = Math.floor((W - text.length) / 2);
+    return ' '.repeat(padding) + text;
+  };
+  const rightAlign = (text: string, width: number = W) => {
+    return text.padStart(width);
+  };
   
-  const toplamOdeme = buHaftaOdemeler.reduce((sum, o) => sum + o.tutar, 0);
   const toplamSatis = buHaftaSatislar.reduce((sum, s) => sum + s.tutar, 0);
   
-  let odemelerText = '';
-  if (buHaftaOdemeler.length > 0) {
-    buHaftaOdemeler.forEach(odeme => {
-      const tarih = formatTarih(odeme.tarih).substring(0, 5);
-      const aciklama = odeme.aciklama.substring(0, 10).padEnd(10);
-      odemelerText += `║ ${tarih} - ${aciklama} ${padRight(formatCurrency(-odeme.tutar, 'TRY'))} ║\n`;
+  let fis = '\n';
+  fis += line('=') + '\n';
+  fis += center(firma.firmaAdi || 'FİRMA ADI') + '\n';
+  fis += center(fisAyarlari.baslik || 'HAFTALİK TAHSİLAT FİŞİ') + '\n';
+  fis += line('=') + '\n';
+  fis += `Tarih: ${formatTarih(baslangicTarihi)} - ${formatTarih(bitisTarihi)}\n`;
+  fis += `Müşteri: ${musteri.adSoyad.substring(0, 28)}\n`;
+  fis += `Tel: ${musteri.telefon}\n`;
+  fis += line('=') + '\n';
+  fis += '\n';
+  
+  // Önceki bakiye
+  fis += `Önceki Bakiye:  ${rightAlign(formatCurrency(baslangicBakiyesi, 'TRY'), 23)}\n`;
+  fis += '\n';
+  
+  // Ürün listesi
+  fis += 'BU HAFTA ALINAN ÜRÜNLER\n';
+  fis += line('-') + '\n';
+  fis += 'Ürün Adı              Adet     Fiyat\n';
+  fis += line('-') + '\n';
+  
+  // Tüm ürünleri listele
+  buHaftaSatislar.forEach(satis => {
+    satis.kalemler.forEach(kalem => {
+      const urunAdi = kalem.urunAdi.substring(0, 20).padEnd(20);
+      const adet = String(kalem.adet).padStart(4);
+      const fiyat = formatCurrency(kalem.toplamTutar, 'TRY').padStart(13);
+      fis += `${urunAdi}  ${adet} ${fiyat}\n`;
     });
-  } else {
-    odemelerText = '║ (Ödeme yapılmadı)              ║\n';
+  });
+  
+  fis += line('-') + '\n';
+  fis += `Toplam:         ${rightAlign(formatCurrency(toplamSatis, 'TRY'), 23)}\n`;
+  fis += '\n';
+  fis += line('=') + '\n';
+  fis += `Güncel Bakiye:  ${rightAlign(formatCurrency(guncelBakiye, 'TRY'), 23)}\n`;
+  fis += line('=') + '\n';
+  fis += '\n';
+  fis += center(fisAyarlari.altBilgi || 'Teşekkür Ederiz!') + '\n';
+  
+  if (firma.telefon) {
+    fis += center(`📞 ${firma.telefon}`) + '\n';
   }
   
-  let satislarText = '';
-  if (buHaftaSatislar.length > 0) {
-    buHaftaSatislar.forEach(satis => {
-      const tarih = formatTarih(satis.tarih).substring(0, 5);
-      const satisNo = satis.satisNo.substring(0, 10).padEnd(10);
-      satislarText += `║ ${tarih} - ${satisNo} ${padRight(formatCurrency(satis.tutar, 'TRY'))} ║\n`;
-    });
-  } else {
-    satislarText = '║ (Satış yapılmadı)               ║\n';
+  fis += line('=') + '\n';
+  
+  if (fisAyarlari.reklamAlani) {
+    fis += center(fisAyarlari.reklamAlani.substring(0, W)) + '\n';
   }
   
-  const baslik = center(fisAyarlari.baslik || 'HAFTALİK TAHSİLAT FİŞİ', 31);
-  const firmaAdi = center(firma.firmaAdi || 'Firma Adı', 31);
-  const altBilgi = center(fisAyarlari.altBilgi || 'Teşekkür Ederiz!', 31);
-  const telefon = firma.telefon ? center(`📞 ${firma.telefon}`, 31) : '';
-  const email = firma.email ? center(firma.email, 31) : '';
-  const reklamAlani = fisAyarlari.reklamAlani ? `\n${fisAyarlari.reklamAlani}\n` : '';
+  fis += '\n';
   
-  return `
-╔═══════════════════════════════╗
-║${baslik}║
-║${firmaAdi}║
-╠═══════════════════════════════╣
-║   HAFTALİK TAHSİLAT FİŞİ     ║
-║  ${formatTarih(baslangicTarihi)} - ${formatTarih(bitisTarihi)}  ║
-╠═══════════════════════════════╣
-║ Müşteri: ${pad(musteri.adSoyad)} ║
-║ Kod: ${pad(musteri.kod)} ║
-║ Telefon: ${pad(musteri.telefon)} ║
-╠═══════════════════════════════╣
-║ GEÇEN HAFTADAN KALAN:         ║
-║           ${padRight(formatCurrency(baslangicBakiyesi, 'TRY'))} ║
-╠═══════════════════════════════╣
-║ BU HAFTA YAPILAN ÖDEMELER:    ║
-${odemelerText}║ Toplam ödemeler: ${padRight(formatCurrency(-toplamOdeme, 'TRY'))} ║
-╠═══════════════════════════════╣
-║ BU HAFTA YAPILAN SATIŞLAR:    ║
-${satislarText}║ Toplam satışlar: ${padRight(formatCurrency(toplamSatis, 'TRY'))} ║
-╠═══════════════════════════════╣
-║ GÜNCEL BAKİYE:                ║
-║           ${padRight(formatCurrency(guncelBakiye, 'TRY'))} ║
-╠═══════════════════════════════╣
-║${altBilgi}║
-${telefon ? `║${telefon}║\n` : ''}${email ? `║${email}║\n` : ''}╚═══════════════════════════════╝${reklamAlani}`.trim();
+  return fis;
 }
 
 export function rezervFisiOlustur(rezerv: any): string {

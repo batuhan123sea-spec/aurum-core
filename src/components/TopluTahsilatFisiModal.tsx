@@ -136,7 +136,8 @@ export function TopluTahsilatFisiModal({ musteriIds, open, onOpenChange }: Toplu
           .map(s => ({
             tarih: s.tarih,
             satisNo: s.satisNo,
-            tutar: s.genelToplam
+            tutar: s.genelToplam,
+            kalemler: s.kalemler
           }));
 
         const toplamOdeme = buHaftaOdemeler.reduce((sum, o) => sum + o.tutar, 0);
