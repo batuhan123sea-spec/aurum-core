@@ -96,8 +96,15 @@ export function hesapliSatisYap(
     };
 
     kalemler.forEach(kalem => {
-      const orijinalTutar = kalem.orijinalBirimFiyati * kalem.adet;
-      paraBirimiGroups[kalem.paraBirimi] += orijinalTutar;
+      let kalemTutari = kalem.orijinalBirimFiyati * kalem.adet;
+      
+      // KDV dahil satışsa, KDV'yi ekle
+      if (kdvDahil) {
+        const kdvTutari = kalemTutari * (kalem.kdvOrani / 100);
+        kalemTutari += kdvTutari;
+      }
+      
+      paraBirimiGroups[kalem.paraBirimi] += kalemTutari;
     });
 
     // Her para birimi için ayrı hareket kaydet

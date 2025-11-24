@@ -208,10 +208,15 @@ export default function YeniSatis() {
   // Kalem kar marjı hesaplama
   const hesaplaKalemKarMarji = (kalem: SatisKalemi) => {
     // İndirimli satış fiyatı (birim başına)
-    const indirimliSatisFiyati = kalem.toplamTutar / kalem.adet;
+    let netSatisFiyati = kalem.toplamTutar / kalem.adet;
+    
+    // KDV dahilse, KDV'yi çıkar
+    if (kdvDahil) {
+      netSatisFiyati = netSatisFiyati / (1 + (kalem.kdvOrani / 100));
+    }
     
     // Kar (₺)
-    const karTL = indirimliSatisFiyati - kalem.alisFiyati;
+    const karTL = netSatisFiyati - kalem.alisFiyati;
     
     // Kar marjı (%)
     const karMarjiYuzde = kalem.alisFiyati > 0 
