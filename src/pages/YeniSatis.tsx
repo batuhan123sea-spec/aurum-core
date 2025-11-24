@@ -790,10 +790,12 @@ export default function YeniSatis() {
                     <span>-{genelToplamIndirim.toFixed(2)} ₺</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>KDV:</span>
-                  <span>{toplamKDV.toFixed(2)} ₺</span>
-                </div>
+                {kdvDahil && toplamKDV > 0 && (
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>KDV:</span>
+                    <span>{toplamKDV.toFixed(2)} ₺</span>
+                  </div>
+                )}
                 
                 {sepet.length > 0 && (
                   <>
