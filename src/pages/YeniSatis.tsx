@@ -669,11 +669,10 @@ export default function YeniSatis() {
                         </div>
 
                         <Input
-                          key={`${kalem.id}-${kalem.indirimTL}-${kalem.indirimYuzde}`}
                           placeholder={kdvDahil ? "KDV dahil satışlarda indirim yapılamaz" : "İndirim (₺ veya %)"}
                           className="h-7 text-xs"
                           disabled={kdvDahil}
-                          defaultValue={
+                          value={
                             kalem.indirimYuzde > 0
                               ? `${kalem.indirimYuzde}%`
                               : kalem.indirimTL > 0
