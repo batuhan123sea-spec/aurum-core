@@ -16,18 +16,39 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Edit, Trash2, Printer } from "lucide-react";
 import { useState } from "react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { deleteUrun } from "@/lib/stok-data";
 import { BarkodYazdirModal } from "@/components/BarkodYazdirModal";
 
 export default function StokKategoriDetay() {
   const { kategoriId } = useParams<{ kategoriId: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [urunler, setUrunler] = useState(() => getUrunByKategori(kategoriId || ""));
   const [duzenlenecekUrun, setDuzenlenecekUrun] = useState<Urun | null>(null);
   const [modalAcik, setModalAcik] = useState(false);
   const [secilenUrunler, setSecilenUrunler] = useState<string[]>([]);
   const [barkodModalOpen, setBarkodModalOpen] = useState(false);
+  const [silinecekUrun, setSilinecekUrun] = useState<Urun | null>(null);
 
   const kategori = KATEGORILER.find((k) => k.id === kategoriId);
+
+  const handleDeleteUrun = (urun: Urun) => {
+    setSilinecekUrun(urun);
+  };
+
+  const confirmDelete = () => {
+    if (silinecekUrun) {
+      deleteUrun(silinecekUrun.id);
+      setUrunler(getUrunByKategori(kategoriId || ""));
+      setSilinecekUrun(null);
+      toast({
+        title: "Ürün silindi",
+        description: `${silinecekUrun.ad} başarıyla silindi.`,
+      });
+    }
+  };
 
   if (!kategori) {
     return (
@@ -179,7 +200,14 @@ export default function StokKategoriDetay() {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="ghost">
+                        <Button 
+                          size="icon" 
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteUrun(urun);
+                          }}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -209,6 +237,23 @@ export default function StokKategoriDetay() {
         onOpenChange={setBarkodModalOpen}
         urunler={urunler.filter(u => secilenUrunler.includes(u.id))}
       />
+
+      <AlertDialog open={!!silinecekUrun} onOpenChange={() => setSilinecekUrun(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ürünü silmek istediğinizden emin misiniz?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="font-semibold">{silinecekUrun?.ad}</span> kalıcı olarak silinecektir. Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
