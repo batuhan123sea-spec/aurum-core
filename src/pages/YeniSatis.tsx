@@ -46,6 +46,7 @@ export default function YeniSatis() {
   const [seciliMusteri, setSeciliMusteri] = useState<string | null>(null);
   const [musteriModalOpen, setMusteriModalOpen] = useState(false);
   const [rezervNotu, setRezervNotu] = useState("");
+  const [indirimInputs, setIndirimInputs] = useState<Record<string, string>>({});
   
   const kurlar = getGuncelKurlar();
   const urunler = getUrunler();
@@ -98,6 +99,18 @@ export default function YeniSatis() {
       })));
     }
   }, [kdvDahil]);
+
+  // Sepet değiştiğinde lokal indirim input state'lerini temizle
+  useEffect(() => {
+    const mevcutKalemIds = sepet.map(k => k.id);
+    const yeniIndirimInputs = Object.keys(indirimInputs)
+      .filter(id => mevcutKalemIds.includes(id))
+      .reduce((acc, id) => ({ ...acc, [id]: indirimInputs[id] }), {});
+    
+    if (Object.keys(yeniIndirimInputs).length !== Object.keys(indirimInputs).length) {
+      setIndirimInputs(yeniIndirimInputs);
+    }
+  }, [sepet.map(k => k.id).join(',')]);
 
   // Barkod ile ürün ekle
   const barkodIleUrunEkle = (barkod: string) => {
@@ -313,6 +326,7 @@ export default function YeniSatis() {
     setGenelIndirimYuzde(0);
     setSeciliMusteri(null);
     setRezervNotu("");
+    setIndirimInputs({});
   };
 
   // Fiyat hesaplamaları
@@ -672,14 +686,24 @@ export default function YeniSatis() {
                           placeholder={kdvDahil ? "KDV dahil satışlarda indirim yapılamaz" : "İndirim (₺ veya %)"}
                           className="h-7 text-xs"
                           disabled={kdvDahil}
-                          value={
+                          value={indirimInputs[kalem.id] ?? (
                             kalem.indirimYuzde > 0
                               ? `${kalem.indirimYuzde}%`
                               : kalem.indirimTL > 0
                               ? kalem.indirimTL.toFixed(2)
                               : ""
-                          }
-                          onChange={(e) => !kdvDahil && indirimUygula(kalem.id, e.target.value)}
+                          )}
+                          onChange={(e) => {
+                            if (kdvDahil) return;
+                            setIndirimInputs({ ...indirimInputs, [kalem.id]: e.target.value });
+                            indirimUygula(kalem.id, e.target.value);
+                          }}
+                          onBlur={() => {
+                            if (indirimInputs[kalem.id] !== undefined) {
+                              const { [kalem.id]: removed, ...rest } = indirimInputs;
+                              setIndirimInputs(rest);
+                            }
+                          }}
                         />
 
                         <div className="text-right">
