@@ -85,12 +85,15 @@ export default function YeniSatis() {
     if (sepet.length > 0) {
       setSepet(sepet.map(kalem => ({
         ...kalem,
+        // KDV dahil yapıldığında indirimleri temizle
+        indirimTL: kdvDahil ? 0 : kalem.indirimTL,
+        indirimYuzde: kdvDahil ? 0 : kalem.indirimYuzde,
         toplamTutar: hesaplaKalemToplam(
           kalem.adet,
           kalem.birimFiyati,
           kalem.kdvOrani,
-          kalem.indirimTL,
-          kalem.indirimYuzde
+          kdvDahil ? 0 : kalem.indirimTL,
+          kdvDahil ? 0 : kalem.indirimYuzde
         )
       })));
     }
@@ -666,9 +669,17 @@ export default function YeniSatis() {
                         </div>
 
                         <Input
-                          placeholder="İndirim (₺ veya %)"
+                          placeholder={kdvDahil ? "KDV dahil satışlarda indirim yapılamaz" : "İndirim (₺ veya %)"}
                           className="h-7 text-xs"
-                          onChange={(e) => indirimUygula(kalem.id, e.target.value)}
+                          disabled={kdvDahil}
+                          value={
+                            kalem.indirimYuzde > 0
+                              ? `${kalem.indirimYuzde}%`
+                              : kalem.indirimTL > 0
+                              ? kalem.indirimTL.toFixed(2)
+                              : ""
+                          }
+                          onChange={(e) => !kdvDahil && indirimUygula(kalem.id, e.target.value)}
                         />
 
                         <div className="text-right">
@@ -697,7 +708,8 @@ export default function YeniSatis() {
                 <div className="grid grid-cols-2 gap-2">
                   <Input
                     type="number"
-                    placeholder="TL"
+                    placeholder={kdvDahil ? "KDV dahilde yapılamaz" : "TL"}
+                    disabled={kdvDahil}
                     value={genelIndirimTL || ''}
                     onChange={(e) => {
                       setGenelIndirimTL(parseFloat(e.target.value) || 0);
@@ -706,7 +718,8 @@ export default function YeniSatis() {
                   />
                   <Input
                     type="number"
-                    placeholder="%"
+                    placeholder={kdvDahil ? "KDV dahilde yapılamaz" : "%"}
+                    disabled={kdvDahil}
                     value={genelIndirimYuzde || ''}
                     onChange={(e) => {
                       setGenelIndirimYuzde(Math.min(100, parseFloat(e.target.value) || 0));
