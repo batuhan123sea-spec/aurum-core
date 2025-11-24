@@ -26,6 +26,7 @@ const MusteriDetay = () => {
   const [odemeModalOpen, setOdemeModalOpen] = useState(false);
   const [tahsilatFisiModalOpen, setTahsilatFisiModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("tum");
+  const [yenilemeKey, setYenilemeKey] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,6 +64,14 @@ const MusteriDetay = () => {
   const handleOdemeSuccess = () => {
     if (musteriId) {
       setMusteri(getMusteriById(musteriId));
+      setYenilemeKey(prev => prev + 1);
+    }
+  };
+
+  const handleYeniHareketSuccess = () => {
+    if (musteriId) {
+      setMusteri(getMusteriById(musteriId));
+      setYenilemeKey(prev => prev + 1);
     }
   };
 
@@ -259,7 +268,7 @@ const MusteriDetay = () => {
 
             <CardContent>
               <TabsContent value="defter" className="mt-4 space-y-4">
-                <MusteriDefterGorunumu musteriId={musteri.id} />
+                <MusteriDefterGorunumu musteriId={musteri.id} key={yenilemeKey} />
               </TabsContent>
 
               <TabsContent value="satis-gecmisi" className="mt-4">
