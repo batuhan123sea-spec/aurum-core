@@ -268,7 +268,12 @@ const MusteriDetay = () => {
 
             <CardContent>
               <TabsContent value="defter" className="mt-4 space-y-4">
-                <MusteriDefterGorunumu musteriId={musteri.id} key={yenilemeKey} />
+                <MusteriDefterGorunumu 
+                  musteriId={musteri.id} 
+                  key={yenilemeKey}
+                  onHareketDuzenlendi={handleYeniHareketSuccess}
+                  onHareketSilindi={handleYeniHareketSuccess}
+                />
               </TabsContent>
 
               <TabsContent value="satis-gecmisi" className="mt-4">
