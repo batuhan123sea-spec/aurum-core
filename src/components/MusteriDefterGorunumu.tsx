@@ -28,6 +28,7 @@ interface GunlukKalem {
   birimFiyat: number;
   toplam: number;
   hareketId?: string;
+  hareket?: HesapHareketi | null;
 }
 
 interface GunlukSatis {
@@ -57,7 +58,6 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
   const [filtre, setFiltre] = useState<'tum' | 'satis' | 'odeme' | 'iade'>('tum');
   const [yeniHareketModalOpen, setYeniHareketModalOpen] = useState(false);
   const musteri = getMusteriById(musteriId);
-  const hareketler = getHareketlerByMusteriId(musteriId);
 
   // Türkiye timezone'ına göre tarih string'i döndürür (GMT+3)
   const getTarihStr = (isoTarih: string): string => {
@@ -114,10 +114,14 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
       );
 
       satis.kalemler.forEach((kalem, kalemIndex) => {
-        // İlk kaleme hareket ID'sini ekle
+        // İlk kaleme hareket ID'sini ve hareket objesini ekle
         const hareketId = kalemIndex === 0 && ilgiliHareketler.length > 0 
           ? ilgiliHareketler[0].id 
           : undefined;
+        
+        const tamHareket = kalemIndex === 0 && ilgiliHareketler.length > 0
+          ? ilgiliHareketler[0]
+          : null;
         
         tarihMap.get(tarihStr)!.kalemler.push({
           satisNo: satis.satisNo,
@@ -129,7 +133,8 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
           orijinalToplam: kalem.orijinalBirimFiyati * kalem.adet,
           birimFiyat: kalem.birimFiyati,
           toplam: kalem.toplamTutar,
-          hareketId
+          hareketId,
+          hareket: tamHareket
         });
       });
     });
@@ -350,68 +355,62 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {gun.kalemler.map((kalem, idx) => {
-                      const hareket = kalem.hareketId 
-                        ? hareketler.find(h => h.id === kalem.hareketId)
-                        : null;
-
-                      return (
-                        <TableRow key={idx}>
-                          <TableCell className="text-xs py-1">
-                            <Badge variant="outline">💰 Satış</Badge>
-                          </TableCell>
-                          <TableCell className="text-xs font-medium py-1">{kalem.satisNo}</TableCell>
-                          <TableCell className="text-xs py-1">{kalem.urunAdi}</TableCell>
-                          <TableCell className="text-xs text-right py-1">{kalem.adet}</TableCell>
-                          <TableCell className="text-xs text-right py-1">
-                            <div className="flex flex-col items-end">
-                              <span className="font-medium">
-                                {formatCurrency(kalem.orijinalBirimFiyat, kalem.paraBirimi)}
+                    {gun.kalemler.map((kalem, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="text-xs py-1">
+                          <Badge variant="outline">💰 Satış</Badge>
+                        </TableCell>
+                        <TableCell className="text-xs font-medium py-1">{kalem.satisNo}</TableCell>
+                        <TableCell className="text-xs py-1">{kalem.urunAdi}</TableCell>
+                        <TableCell className="text-xs text-right py-1">{kalem.adet}</TableCell>
+                        <TableCell className="text-xs text-right py-1">
+                          <div className="flex flex-col items-end">
+                            <span className="font-medium">
+                              {formatCurrency(kalem.orijinalBirimFiyat, kalem.paraBirimi)}
+                            </span>
+                            {kalem.paraBirimi !== 'TRY' && (
+                              <span className="text-[10px] text-muted-foreground/60 italic">
+                                ({formatCurrency(kalem.birimFiyat, 'TRY')})
                               </span>
-                              {kalem.paraBirimi !== 'TRY' && (
-                                <span className="text-[10px] text-muted-foreground/60 italic">
-                                  ({formatCurrency(kalem.birimFiyat, 'TRY')})
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-xs text-right font-semibold py-1">
-                            <div className="flex flex-col items-end">
-                              <span className="font-semibold">
-                                {formatCurrency(kalem.orijinalToplam, kalem.paraBirimi)}
-                              </span>
-                              {kalem.paraBirimi !== 'TRY' && (
-                                <span className="text-[10px] text-muted-foreground/60 italic">
-                                  ({formatCurrency(kalem.toplam, 'TRY')})
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-xs text-right py-1">
-                            {hareket && (
-                              <div className="flex gap-1 justify-end">
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-6 w-6"
-                                  onClick={() => setDuzenlenecekHareket(hareket)}
-                                >
-                                  <Edit2 className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-6 w-6 text-destructive hover:text-destructive"
-                                  onClick={() => setSilinecekHareketId(hareket.id)}
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
                             )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs text-right font-semibold py-1">
+                          <div className="flex flex-col items-end">
+                            <span className="font-semibold">
+                              {formatCurrency(kalem.orijinalToplam, kalem.paraBirimi)}
+                            </span>
+                            {kalem.paraBirimi !== 'TRY' && (
+                              <span className="text-[10px] text-muted-foreground/60 italic">
+                                ({formatCurrency(kalem.toplam, 'TRY')})
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs text-right py-1">
+                          {kalem.hareket && (
+                            <div className="flex gap-1 justify-end">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                                onClick={() => setDuzenlenecekHareket(kalem.hareket!)}
+                              >
+                                <Edit2 className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 text-destructive hover:text-destructive"
+                                onClick={() => setSilinecekHareketId(kalem.hareket!.id)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
 
                     {/* Ödemeler */}
                     {gun.odemeler.map((odeme, idx) => (
