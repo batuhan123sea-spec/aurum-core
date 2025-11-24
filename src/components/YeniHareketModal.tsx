@@ -1,44 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { HesapHareketi, ParaBirimi, IslemTuru, OdemeTuru } from "@/types/musteri";
-import { updateHareket } from "@/lib/musteri-data";
-import { getKur } from "@/lib/kur-hesaplama";
+import { ParaBirimi, OdemeTuru, IslemTuru } from "@/types/musteri";
+import { createManualHareket } from "@/lib/musteri-data";
 import { toast } from "sonner";
 
-interface HareketDuzenleModalProps {
+interface YeniHareketModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  hareket: HesapHareketi;
+  musteriId: string;
   onSuccess: () => void;
 }
 
-export const HareketDuzenleModal = ({ open, onOpenChange, hareket, onSuccess }: HareketDuzenleModalProps) => {
-  const [tarih, setTarih] = useState("");
+export const YeniHareketModal = ({ open, onOpenChange, musteriId, onSuccess }: YeniHareketModalProps) => {
+  const [islemTuru, setIslemTuru] = useState<IslemTuru>('odeme');
+  const [tarih, setTarih] = useState(new Date().toISOString().slice(0, 16));
   const [tutar, setTutar] = useState("");
   const [paraBirimi, setParaBirimi] = useState<ParaBirimi>("TRY");
   const [aciklama, setAciklama] = useState("");
-  const [islemTuru, setIslemTuru] = useState<IslemTuru>('satis');
   const [odemeTuru, setOdemeTuru] = useState<OdemeTuru>('nakit');
-
-  useEffect(() => {
-    if (open && hareket) {
-      const tarihObj = new Date(hareket.tarih);
-      const tarihStr = tarihObj.toISOString().slice(0, 16);
-      setTarih(tarihStr);
-      setTutar(hareket.tutar.toString());
-      setParaBirimi(hareket.paraBirimi);
-      setAciklama(hareket.aciklama);
-      setIslemTuru(hareket.islemTuru);
-      if (hareket.odemeTuru) {
-        setOdemeTuru(hareket.odemeTuru);
-      }
-    }
-  }, [open, hareket]);
 
   const handleKaydet = () => {
     if (!tutar || parseFloat(tutar) <= 0) {
@@ -46,38 +30,30 @@ export const HareketDuzenleModal = ({ open, onOpenChange, hareket, onSuccess }: 
       return;
     }
 
-    if (!tarih) {
-      toast.error("Tarih seçin");
-      return;
-    }
-
-    const tutarNumber = parseFloat(tutar);
-    const kur = getKur(paraBirimi);
-    const tlKarsiligi = tutarNumber * kur;
-
-    const guncelHareket: HesapHareketi = {
-      ...hareket,
+    createManualHareket({
+      musteriId,
+      islemTuru,
       tarih: new Date(tarih).toISOString(),
-      tutar: tutarNumber,
+      tutar: parseFloat(tutar),
       paraBirimi,
       aciklama,
-      kur,
-      tlKarsiligi,
-      islemTuru,
       odemeTuru: islemTuru === 'odeme' ? odemeTuru : undefined,
-    };
+    });
 
-    updateHareket(guncelHareket);
-    toast.success("Hareket başarıyla güncellendi");
+    toast.success("Hareket başarıyla eklendi");
     onSuccess();
     onOpenChange(false);
+    
+    // Formu temizle
+    setTutar("");
+    setAciklama("");
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Hareket Düzenle</DialogTitle>
+          <DialogTitle>Yeni Hareket Ekle</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -88,8 +64,8 @@ export const HareketDuzenleModal = ({ open, onOpenChange, hareket, onSuccess }: 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="satis">💰 Satış</SelectItem>
-                <SelectItem value="odeme">💵 Ödeme</SelectItem>
+                <SelectItem value="satis">💰 Satış (Borç Ekle)</SelectItem>
+                <SelectItem value="odeme">💵 Ödeme (Alacak Ekle)</SelectItem>
                 <SelectItem value="iade">🔄 İade</SelectItem>
               </SelectContent>
             </Select>
@@ -113,6 +89,7 @@ export const HareketDuzenleModal = ({ open, onOpenChange, hareket, onSuccess }: 
               step="0.01"
               value={tutar}
               onChange={(e) => setTutar(e.target.value)}
+              placeholder="0.00"
             />
           </div>
 
@@ -154,6 +131,7 @@ export const HareketDuzenleModal = ({ open, onOpenChange, hareket, onSuccess }: 
               value={aciklama}
               onChange={(e) => setAciklama(e.target.value)}
               rows={3}
+              placeholder="Örn: Eski hesap düzeltmesi, Manuel borç ekleme, vb."
             />
           </div>
         </div>

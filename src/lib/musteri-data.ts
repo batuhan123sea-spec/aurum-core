@@ -382,6 +382,39 @@ export function generateMusteriKodu(): string {
   return `MUS-${String(sonKod + 1).padStart(4, '0')}`;
 }
 
+// Manuel hareket oluştur
+export function createManualHareket(params: {
+  musteriId: string;
+  islemTuru: 'satis' | 'odeme' | 'iade';
+  tarih: string;
+  tutar: number;
+  paraBirimi: 'TRY' | 'USD' | 'EUR';
+  aciklama: string;
+  odemeTuru?: 'nakit' | 'kredi-karti' | 'eft' | 'havale';
+}): void {
+  const { musteriId, islemTuru, tarih, tutar, paraBirimi, aciklama, odemeTuru } = params;
+  
+  const kur = getKur(paraBirimi);
+  const tlKarsiligi = tutar * kur;
+  
+  const yeniHareket: HesapHareketi = {
+    id: `hareket_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    musteriId,
+    tarih,
+    islemTuru,
+    aciklama,
+    paraBirimi,
+    tutar,
+    kur,
+    tlKarsiligi,
+    bakiye: 0,
+    odemeTuru: islemTuru === 'odeme' ? odemeTuru : undefined,
+  };
+  
+  saveHareket(yeniHareket);
+  musteriBalanceGuncelle(musteriId);
+}
+
 // Eski müşteri verilerini yeni yapıya dönüştür (migrasyon)
 export function migrateOldData(): void {
   const musteriler = getMusteriler();
