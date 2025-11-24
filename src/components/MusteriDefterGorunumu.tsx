@@ -1,16 +1,20 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileDown } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { FileDown, Edit2, Trash2 } from "lucide-react";
 import { getSatislar } from "@/lib/satis-data";
-import { getHareketlerByMusteriId, getMusteriById } from "@/lib/musteri-data";
+import { getHareketlerByMusteriId, getMusteriById, deleteHareket } from "@/lib/musteri-data";
 import { formatCurrency } from "@/lib/kur-hesaplama";
 import { musteriDefterExcelAktar } from "@/lib/excel-export";
+import { HareketDuzenleModal } from "@/components/HareketDuzenleModal";
 import { format, startOfWeek, endOfWeek, isSaturday, isMonday, parseISO, isSameDay } from "date-fns";
 import { tr } from "date-fns/locale";
+import { toast } from "sonner";
+import type { HesapHareketi } from "@/types/musteri";
 
 interface GunlukKalem {
   satisNo: string;
@@ -22,6 +26,7 @@ interface GunlukKalem {
   orijinalToplam: number;
   birimFiyat: number;
   toplam: number;
+  hareketId?: string;
 }
 
 interface GunlukSatis {
@@ -43,11 +48,29 @@ interface MusteriDefterGorunumuProps {
 
 const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
   const [gunlukVeriler, setGunlukVeriler] = useState<GunlukSatis[]>([]);
+  const [duzenlenecekHareket, setDuzenlenecekHareket] = useState<HesapHareketi | null>(null);
+  const [silinecekHareketId, setSilinecekHareketId] = useState<string | null>(null);
+  const [yenilemeKey, setYenilemeKey] = useState(0);
   const musteri = getMusteriById(musteriId);
+  const hareketler = getHareketlerByMusteriId(musteriId);
 
   const handleExcelExport = () => {
     if (!musteri) return;
     musteriDefterExcelAktar(musteri.adSoyad, gunlukVeriler);
+  };
+
+  const handleSil = () => {
+    if (!silinecekHareketId) return;
+    
+    deleteHareket(silinecekHareketId, musteriId);
+    toast.success("Hareket başarıyla silindi");
+    setSilinecekHareketId(null);
+    setYenilemeKey(prev => prev + 1);
+  };
+
+  const handleDuzenleSuccess = () => {
+    setDuzenlenecekHareket(null);
+    setYenilemeKey(prev => prev + 1);
   };
 
   useEffect(() => {
@@ -63,22 +86,33 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
     tumSatislar.forEach(satis => {
       const tarihStr = satis.tarih.split('T')[0];
       
-      satis.kalemler.forEach(kalem => {
+      // Bu satışa ait hareketleri bul
+      const ilgiliHareketler = hareketler.filter(h => 
+        h.aciklama.includes(satis.satisNo) && h.islemTuru === 'satis'
+      );
+
+      satis.kalemler.forEach((kalem, kalemIndex) => {
         if (!tarihMap.has(tarihStr)) {
           tarihMap.set(tarihStr, []);
         }
         
-              tarihMap.get(tarihStr)!.push({
-                satisNo: satis.satisNo,
-                musteriAdi: satis.musteriAdi || 'Müşteri',
-                urunAdi: kalem.urunAdi,
-                adet: kalem.adet,
-                paraBirimi: kalem.paraBirimi,
-                orijinalBirimFiyat: kalem.orijinalBirimFiyati,
-                orijinalToplam: kalem.orijinalBirimFiyati * kalem.adet,
-                birimFiyat: kalem.birimFiyati,
-                toplam: kalem.toplamTutar
-              });
+        // İlk kaleme hareket ID'sini ekle
+        const hareketId = kalemIndex === 0 && ilgiliHareketler.length > 0 
+          ? ilgiliHareketler[0].id 
+          : undefined;
+        
+        tarihMap.get(tarihStr)!.push({
+          satisNo: satis.satisNo,
+          musteriAdi: satis.musteriAdi || 'Müşteri',
+          urunAdi: kalem.urunAdi,
+          adet: kalem.adet,
+          paraBirimi: kalem.paraBirimi,
+          orijinalBirimFiyat: kalem.orijinalBirimFiyati,
+          orijinalToplam: kalem.orijinalBirimFiyati * kalem.adet,
+          birimFiyat: kalem.birimFiyati,
+          toplam: kalem.toplamTutar,
+          hareketId
+        });
       });
     });
 
@@ -155,7 +189,7 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
     });
 
     setGunlukVeriler(gunler);
-  }, [musteriId]);
+  }, [musteriId, yenilemeKey]);
 
   if (gunlukVeriler.length === 0) {
     return (
@@ -232,40 +266,69 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
                       <TableHead className="text-xs text-right py-2">Adet</TableHead>
                       <TableHead className="text-xs text-right py-2">Birim Fiyat</TableHead>
                       <TableHead className="text-xs text-right py-2">Toplam</TableHead>
+                      <TableHead className="text-xs text-right py-2 w-20">İşlem</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {gun.kalemler.map((kalem, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="text-xs font-medium py-1">{kalem.satisNo}</TableCell>
-                        <TableCell className="text-xs py-1">{kalem.urunAdi}</TableCell>
-                        <TableCell className="text-xs text-right py-1">{kalem.adet}</TableCell>
-                      <TableCell className="text-xs text-right py-1">
-                        <div className="flex flex-col items-end">
-                          <span className="font-medium">
-                            {formatCurrency(kalem.orijinalBirimFiyat, kalem.paraBirimi)}
-                          </span>
-                          {kalem.paraBirimi !== 'TRY' && (
-                            <span className="text-[10px] text-muted-foreground/60 italic">
-                              ({formatCurrency(kalem.birimFiyat, 'TRY')})
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-xs text-right font-semibold py-1">
-                        <div className="flex flex-col items-end">
-                          <span className="font-semibold">
-                            {formatCurrency(kalem.orijinalToplam, kalem.paraBirimi)}
-                          </span>
-                          {kalem.paraBirimi !== 'TRY' && (
-                            <span className="text-[10px] text-muted-foreground/60 italic">
-                              ({formatCurrency(kalem.toplam, 'TRY')})
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      </TableRow>
-                    ))}
+                    {gun.kalemler.map((kalem, idx) => {
+                      const hareket = kalem.hareketId 
+                        ? hareketler.find(h => h.id === kalem.hareketId)
+                        : null;
+
+                      return (
+                        <TableRow key={idx}>
+                          <TableCell className="text-xs font-medium py-1">{kalem.satisNo}</TableCell>
+                          <TableCell className="text-xs py-1">{kalem.urunAdi}</TableCell>
+                          <TableCell className="text-xs text-right py-1">{kalem.adet}</TableCell>
+                          <TableCell className="text-xs text-right py-1">
+                            <div className="flex flex-col items-end">
+                              <span className="font-medium">
+                                {formatCurrency(kalem.orijinalBirimFiyat, kalem.paraBirimi)}
+                              </span>
+                              {kalem.paraBirimi !== 'TRY' && (
+                                <span className="text-[10px] text-muted-foreground/60 italic">
+                                  ({formatCurrency(kalem.birimFiyat, 'TRY')})
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs text-right font-semibold py-1">
+                            <div className="flex flex-col items-end">
+                              <span className="font-semibold">
+                                {formatCurrency(kalem.orijinalToplam, kalem.paraBirimi)}
+                              </span>
+                              {kalem.paraBirimi !== 'TRY' && (
+                                <span className="text-[10px] text-muted-foreground/60 italic">
+                                  ({formatCurrency(kalem.toplam, 'TRY')})
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs text-right py-1">
+                            {hareket && (
+                              <div className="flex gap-1 justify-end">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={() => setDuzenlenecekHareket(hareket)}
+                                >
+                                  <Edit2 className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6 text-destructive hover:text-destructive"
+                                  onClick={() => setSilinecekHareketId(hareket.id)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -316,6 +379,32 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
         ))}
         </div>
       </ScrollArea>
+
+      {duzenlenecekHareket && (
+        <HareketDuzenleModal
+          open={!!duzenlenecekHareket}
+          onOpenChange={(open) => !open && setDuzenlenecekHareket(null)}
+          hareket={duzenlenecekHareket}
+          onSuccess={handleDuzenleSuccess}
+        />
+      )}
+
+      <AlertDialog open={!!silinecekHareketId} onOpenChange={(open) => !open && setSilinecekHareketId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hareketi Sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu hareketi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve müşteri bakiyesi yeniden hesaplanacaktır.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSil} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

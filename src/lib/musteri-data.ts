@@ -62,6 +62,26 @@ export function saveHareket(hareket: HesapHareketi): void {
   localStorage.setItem(HAREKET_KEY, JSON.stringify(hareketler));
 }
 
+export function updateHareket(hareket: HesapHareketi): void {
+  const hareketler = getHareketler();
+  const index = hareketler.findIndex(h => h.id === hareket.id);
+  if (index !== -1) {
+    hareketler[index] = hareket;
+    localStorage.setItem(HAREKET_KEY, JSON.stringify(hareketler));
+    
+    // Bakiyeleri yeniden hesapla
+    musteriBalanceGuncelle(hareket.musteriId);
+  }
+}
+
+export function deleteHareket(hareketId: string, musteriId: string): void {
+  const hareketler = getHareketler().filter(h => h.id !== hareketId);
+  localStorage.setItem(HAREKET_KEY, JSON.stringify(hareketler));
+  
+  // Bakiyeleri yeniden hesapla
+  musteriBalanceGuncelle(musteriId);
+}
+
 // Satışları hesaba aktar - Senkronizasyon fonksiyonu
 export function satislariHesabaAktar(musteriId: string): {
   aktarilanSatislar: number;
