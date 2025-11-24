@@ -124,6 +124,11 @@ const MusteriDefterGorunumu = ({
         h.aciklama.includes(satis.satisNo) && h.islemTuru === 'satis'
       );
 
+      // ✅ Eğer bu satışa ait hareket yoksa (silindi), bu satışı gösterme
+      if (ilgiliHareketler.length === 0) {
+        return;
+      }
+
       satis.kalemler.forEach((kalem, kalemIndex) => {
         // İlk kaleme hareket ID'sini ve hareket objesini ekle
         const hareketId = kalemIndex === 0 && ilgiliHareketler.length > 0 
