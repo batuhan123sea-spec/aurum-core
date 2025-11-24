@@ -135,6 +135,12 @@ export default function YeniSatis() {
       urunParaBirimi
     );
     
+    // Alış fiyatını TL'ye çevir
+    const alisFiyatiTL = paraBirimiTLyeCevir(
+      urun.alisFiyati,
+      urun.alisFiyatiParaBirimi
+    );
+    
     if (mevcutKalem) {
       // Mevcut ürünün adedini artır
       setSepet(sepet.map(k => 
@@ -151,6 +157,7 @@ export default function YeniSatis() {
         barkod: urun.barkod,
         adet: 1,
         birimFiyati: birimFiyatiTL,
+        alisFiyati: alisFiyatiTL,
         paraBirimi: urunParaBirimi,
         orijinalBirimFiyati: urun.satisFiyati,
         kdvOrani: ayarlar.kdv.varsayilanKDVOrani,
@@ -196,6 +203,22 @@ export default function YeniSatis() {
     }
     
     return Math.max(0, toplam);
+  };
+
+  // Kalem kar marjı hesaplama
+  const hesaplaKalemKarMarji = (kalem: SatisKalemi) => {
+    // İndirimli satış fiyatı (birim başına)
+    const indirimliSatisFiyati = kalem.toplamTutar / kalem.adet;
+    
+    // Kar (₺)
+    const karTL = indirimliSatisFiyati - kalem.alisFiyati;
+    
+    // Kar marjı (%)
+    const karMarjiYuzde = kalem.alisFiyati > 0 
+      ? ((karTL / kalem.alisFiyati) * 100)
+      : 0;
+      
+    return { karTL, karMarjiYuzde };
   };
 
   // Adet değiştir
@@ -297,6 +320,20 @@ export default function YeniSatis() {
   }
 
   const genelToplamIndirim = kalemIndirimleri + (genelIndirimYuzde > 0 ? (araToplam - kalemIndirimleri) * (genelIndirimYuzde / 100) : 0) + genelIndirimTL;
+
+  // Toplam kar hesaplama
+  const toplamMaliyet = sepet.reduce((sum, kalem) => 
+    sum + (kalem.alisFiyati * kalem.adet), 0
+  );
+
+  const toplamKar = sepet.reduce((sum, kalem) => {
+    const { karTL } = hesaplaKalemKarMarji(kalem);
+    return sum + (karTL * kalem.adet);
+  }, 0);
+
+  const genelKarMarjiYuzde = toplamMaliyet > 0
+    ? ((toplamKar / toplamMaliyet) * 100)
+    : 0;
 
   // Satış işlemleri
   const satisYap = () => {
@@ -531,7 +568,9 @@ export default function YeniSatis() {
                     Sepet boş
                   </div>
                 ) : (
-                  sepet.map(kalem => (
+                  sepet.map(kalem => {
+                    const { karTL, karMarjiYuzde } = hesaplaKalemKarMarji(kalem);
+                    return (
                     <Card key={kalem.id} className="p-3">
                       <div className="space-y-2">
                         <div className="flex justify-between items-start">
@@ -562,6 +601,22 @@ export default function YeniSatis() {
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
+                        </div>
+
+                        {/* Kar Marjı Göstergesi */}
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Kar Marjı:</span>
+                          <div className="flex items-center gap-2">
+                            <span className={karTL >= 0 ? "font-semibold text-success" : "font-semibold text-destructive"}>
+                              {karTL.toFixed(2)} ₺
+                            </span>
+                            <Badge 
+                              variant={karMarjiYuzde >= 20 ? "default" : karMarjiYuzde >= 0 ? "secondary" : "destructive"}
+                              className="text-xs"
+                            >
+                              %{karMarjiYuzde.toFixed(1)}
+                            </Badge>
+                          </div>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -602,7 +657,8 @@ export default function YeniSatis() {
                         </div>
                       </div>
                     </Card>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
@@ -657,6 +713,26 @@ export default function YeniSatis() {
                   <span>KDV:</span>
                   <span>{toplamKDV.toFixed(2)} ₺</span>
                 </div>
+                
+                {sepet.length > 0 && (
+                  <>
+                    <Separator />
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>Toplam Maliyet:</span>
+                      <span>{toplamMaliyet.toFixed(2)} ₺</span>
+                    </div>
+                    <div className="flex justify-between font-semibold text-success">
+                      <span>Kar:</span>
+                      <div className="flex items-center gap-2">
+                        <span>{toplamKar.toFixed(2)} ₺</span>
+                        <Badge variant={genelKarMarjiYuzde >= 20 ? "default" : genelKarMarjiYuzde >= 0 ? "secondary" : "destructive"}>
+                          %{genelKarMarjiYuzde.toFixed(1)}
+                        </Badge>
+                      </div>
+                    </div>
+                  </>
+                )}
+                
                 <Separator />
                 <div className="flex justify-between text-xl font-bold">
                   <span>TOPLAM:</span>

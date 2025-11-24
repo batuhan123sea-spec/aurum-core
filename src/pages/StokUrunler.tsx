@@ -250,6 +250,7 @@ export default function StokUrunler() {
                           <TableHead>Durum</TableHead>
                           <TableHead className="text-right">Alış Fiyatı</TableHead>
                           <TableHead className="text-right">Satış Fiyatı</TableHead>
+                          <TableHead className="text-right">Kar Marjı</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -260,7 +261,13 @@ export default function StokUrunler() {
                             </TableCell>
                           </TableRow>
                         ) : (
-                          filtrelenmisUrunler.map((urun) => (
+                          filtrelenmisUrunler.map((urun) => {
+                            const karFarkTL = urun.satisFiyati - urun.alisFiyati;
+                            const karMarjiYuzde = urun.alisFiyati > 0 
+                              ? ((karFarkTL / urun.alisFiyati) * 100)
+                              : 0;
+                            
+                            return (
                             <TableRow 
                               key={urun.id}
                               className="hover:bg-muted/50 cursor-pointer"
@@ -306,8 +313,22 @@ export default function StokUrunler() {
                               <TableCell className="text-right font-medium">
                                 {urun.satisFiyati.toFixed(2)} {urun.satisFiyatiParaBirimi || urun.alisFiyatiParaBirimi}
                               </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex flex-col items-end gap-1">
+                                  <span className={karFarkTL >= 0 ? "font-medium text-sm text-success" : "font-medium text-sm text-destructive"}>
+                                    {karFarkTL.toFixed(2)} {urun.alisFiyatiParaBirimi}
+                                  </span>
+                                  <Badge 
+                                    variant={karMarjiYuzde >= 20 ? "default" : karMarjiYuzde >= 0 ? "secondary" : "destructive"}
+                                    className="text-xs"
+                                  >
+                                    %{karMarjiYuzde.toFixed(1)}
+                                  </Badge>
+                                </div>
+                              </TableCell>
                             </TableRow>
-                          ))
+                            );
+                          })
                         )}
                       </TableBody>
                     </Table>
