@@ -11,6 +11,7 @@ import { getHareketlerByMusteriId, getMusteriById, deleteHareket } from "@/lib/m
 import { formatCurrency } from "@/lib/kur-hesaplama";
 import { musteriDefterExcelAktar } from "@/lib/excel-export";
 import { HareketDuzenleModal } from "@/components/HareketDuzenleModal";
+import { YeniHareketModal } from "@/components/YeniHareketModal";
 import { format, startOfWeek, endOfWeek, isSaturday, isMonday, parseISO, isSameDay } from "date-fns";
 import { tr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -33,6 +34,8 @@ interface GunlukSatis {
   tarih: Date;
   gun: string;
   kalemler: GunlukKalem[];
+  odemeler: HesapHareketi[];
+  iadeler: HesapHareketi[];
   gunlukToplam: number;
   isCumartesi: boolean;
   isPazartesi: boolean;
@@ -51,6 +54,8 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
   const [duzenlenecekHareket, setDuzenlenecekHareket] = useState<HesapHareketi | null>(null);
   const [silinecekHareketId, setSilinecekHareketId] = useState<string | null>(null);
   const [yenilemeKey, setYenilemeKey] = useState(0);
+  const [filtre, setFiltre] = useState<'tum' | 'satis' | 'odeme'>('tum');
+  const [yeniHareketModalOpen, setYeniHareketModalOpen] = useState(false);
   const musteri = getMusteriById(musteriId);
   const hareketler = getHareketlerByMusteriId(musteriId);
 
@@ -81,10 +86,19 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
     const hareketler = getHareketlerByMusteriId(musteriId);
 
     // Tarihe göre grupla
-    const tarihMap = new Map<string, GunlukKalem[]>();
+    const tarihMap = new Map<string, {
+      kalemler: GunlukKalem[];
+      odemeler: HesapHareketi[];
+      iadeler: HesapHareketi[];
+    }>();
     
+    // Satışları ekle
     tumSatislar.forEach(satis => {
       const tarihStr = satis.tarih.split('T')[0];
+      
+      if (!tarihMap.has(tarihStr)) {
+        tarihMap.set(tarihStr, { kalemler: [], odemeler: [], iadeler: [] });
+      }
       
       // Bu satışa ait hareketleri bul
       const ilgiliHareketler = hareketler.filter(h => 
@@ -92,16 +106,12 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
       );
 
       satis.kalemler.forEach((kalem, kalemIndex) => {
-        if (!tarihMap.has(tarihStr)) {
-          tarihMap.set(tarihStr, []);
-        }
-        
         // İlk kaleme hareket ID'sini ekle
         const hareketId = kalemIndex === 0 && ilgiliHareketler.length > 0 
           ? ilgiliHareketler[0].id 
           : undefined;
         
-        tarihMap.get(tarihStr)!.push({
+        tarihMap.get(tarihStr)!.kalemler.push({
           satisNo: satis.satisNo,
           musteriAdi: satis.musteriAdi || 'Müşteri',
           urunAdi: kalem.urunAdi,
@@ -116,6 +126,23 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
       });
     });
 
+    // Ödemeleri ve iadeleri ekle
+    hareketler.forEach(hareket => {
+      if (hareket.islemTuru === 'odeme' || hareket.islemTuru === 'iade') {
+        const tarihStr = hareket.tarih.split('T')[0];
+        
+        if (!tarihMap.has(tarihStr)) {
+          tarihMap.set(tarihStr, { kalemler: [], odemeler: [], iadeler: [] });
+        }
+        
+        if (hareket.islemTuru === 'odeme') {
+          tarihMap.get(tarihStr)!.odemeler.push(hareket);
+        } else {
+          tarihMap.get(tarihStr)!.iadeler.push(hareket);
+        }
+      }
+    });
+
     // Günlük verileri oluştur
     const gunler: GunlukSatis[] = [];
     const sortedTarihler = Array.from(tarihMap.keys()).sort((a, b) => 
@@ -124,52 +151,50 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
 
     sortedTarihler.forEach(tarihStr => {
       const tarih = parseISO(tarihStr);
-      const kalemler = tarihMap.get(tarihStr) || [];
-      const gunlukToplam = kalemler.reduce((sum, k) => sum + k.toplam, 0);
+      const gunData = tarihMap.get(tarihStr)!;
+      const gunlukToplam = gunData.kalemler.reduce((sum, k) => sum + k.toplam, 0);
 
-      const gunData: GunlukSatis = {
+      const gun: GunlukSatis = {
         tarih,
         gun: format(tarih, 'EEEE', { locale: tr }),
-        kalemler,
+        kalemler: gunData.kalemler,
+        odemeler: gunData.odemeler,
+        iadeler: gunData.iadeler,
         gunlukToplam,
         isCumartesi: isSaturday(tarih),
         isPazartesi: isMonday(tarih)
       };
 
       // Cumartesi için haftalık hesaplama
-      if (gunData.isCumartesi) {
+      if (gun.isCumartesi) {
         const haftaBaslangic = startOfWeek(tarih, { weekStartsOn: 1 });
         const haftaBitis = endOfWeek(tarih, { weekStartsOn: 1 });
         
-        // Bu haftanın tüm satışlarını topla
         const haftalikSatislar = tumSatislar.filter(s => {
           const satisTarih = parseISO(s.tarih);
           return satisTarih >= haftaBaslangic && satisTarih <= haftaBitis;
         });
         
-        gunData.haftalikToplam = haftalikSatislar.reduce((sum, s) => sum + s.genelToplam, 0);
+        gun.haftalikToplam = haftalikSatislar.reduce((sum, s) => sum + s.genelToplam, 0);
         
-        // Cumartesi günü yapılan ödemeleri topla
         const cumartesiOdemeler = hareketler.filter(h => {
           const hareketTarih = parseISO(h.tarih);
           return h.islemTuru === 'odeme' && isSameDay(hareketTarih, tarih);
         });
         
-        gunData.tahsilEdilen = cumartesiOdemeler.reduce((sum, h) => sum + h.tlKarsiligi, 0);
-        gunData.kalanBorc = gunData.haftalikToplam - gunData.tahsilEdilen;
+        gun.tahsilEdilen = cumartesiOdemeler.reduce((sum, h) => sum + h.tlKarsiligi, 0);
+        gun.kalanBorc = gun.haftalikToplam - gun.tahsilEdilen;
       }
 
       // Pazartesi için açılış bakiyesi
-      if (gunData.isPazartesi) {
-        // Önceki cumartesinin kalan borcunu bul
+      if (gun.isPazartesi) {
         const oncekiCumartesi = gunler.find(g => 
           g.isCumartesi && g.tarih < tarih
         );
         
         if (oncekiCumartesi && oncekiCumartesi.kalanBorc !== undefined) {
-          gunData.acilisBakiyesi = oncekiCumartesi.kalanBorc;
+          gun.acilisBakiyesi = oncekiCumartesi.kalanBorc;
         } else {
-          // İlk hafta ise, o tarihe kadar olan toplam borç
           const oncekiSatislar = tumSatislar.filter(s => {
             const satisTarih = parseISO(s.tarih);
             return satisTarih < tarih;
@@ -181,15 +206,21 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
           
           const toplamSatis = oncekiSatislar.reduce((sum, s) => sum + s.genelToplam, 0);
           const toplamOdeme = oncekiOdemeler.reduce((sum, h) => sum + h.tlKarsiligi, 0);
-          gunData.acilisBakiyesi = toplamSatis - toplamOdeme;
+          gun.acilisBakiyesi = toplamSatis - toplamOdeme;
         }
       }
 
-      gunler.push(gunData);
+      gunler.push(gun);
     });
 
     setGunlukVeriler(gunler);
   }, [musteriId, yenilemeKey]);
+
+  const filtrelenmisVeriler = gunlukVeriler.filter(gun => {
+    if (filtre === 'satis') return gun.kalemler.length > 0;
+    if (filtre === 'odeme') return gun.odemeler.length > 0;
+    return true;
+  });
 
   if (gunlukVeriler.length === 0) {
     return (
@@ -202,21 +233,53 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Müşteri Defteri</h3>
-        <Button 
-          variant="outline" 
-          onClick={handleExcelExport}
-          className="gap-2"
-          disabled={gunlukVeriler.length === 0}
-        >
-          <FileDown className="w-4 h-4" />
-          Excel'e Aktar
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            size="sm" 
+            variant={filtre === 'tum' ? 'default' : 'outline'}
+            onClick={() => setFiltre('tum')}
+          >
+            Tümü
+          </Button>
+          <Button 
+            size="sm" 
+            variant={filtre === 'satis' ? 'default' : 'outline'}
+            onClick={() => setFiltre('satis')}
+          >
+            Satışlar
+          </Button>
+          <Button 
+            size="sm" 
+            variant={filtre === 'odeme' ? 'default' : 'outline'}
+            onClick={() => setFiltre('odeme')}
+          >
+            Ödemeler
+          </Button>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setYeniHareketModalOpen(true)}
+            className="gap-2"
+          >
+            + Yeni Hareket Ekle
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleExcelExport}
+            className="gap-2"
+            disabled={gunlukVeriler.length === 0}
+          >
+            <FileDown className="w-4 h-4" />
+            Excel'e Aktar
+          </Button>
+        </div>
       </div>
 
       <ScrollArea className="h-[600px]">
         <div className="space-y-2 pr-4">
-        {gunlukVeriler.map((gun, index) => (
+        {filtrelenmisVeriler.map((gun, index) => (
           <Card 
             key={index}
             className={gun.isCumartesi ? "border-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20" : ""}
@@ -261,8 +324,9 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-xs py-2">Satış No</TableHead>
-                      <TableHead className="text-xs py-2">Ürün Adı</TableHead>
+                      <TableHead className="text-xs py-2">İşlem Türü</TableHead>
+                      <TableHead className="text-xs py-2">Satış No / Açıklama</TableHead>
+                      <TableHead className="text-xs py-2">Ürün / Detay</TableHead>
                       <TableHead className="text-xs text-right py-2">Adet</TableHead>
                       <TableHead className="text-xs text-right py-2">Birim Fiyat</TableHead>
                       <TableHead className="text-xs text-right py-2">Toplam</TableHead>
@@ -277,6 +341,9 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
 
                       return (
                         <TableRow key={idx}>
+                          <TableCell className="text-xs py-1">
+                            <Badge variant="outline">💰 Satış</Badge>
+                          </TableCell>
                           <TableCell className="text-xs font-medium py-1">{kalem.satisNo}</TableCell>
                           <TableCell className="text-xs py-1">{kalem.urunAdi}</TableCell>
                           <TableCell className="text-xs text-right py-1">{kalem.adet}</TableCell>
@@ -329,6 +396,87 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
                         </TableRow>
                       );
                     })}
+
+                    {/* Ödemeler */}
+                    {gun.odemeler.map((odeme, idx) => (
+                      <TableRow key={`odeme-${idx}`} className="bg-green-50/50 dark:bg-green-950/20">
+                        <TableCell className="text-xs py-1">
+                          <Badge variant="outline" className="text-green-600 border-green-600">
+                            💵 Ödeme
+                          </Badge>
+                        </TableCell>
+                        <TableCell colSpan={3} className="text-xs py-1">
+                          {odeme.aciklama}
+                        </TableCell>
+                        <TableCell className="text-xs text-right py-1">
+                          {odeme.odemeTuru && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              {odeme.odemeTuru}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs text-right font-semibold py-1 text-green-600 dark:text-green-400">
+                          -{formatCurrency(odeme.tutar, odeme.paraBirimi)}
+                        </TableCell>
+                        <TableCell className="text-xs text-right py-1">
+                          <div className="flex gap-1 justify-end">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              onClick={() => setDuzenlenecekHareket(odeme)}
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 text-destructive hover:text-destructive"
+                              onClick={() => setSilinecekHareketId(odeme.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+
+                    {/* İadeler */}
+                    {gun.iadeler.map((iade, idx) => (
+                      <TableRow key={`iade-${idx}`} className="bg-blue-50/50 dark:bg-blue-950/20">
+                        <TableCell className="text-xs py-1">
+                          <Badge variant="outline" className="text-blue-600 border-blue-600">
+                            🔄 İade
+                          </Badge>
+                        </TableCell>
+                        <TableCell colSpan={4} className="text-xs py-1">
+                          {iade.aciklama}
+                        </TableCell>
+                        <TableCell className="text-xs text-right font-semibold py-1 text-blue-600 dark:text-blue-400">
+                          -{formatCurrency(iade.tutar, iade.paraBirimi)}
+                        </TableCell>
+                        <TableCell className="text-xs text-right py-1">
+                          <div className="flex gap-1 justify-end">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              onClick={() => setDuzenlenecekHareket(iade)}
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 text-destructive hover:text-destructive"
+                              onClick={() => setSilinecekHareketId(iade.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
@@ -388,6 +536,13 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
           onSuccess={handleDuzenleSuccess}
         />
       )}
+
+      <YeniHareketModal
+        open={yeniHareketModalOpen}
+        onOpenChange={setYeniHareketModalOpen}
+        musteriId={musteriId}
+        onSuccess={() => setYenilemeKey(prev => prev + 1)}
+      />
 
       <AlertDialog open={!!silinecekHareketId} onOpenChange={(open) => !open && setSilinecekHareketId(null)}>
         <AlertDialogContent>
