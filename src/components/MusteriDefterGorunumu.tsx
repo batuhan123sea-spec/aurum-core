@@ -48,15 +48,22 @@ interface GunlukSatis {
 
 interface MusteriDefterGorunumuProps {
   musteriId: string;
+  onHareketDuzenlendi?: () => void;
+  onHareketSilindi?: () => void;
 }
 
-const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
+const MusteriDefterGorunumu = ({ 
+  musteriId, 
+  onHareketDuzenlendi, 
+  onHareketSilindi 
+}: MusteriDefterGorunumuProps) => {
   const [gunlukVeriler, setGunlukVeriler] = useState<GunlukSatis[]>([]);
   const [duzenlenecekHareket, setDuzenlenecekHareket] = useState<HesapHareketi | null>(null);
   const [silinecekHareketId, setSilinecekHareketId] = useState<string | null>(null);
   const [yenilemeKey, setYenilemeKey] = useState(0);
   const [filtre, setFiltre] = useState<'tum' | 'satis' | 'odeme' | 'iade'>('tum');
   const [yeniHareketModalOpen, setYeniHareketModalOpen] = useState(false);
+  const [yukleniyor, setYukleniyor] = useState(true);
   const musteri = getMusteriById(musteriId);
 
   // Türkiye timezone'ına göre tarih string'i döndürür (GMT+3)
@@ -79,14 +86,18 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
     toast.success("Hareket başarıyla silindi");
     setSilinecekHareketId(null);
     setYenilemeKey(prev => prev + 1);
+    onHareketSilindi?.();
   };
 
   const handleDuzenleSuccess = () => {
     setDuzenlenecekHareket(null);
     setYenilemeKey(prev => prev + 1);
+    onHareketDuzenlendi?.();
   };
 
   useEffect(() => {
+    setYukleniyor(true);
+    
     const tumSatislar = getSatislar().filter(
       s => s.musteriId === musteriId && s.durum === 'tamamlandi'
     );
@@ -227,6 +238,7 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
     });
 
     setGunlukVeriler(gunler);
+    setYukleniyor(false);
   }, [musteriId, yenilemeKey]);
 
   const filtrelenmisVeriler = gunlukVeriler.filter(gun => {
@@ -235,6 +247,15 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
     if (filtre === 'iade') return gun.iadeler.length > 0;
     return true;
   });
+
+  if (yukleniyor) {
+    return (
+      <div className="text-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+        <p className="text-muted-foreground mt-4">Yükleniyor...</p>
+      </div>
+    );
+  }
 
   if (gunlukVeriler.length === 0) {
     return (
@@ -356,7 +377,7 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
                   </TableHeader>
                   <TableBody>
                     {gun.kalemler.map((kalem, idx) => (
-                      <TableRow key={idx}>
+                      <TableRow key={`${gun.tarih.getTime()}-${kalem.satisNo}-${kalem.urunAdi}-${idx}`}>
                         <TableCell className="text-xs py-1">
                           <Badge variant="outline">💰 Satış</Badge>
                         </TableCell>
@@ -414,7 +435,7 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
 
                     {/* Ödemeler */}
                     {gun.odemeler.map((odeme, idx) => (
-                      <TableRow key={`odeme-${idx}`} className="bg-green-50/50 dark:bg-green-950/20">
+                      <TableRow key={`odeme-${gun.tarih.getTime()}-${odeme.id}-${idx}`} className="bg-green-50/50 dark:bg-green-950/20">
                         <TableCell className="text-xs py-1">
                           <Badge variant="outline" className="text-green-600 border-green-600">
                             💵 Ödeme
@@ -458,7 +479,7 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
 
                     {/* İadeler */}
                     {gun.iadeler.map((iade, idx) => (
-                      <TableRow key={`iade-${idx}`} className="bg-blue-50/50 dark:bg-blue-950/20">
+                      <TableRow key={`iade-${gun.tarih.getTime()}-${iade.id}-${idx}`} className="bg-blue-50/50 dark:bg-blue-950/20">
                         <TableCell className="text-xs py-1">
                           <Badge variant="outline" className="text-blue-600 border-blue-600">
                             🔄 İade
