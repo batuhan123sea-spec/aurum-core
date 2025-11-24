@@ -375,10 +375,16 @@ export default function YeniSatis() {
     sum + (kalem.alisFiyati * kalem.adet), 0
   );
 
-  const toplamKar = sepet.reduce((sum, kalem) => {
+  const kalemBazliKar = sepet.reduce((sum, kalem) => {
     const { karTL } = hesaplaKalemKarMarji(kalem);
     return sum + (karTL * kalem.adet);
   }, 0);
+
+  // Genel indirim tutarını hesapla
+  const genelIndirimTutari = (genelIndirimYuzde > 0 ? (araToplam - kalemIndirimleri) * (genelIndirimYuzde / 100) : 0) + genelIndirimTL;
+  
+  // Toplam kar = Kalem bazlı kar - Genel indirim
+  const toplamKar = kalemBazliKar - genelIndirimTutari;
 
   const genelKarMarjiYuzde = toplamMaliyet > 0
     ? ((toplamKar / toplamMaliyet) * 100)
