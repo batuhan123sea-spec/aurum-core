@@ -80,6 +80,22 @@ export default function YeniSatis() {
     barkodInputRef.current?.focus();
   }, []);
 
+  // KDV dahil/hariç değiştiğinde sepetteki ürünleri güncelle
+  useEffect(() => {
+    if (sepet.length > 0) {
+      setSepet(sepet.map(kalem => ({
+        ...kalem,
+        toplamTutar: hesaplaKalemToplam(
+          kalem.adet,
+          kalem.birimFiyati,
+          kalem.kdvOrani,
+          kalem.indirimTL,
+          kalem.indirimYuzde
+        )
+      })));
+    }
+  }, [kdvDahil]);
+
   // Barkod ile ürün ekle
   const barkodIleUrunEkle = (barkod: string) => {
     const urun = urunler.find(u => u.barkod === barkod);
