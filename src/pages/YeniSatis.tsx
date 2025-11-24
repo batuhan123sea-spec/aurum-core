@@ -47,6 +47,8 @@ export default function YeniSatis() {
   const [musteriModalOpen, setMusteriModalOpen] = useState(false);
   const [rezervNotu, setRezervNotu] = useState("");
   const [indirimInputs, setIndirimInputs] = useState<Record<string, string>>({});
+  const [genelIndirimInputTL, setGenelIndirimInputTL] = useState<string>("");
+  const [genelIndirimInputYuzde, setGenelIndirimInputYuzde] = useState<string>("");
   
   const kurlar = getGuncelKurlar();
   const urunler = getUrunler();
@@ -83,6 +85,13 @@ export default function YeniSatis() {
 
   // KDV dahil/hariç değiştiğinde sepetteki ürünleri güncelle
   useEffect(() => {
+    if (kdvDahil) {
+      setGenelIndirimTL(0);
+      setGenelIndirimYuzde(0);
+      setGenelIndirimInputTL("");
+      setGenelIndirimInputYuzde("");
+    }
+    
     if (sepet.length > 0) {
       setSepet(sepet.map(kalem => ({
         ...kalem,
@@ -327,6 +336,8 @@ export default function YeniSatis() {
     setSeciliMusteri(null);
     setRezervNotu("");
     setIndirimInputs({});
+    setGenelIndirimInputTL("");
+    setGenelIndirimInputYuzde("");
   };
 
   // Fiyat hesaplamaları
@@ -730,26 +741,32 @@ export default function YeniSatis() {
               <div className="space-y-2">
                 <Label>Genel İndirim</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    type="number"
-                    placeholder={kdvDahil ? "KDV dahilde yapılamaz" : "TL"}
-                    disabled={kdvDahil}
-                    value={genelIndirimTL || ''}
-                    onChange={(e) => {
-                      setGenelIndirimTL(parseFloat(e.target.value) || 0);
-                      setGenelIndirimYuzde(0);
-                    }}
-                  />
-                  <Input
-                    type="number"
-                    placeholder={kdvDahil ? "KDV dahilde yapılamaz" : "%"}
-                    disabled={kdvDahil}
-                    value={genelIndirimYuzde || ''}
-                    onChange={(e) => {
-                      setGenelIndirimYuzde(Math.min(100, parseFloat(e.target.value) || 0));
-                      setGenelIndirimTL(0);
-                    }}
-                  />
+                      <Input
+                        type="text"
+                        placeholder={kdvDahil ? "KDV dahilde yapılamaz" : "TL"}
+                        disabled={kdvDahil}
+                        value={genelIndirimInputTL !== "" ? genelIndirimInputTL : (genelIndirimTL > 0 ? genelIndirimTL.toFixed(2) : "")}
+                        onChange={(e) => {
+                          if (kdvDahil) return;
+                          setGenelIndirimInputTL(e.target.value);
+                          setGenelIndirimTL(parseFloat(e.target.value) || 0);
+                          setGenelIndirimYuzde(0);
+                        }}
+                        onBlur={() => setGenelIndirimInputTL("")}
+                      />
+                      <Input
+                        type="text"
+                        placeholder={kdvDahil ? "KDV dahilde yapılamaz" : "%"}
+                        disabled={kdvDahil}
+                        value={genelIndirimInputYuzde !== "" ? genelIndirimInputYuzde : (genelIndirimYuzde > 0 ? genelIndirimYuzde.toFixed(1) : "")}
+                        onChange={(e) => {
+                          if (kdvDahil) return;
+                          setGenelIndirimInputYuzde(e.target.value);
+                          setGenelIndirimYuzde(Math.min(100, parseFloat(e.target.value) || 0));
+                          setGenelIndirimTL(0);
+                        }}
+                        onBlur={() => setGenelIndirimInputYuzde("")}
+                      />
                 </div>
               </div>
 
