@@ -5,6 +5,7 @@ export interface SatisKalemi {
   barkod: string;
   adet: number;
   birimFiyati: number; // TL cinsinden
+  alisFiyati: number; // Alış fiyatı (TL cinsinden)
   paraBirimi: 'TRY' | 'USD' | 'EUR'; // Ürünün orijinal para birimi
   orijinalBirimFiyati: number; // Ürünün kendi para birimindeki fiyatı
   kdvOrani: number;
