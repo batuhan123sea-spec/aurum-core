@@ -54,10 +54,18 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
   const [duzenlenecekHareket, setDuzenlenecekHareket] = useState<HesapHareketi | null>(null);
   const [silinecekHareketId, setSilinecekHareketId] = useState<string | null>(null);
   const [yenilemeKey, setYenilemeKey] = useState(0);
-  const [filtre, setFiltre] = useState<'tum' | 'satis' | 'odeme'>('tum');
+  const [filtre, setFiltre] = useState<'tum' | 'satis' | 'odeme' | 'iade'>('tum');
   const [yeniHareketModalOpen, setYeniHareketModalOpen] = useState(false);
   const musteri = getMusteriById(musteriId);
   const hareketler = getHareketlerByMusteriId(musteriId);
+
+  // Türkiye timezone'ına göre tarih string'i döndürür (GMT+3)
+  const getTarihStr = (isoTarih: string): string => {
+    const date = new Date(isoTarih);
+    // Türkiye saati için +3 saat ekle
+    const turkiyeTarihi = new Date(date.getTime() + (3 * 60 * 60 * 1000));
+    return turkiyeTarihi.toISOString().split('T')[0];
+  };
 
   const handleExcelExport = () => {
     if (!musteri) return;
@@ -94,7 +102,7 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
     
     // Satışları ekle
     tumSatislar.forEach(satis => {
-      const tarihStr = satis.tarih.split('T')[0];
+      const tarihStr = getTarihStr(satis.tarih);
       
       if (!tarihMap.has(tarihStr)) {
         tarihMap.set(tarihStr, { kalemler: [], odemeler: [], iadeler: [] });
@@ -129,7 +137,7 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
     // Ödemeleri ve iadeleri ekle
     hareketler.forEach(hareket => {
       if (hareket.islemTuru === 'odeme' || hareket.islemTuru === 'iade') {
-        const tarihStr = hareket.tarih.split('T')[0];
+        const tarihStr = getTarihStr(hareket.tarih);
         
         if (!tarihMap.has(tarihStr)) {
           tarihMap.set(tarihStr, { kalemler: [], odemeler: [], iadeler: [] });
@@ -219,6 +227,7 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
   const filtrelenmisVeriler = gunlukVeriler.filter(gun => {
     if (filtre === 'satis') return gun.kalemler.length > 0;
     if (filtre === 'odeme') return gun.odemeler.length > 0;
+    if (filtre === 'iade') return gun.iadeler.length > 0;
     return true;
   });
 
@@ -254,6 +263,13 @@ const MusteriDefterGorunumu = ({ musteriId }: MusteriDefterGorunumuProps) => {
             onClick={() => setFiltre('odeme')}
           >
             Ödemeler
+          </Button>
+          <Button 
+            size="sm" 
+            variant={filtre === 'iade' ? 'default' : 'outline'}
+            onClick={() => setFiltre('iade')}
+          >
+            İadeler
           </Button>
         </div>
         

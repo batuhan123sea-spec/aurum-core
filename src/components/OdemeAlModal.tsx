@@ -22,7 +22,7 @@ interface OdemeAlModalProps {
 
 const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalProps) => {
   const [formData, setFormData] = useState({
-    odemeTarihi: new Date().toISOString().split('T')[0],
+    odemeTarihi: new Date().toISOString().slice(0, 16),
     odemeTutari: "",
     odemeParaBirimi: "TRY" as ParaBirimi,
     odemeTuru: "nakit" as OdemeTuru,
@@ -35,7 +35,7 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
   useEffect(() => {
     if (open && musteri) {
       setFormData({
-        odemeTarihi: new Date().toISOString().split('T')[0],
+        odemeTarihi: new Date().toISOString().slice(0, 16),
         odemeTutari: "",
         odemeParaBirimi: musteri.varsayilanParaBirimi,
         odemeTuru: "nakit",
@@ -100,26 +100,21 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
 
     musteriBalanceGuncelle(musteri.id);
 
-    toast({
-      title: "✅ Başarılı",
-      description: "Ödeme kaydedildi, sayfa yenileniyor...",
-    });
-
     if (yazdır) {
       const guncelMusteri = getMusteriById(musteri.id);
       if (guncelMusteri && sonuc.hareketler.length > 0) {
-        // İlk hareketi kullanarak fiş oluştur
         const fisIcerigi = tahsilatFisiOlustur(guncelMusteri, sonuc.hareketler[0], oncekiBorc);
         fisYazdir(fisIcerigi);
       }
     }
 
+    toast({
+      title: "✅ Başarılı",
+      description: "Ödeme kaydedildi",
+    });
+
+    onSuccess();
     onOpenChange(false);
-    
-    // Senkronizasyon için sayfa yenileme
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
   };
 
   const handleFisOnizleme = () => {
@@ -193,7 +188,7 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
               <Label htmlFor="odemeTarihi" className="text-xs">Ödeme Tarihi</Label>
               <Input
                 id="odemeTarihi"
-                type="date"
+                type="datetime-local"
                 value={formData.odemeTarihi}
                 onChange={(e) => setFormData({ ...formData, odemeTarihi: e.target.value })}
                 className="h-9"
