@@ -44,7 +44,6 @@ const urunSchema = z.object({
   alisFiyati: z.coerce.number().min(0, "Alış fiyatı 0'dan küçük olamaz"),
   paraBirimi: z.enum(['TRY', 'USD', 'EUR']),
   satisFiyati: z.coerce.number().min(0, "Satış fiyatı 0'dan küçük olamaz"),
-  satisFiyatiParaBirimi: z.enum(['TRY', 'USD', 'EUR']),
   minStokSeviyesi: z.coerce.number().min(0),
   aciklama: z.string().optional(),
 });
@@ -92,7 +91,6 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
       alisFiyati: initialData.alisFiyati,
       paraBirimi: initialData.alisFiyatiParaBirimi,
       satisFiyati: initialData.satisFiyati,
-      satisFiyatiParaBirimi: initialData.satisFiyatiParaBirimi || initialData.alisFiyatiParaBirimi,
       minStokSeviyesi: initialData.minStokSeviyesi,
       aciklama: initialData.aciklama || "",
     } : {
@@ -104,7 +102,6 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
       alisFiyati: 0,
       paraBirimi: "TRY",
       satisFiyati: 0,
-      satisFiyatiParaBirimi: "TRY",
       minStokSeviyesi: 10,
       aciklama: "",
     },
@@ -205,7 +202,7 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
         alisFiyati: varsayilanTedarikci.alisFiyati,
         alisFiyatiParaBirimi: varsayilanTedarikci.paraBirimi,
         satisFiyati: data.satisFiyati,
-        satisFiyatiParaBirimi: data.satisFiyatiParaBirimi,
+        satisFiyatiParaBirimi: data.paraBirimi,
         karMarji: ((data.satisFiyati - varsayilanTedarikci.alisFiyati) / varsayilanTedarikci.alisFiyati) * 100,
         minStokSeviyesi: data.minStokSeviyesi,
         kritikStokSeviyesi: Math.floor(data.minStokSeviyesi / 2),
@@ -233,7 +230,7 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
         alisFiyatiParaBirimi: varsayilanTedarikci.paraBirimi,
         karMarji: ((data.satisFiyati - varsayilanTedarikci.alisFiyati) / varsayilanTedarikci.alisFiyati) * 100,
         satisFiyati: data.satisFiyati,
-        satisFiyatiParaBirimi: data.satisFiyatiParaBirimi,
+        satisFiyatiParaBirimi: data.paraBirimi,
         minStokSeviyesi: data.minStokSeviyesi,
         kritikStokSeviyesi: Math.floor(data.minStokSeviyesi / 2),
         aciklama: data.aciklama || '',
@@ -389,43 +386,66 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="satisFiyati"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Satış Fiyatı *</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="satisFiyatiParaBirimi"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Satış Fiyatı Para Birimi *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+            {/* Fiyatlandırma Bölümü */}
+            <div className="space-y-4 pt-2">
+              <FormLabel className="text-base">Fiyatlandırma</FormLabel>
+              
+              <div className="grid grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="alisFiyati"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Alış Fiyatı *</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                        <Input type="number" step="0.01" {...field} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="TRY">₺ TRY</SelectItem>
-                        <SelectItem value="USD">$ USD</SelectItem>
-                        <SelectItem value="EUR">€ EUR</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="paraBirimi"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Para Birimi *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="TRY">₺ TRY</SelectItem>
+                          <SelectItem value="USD">$ USD</SelectItem>
+                          <SelectItem value="EUR">€ EUR</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="satisFiyati"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Satış Fiyatı *</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <p className="text-xs text-muted-foreground">
+                💡 Satış fiyatı, alış fiyatı ile aynı para biriminde olacaktır.
+              </p>
             </div>
 
             {/* Tedarikçiler Bölümü */}
