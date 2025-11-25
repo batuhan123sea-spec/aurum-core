@@ -78,8 +78,24 @@ export function deleteHareket(hareketId: string, musteriId: string): void {
   const hareketler = getHareketler();
   const silinecekHareket = hareketler.find(h => h.id === hareketId);
   
+  if (!silinecekHareket) {
+    console.warn('🗑️ Silinecek hareket bulunamadı:', hareketId);
+    return;
+  }
+
+  console.log('🗑️ Hareket siliniyor:', {
+    id: hareketId,
+    islemTuru: silinecekHareket.islemTuru,
+    tutar: silinecekHareket.tutar,
+    paraBirimi: silinecekHareket.paraBirimi,
+    tlKarsiligi: silinecekHareket.tlKarsiligi
+  });
+
+  // Bakiye değişimini izlemek için silme öncesi durumu kaydet
+  const oncekiBorclar = musteriDovizBorclariniHesapla(musteriId);
+  
   // Eğer bu bir satış hareketi ise, ilgili satışı iptal olarak işaretle
-  if (silinecekHareket && silinecekHareket.islemTuru === 'satis') {
+  if (silinecekHareket.islemTuru === 'satis') {
     const satislar = getSatislar();
     
     // Satış numarasını aciklama alanından çıkar
@@ -103,6 +119,30 @@ export function deleteHareket(hareketId: string, musteriId: string): void {
   
   // Bakiyeleri yeniden hesapla
   musteriBalanceGuncelle(musteriId);
+
+  // Silme sonrası durumu kontrol et
+  const sonrakiBorclar = musteriDovizBorclariniHesapla(musteriId);
+  
+  console.log('📊 Bakiye değişimi:', {
+    onceki: {
+      TRY: oncekiBorclar.TRY,
+      USD: oncekiBorclar.USD,
+      EUR: oncekiBorclar.EUR,
+      toplamTL: oncekiBorclar.toplamTL
+    },
+    sonraki: {
+      TRY: sonrakiBorclar.TRY,
+      USD: sonrakiBorclar.USD,
+      EUR: sonrakiBorclar.EUR,
+      toplamTL: sonrakiBorclar.toplamTL
+    },
+    fark: {
+      TRY: sonrakiBorclar.TRY - oncekiBorclar.TRY,
+      USD: sonrakiBorclar.USD - oncekiBorclar.USD,
+      EUR: sonrakiBorclar.EUR - oncekiBorclar.EUR,
+      toplamTL: sonrakiBorclar.toplamTL - oncekiBorclar.toplamTL
+    }
+  });
 }
 
 // Satışları hesaba aktar - Senkronizasyon fonksiyonu
@@ -281,23 +321,29 @@ export function musteriDovizBorclariniHesapla(musteriId: string): {
 } {
   const hareketler = getHareketlerByMusteriId(musteriId);
   
+  console.log('🔢 Borç hesaplama başladı, hareket sayısı:', hareketler.length);
+  
   const borclar = {
     TRY: 0,
     USD: 0,
     EUR: 0
   };
   
-  hareketler.forEach(hareket => {
+  hareketler.forEach((hareket, index) => {
     const miktar = hareket.tutar;
     const paraBirimi = hareket.paraBirimi;
     
     if (hareket.islemTuru === 'satis') {
       borclar[paraBirimi] += miktar;
+      console.log(`  [${index + 1}] ➕ Satış: +${miktar.toFixed(2)} ${paraBirimi} → Toplam: ${borclar[paraBirimi].toFixed(2)}`);
     } else if (hareket.islemTuru === 'odeme') {
-      // Borç asla negatif olamaz - fazla ödeme engelle
+      const eskiBakiye = borclar[paraBirimi];
       borclar[paraBirimi] = Math.max(0, borclar[paraBirimi] - miktar);
+      console.log(`  [${index + 1}] ➖ Ödeme: -${miktar.toFixed(2)} ${paraBirimi} (${eskiBakiye.toFixed(2)} → ${borclar[paraBirimi].toFixed(2)})`);
     } else if (hareket.islemTuru === 'iade') {
+      const eskiBakiye = borclar[paraBirimi];
       borclar[paraBirimi] = Math.max(0, borclar[paraBirimi] - miktar);
+      console.log(`  [${index + 1}] 🔄 İade: -${miktar.toFixed(2)} ${paraBirimi} (${eskiBakiye.toFixed(2)} → ${borclar[paraBirimi].toFixed(2)})`);
     }
   });
   
@@ -307,6 +353,13 @@ export function musteriDovizBorclariniHesapla(musteriId: string): {
     borclar.TRY + 
     (borclar.USD * kurlar.usd) + 
     (borclar.EUR * kurlar.eur);
+  
+  console.log('✅ Hesaplama tamamlandı:', {
+    TRY: borclar.TRY.toFixed(2),
+    USD: borclar.USD.toFixed(2),
+    EUR: borclar.EUR.toFixed(2),
+    toplamTL: toplamTL.toFixed(2)
+  });
   
   return {
     ...borclar,

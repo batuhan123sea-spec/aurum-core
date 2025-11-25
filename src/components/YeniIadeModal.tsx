@@ -36,7 +36,8 @@ interface IadeKalemi {
   maxAdet: number;
   iadeAdet: number;
   paraBirimi: 'TRY' | 'USD' | 'EUR';
-  birimFiyat: number;
+  gercekBirimFiyat: number; // İndirim dahil gerçek satış birim fiyatı
+  orijinalBirimFiyat: number; // Gösterim için liste fiyatı
   toplamTutar: number;
 }
 
@@ -70,7 +71,8 @@ export function YeniIadeModal({ open, onOpenChange, musteriId, musteriAdi, onSuc
         maxAdet: kalem.adet,
         iadeAdet: 0,
         paraBirimi: kalem.paraBirimi,
-        birimFiyat: kalem.orijinalBirimFiyati,
+        gercekBirimFiyat: kalem.toplamTutar / kalem.adet, // Gerçek net birim fiyat (indirim dahil)
+        orijinalBirimFiyat: kalem.orijinalBirimFiyati,
         toplamTutar: 0
       }))
     );
@@ -84,7 +86,7 @@ export function YeniIadeModal({ open, onOpenChange, musteriId, musteriAdi, onSuc
           return {
             ...k,
             iadeAdet: adet,
-            toplamTutar: adet * k.birimFiyat
+            toplamTutar: adet * k.gercekBirimFiyat
           };
         }
         return k;
@@ -152,7 +154,15 @@ export function YeniIadeModal({ open, onOpenChange, musteriId, musteriAdi, onSuc
     }
   };
 
-  const toplamIadeTutari = iadeKalemleri.reduce((sum, k) => sum + k.toplamTutar, 0);
+  // Para birimine göre grupla
+  const paraBirimiToplamlari = iadeKalemleri.reduce((acc, k) => {
+    if (k.iadeAdet > 0) {
+      if (!acc[k.paraBirimi]) acc[k.paraBirimi] = 0;
+      acc[k.paraBirimi] += k.toplamTutar;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+  
   const seciliUrunSayisi = iadeKalemleri.filter(k => k.iadeAdet > 0).length;
 
   return (
@@ -244,7 +254,7 @@ export function YeniIadeModal({ open, onOpenChange, musteriId, musteriAdi, onSuc
                             />
                           </TableCell>
                           <TableCell className="text-right">
-                            {formatCurrency(kalem.birimFiyat, kalem.paraBirimi)}
+                            {formatCurrency(kalem.gercekBirimFiyat, kalem.paraBirimi)}
                           </TableCell>
                           <TableCell className="text-right font-semibold">
                             {formatCurrency(kalem.toplamTutar, kalem.paraBirimi)}
@@ -262,9 +272,11 @@ export function YeniIadeModal({ open, onOpenChange, musteriId, musteriAdi, onSuc
                       <p className="text-sm text-muted-foreground">
                         {seciliUrunSayisi} ürün iade edilecek
                       </p>
-                      <p className="text-lg font-bold">
-                        Toplam İade: {formatCurrency(toplamIadeTutari, 'TRY')}
-                      </p>
+                      {Object.entries(paraBirimiToplamlari).map(([pb, toplam]) => (
+                        <p key={pb} className="text-lg font-bold">
+                          İade ({pb}): {formatCurrency(toplam, pb as 'TRY' | 'USD' | 'EUR')}
+                        </p>
+                      ))}
                     </div>
                   </div>
                 )}
