@@ -75,8 +75,31 @@ export function updateHareket(hareket: HesapHareketi): void {
 }
 
 export function deleteHareket(hareketId: string, musteriId: string): void {
-  const hareketler = getHareketler().filter(h => h.id !== hareketId);
-  localStorage.setItem(HAREKET_KEY, JSON.stringify(hareketler));
+  const hareketler = getHareketler();
+  const silinecekHareket = hareketler.find(h => h.id === hareketId);
+  
+  // Eğer bu bir satış hareketi ise, ilgili satışı iptal olarak işaretle
+  if (silinecekHareket && silinecekHareket.islemTuru === 'satis') {
+    const satislar = getSatislar();
+    
+    // Satış numarasını aciklama alanından çıkar
+    const satisNoMatch = silinecekHareket.aciklama.match(/Satış No: (SATS-\d+|REZ-\d+)/);
+    
+    if (satisNoMatch) {
+      const satisNo = satisNoMatch[1];
+      const ilgiliSatis = satislar.find(s => s.satisNo === satisNo);
+      
+      if (ilgiliSatis) {
+        ilgiliSatis.iptalEdildi = true;
+        ilgiliSatis.iptalTarihi = new Date().toISOString();
+        localStorage.setItem('kuyumcu_satislar', JSON.stringify(satislar));
+      }
+    }
+  }
+  
+  // Hareketi sil
+  const filtrelenmisHareketler = hareketler.filter(h => h.id !== hareketId);
+  localStorage.setItem(HAREKET_KEY, JSON.stringify(filtrelenmisHareketler));
   
   // Bakiyeleri yeniden hesapla
   musteriBalanceGuncelle(musteriId);

@@ -293,22 +293,45 @@ export function SatisGecmisiTable({ musteriId }: SatisGecmisiTableProps) {
                 <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
                   <div className="flex items-center gap-4">
                     <Badge variant="outline" className="font-mono">{satis.satisNo}</Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {new Date(satis.tarih).toLocaleDateString('tr-TR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                    {getSatisTuruBadge(satis.satisTuru)}
+                    
+                    {/* İptal badge'i - En öncelikli gösterim */}
+                    {satis.iptalEdildi ? (
+                      <>
+                        <Badge variant="destructive" className="gap-1">
+                          ❌ İPTAL EDİLDİ
+                        </Badge>
+                        {satis.iptalTarihi && (
+                          <span className="text-xs text-destructive font-medium">
+                            (İptal: {new Date(satis.iptalTarihi).toLocaleDateString('tr-TR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })})
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(satis.tarih).toLocaleDateString('tr-TR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                        {getSatisTuruBadge(satis.satisTuru)}
+                      </>
+                    )}
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-sm text-muted-foreground">
                       {satis.kalemler.length} ürün
                     </span>
-                    <span className="font-bold text-lg">
+                    <span className={`font-bold text-lg ${satis.iptalEdildi ? 'text-muted-foreground line-through' : ''}`}>
                       {formatCurrency(satis.genelToplam, 'TRY')}
                     </span>
                     <ChevronDown className="w-4 h-4 text-muted-foreground" />

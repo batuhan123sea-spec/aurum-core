@@ -29,7 +29,7 @@ export interface StokDurumRapor {
 }
 
 export const getGunlukSatisRaporu = (tarih: Date): GunlukSatisRapor => {
-  const satislar = getGunlukSatislar(tarih);
+  const satislar = getGunlukSatislar(tarih).filter(s => !s.iptalEdildi);
   const toplamSatis = satislar.reduce((sum, s) => sum + s.genelToplam, 0);
   const toplamAdet = satislar.reduce((sum, s) => 
     sum + s.kalemler.reduce((adet, k) => adet + k.adet, 0), 0);
@@ -87,7 +87,7 @@ export const getStokDurumRaporu = (): StokDurumRapor[] => {
 export const getKarZararAnalizi = (baslangic: Date, bitis: Date) => {
   const satislar = getSatislar().filter(s => {
     const satisTarih = new Date(s.tarih);
-    return satisTarih >= baslangic && satisTarih <= bitis && s.durum === 'tamamlandi';
+    return satisTarih >= baslangic && satisTarih <= bitis && s.durum === 'tamamlandi' && !s.iptalEdildi;
   });
   
   const toplamSatis = satislar.reduce((sum, s) => sum + s.genelToplam, 0);
