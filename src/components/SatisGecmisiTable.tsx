@@ -34,7 +34,7 @@ export function SatisGecmisiTable({ musteriId }: SatisGecmisiTableProps) {
 
   const satislar = useMemo(() => {
     return getSatislar()
-      .filter(s => s.musteriId === musteriId && s.durum === 'tamamlandi')
+      .filter(s => s.musteriId === musteriId && s.durum === 'tamamlandi' && !s.iptalEdildi)
       .filter(s => {
         // Tarih filtresi
         if (filters.baslangicTarihi) {
@@ -93,7 +93,7 @@ export function SatisGecmisiTable({ musteriId }: SatisGecmisiTableProps) {
     });
   };
 
-  if (getSatislar().filter(s => s.musteriId === musteriId && s.durum === 'tamamlandi').length === 0) {
+  if (getSatislar().filter(s => s.musteriId === musteriId && s.durum === 'tamamlandi' && !s.iptalEdildi).length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         Henüz satış kaydı bulunmamaktadır.
@@ -293,45 +293,22 @@ export function SatisGecmisiTable({ musteriId }: SatisGecmisiTableProps) {
                 <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
                   <div className="flex items-center gap-4">
                     <Badge variant="outline" className="font-mono">{satis.satisNo}</Badge>
-                    
-                    {/* İptal badge'i - En öncelikli gösterim */}
-                    {satis.iptalEdildi ? (
-                      <>
-                        <Badge variant="destructive" className="gap-1">
-                          ❌ İPTAL EDİLDİ
-                        </Badge>
-                        {satis.iptalTarihi && (
-                          <span className="text-xs text-destructive font-medium">
-                            (İptal: {new Date(satis.iptalTarihi).toLocaleDateString('tr-TR', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })})
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-sm text-muted-foreground">
-                          {new Date(satis.tarih).toLocaleDateString('tr-TR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                        {getSatisTuruBadge(satis.satisTuru)}
-                      </>
-                    )}
+                    <span className="text-sm text-muted-foreground">
+                      {new Date(satis.tarih).toLocaleDateString('tr-TR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                    {getSatisTuruBadge(satis.satisTuru)}
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-sm text-muted-foreground">
                       {satis.kalemler.length} ürün
                     </span>
-                    <span className={`font-bold text-lg ${satis.iptalEdildi ? 'text-muted-foreground line-through' : ''}`}>
+                    <span className="font-bold text-lg">
                       {formatCurrency(satis.genelToplam, 'TRY')}
                     </span>
                     <ChevronDown className="w-4 h-4 text-muted-foreground" />
