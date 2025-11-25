@@ -438,6 +438,36 @@ export function createManualHareket(params: {
   musteriBalanceGuncelle(musteriId);
 }
 
+// İade hareketi oluştur
+export function createIadeHareket(params: {
+  musteriId: string;
+  tarih: string;
+  tutar: number;
+  paraBirimi: 'TRY' | 'USD' | 'EUR';
+  aciklama: string;
+}): void {
+  const { musteriId, tarih, tutar, paraBirimi, aciklama } = params;
+  
+  const kur = getKur(paraBirimi);
+  const tlKarsiligi = tutar * kur;
+  
+  const iadeHareket: HesapHareketi = {
+    id: `iade_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    musteriId,
+    tarih,
+    islemTuru: 'iade',
+    aciklama,
+    paraBirimi,
+    tutar,
+    kur,
+    tlKarsiligi,
+    bakiye: 0,
+  };
+  
+  saveHareket(iadeHareket);
+  musteriBalanceGuncelle(musteriId);
+}
+
 // Eski müşteri verilerini yeni yapıya dönüştür (migrasyon)
 export function migrateOldData(): void {
   const musteriler = getMusteriler();
