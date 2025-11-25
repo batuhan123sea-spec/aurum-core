@@ -1,4 +1,6 @@
 import { Satis } from '@/types/satis';
+import { getUrunler, saveUrun } from './stok-data';
+import { stokHareketKaydet } from './stok-hareket';
 
 const STORAGE_KEY = 'kuyumcu_satislar';
 
@@ -22,6 +24,10 @@ export const saveSatis = (satis: Satis): void => {
 
 export const getSatisById = (id: string): Satis | undefined => {
   return getSatislar().find(s => s.id === id);
+};
+
+export const getSatisBySatisNo = (satisNo: string): Satis | undefined => {
+  return getSatislar().find(s => s.satisNo === satisNo);
 };
 
 export const getRezervler = (): Satis[] => {
@@ -62,8 +68,46 @@ export const deleteSatis = (satisId: string): void => {
 
 export const deleteSatisBySatisNo = (satisNo: string): void => {
   const satislar = getSatislar();
+  const silinecekSatis = satislar.find(s => s.satisNo === satisNo);
+  
+  // Satış bulunamazsa çık
+  if (!silinecekSatis) {
+    console.log('⚠️ Silinecek satış bulunamadı:', satisNo);
+    return;
+  }
+  
+  // 🔄 Stokları geri ekle
+  silinecekSatis.kalemler.forEach(kalem => {
+    const urunler = getUrunler();
+    const urun = urunler.find(u => u.id === kalem.urunId);
+    
+    if (urun) {
+      const oncekiMiktar = urun.stokMiktari;
+      const yeniMiktar = oncekiMiktar + kalem.adet;
+      
+      // Stok hareketi kaydet (giriş olarak)
+      stokHareketKaydet(
+        kalem.urunId,
+        'giris',
+        kalem.adet,
+        `Satış İptali - ${satisNo}`,
+        oncekiMiktar,
+        yeniMiktar
+      );
+      
+      // Stoğu artır
+      urun.stokMiktari = yeniMiktar;
+      saveUrun(urun);
+      
+      console.log(`📦 Stok geri eklendi: ${urun.ad} +${kalem.adet} (Yeni: ${yeniMiktar})`);
+    }
+  });
+  
+  // Satışı sil
   const filtrelenmis = satislar.filter(s => s.satisNo !== satisNo);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(filtrelenmis));
+  
+  console.log('🗑️ Satış tamamen silindi:', satisNo);
 };
 
 export const getBugunSatisTopla = (): number => {
