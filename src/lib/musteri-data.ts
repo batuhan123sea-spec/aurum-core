@@ -99,7 +99,7 @@ export function deleteHareket(hareketId: string, musteriId: string): void {
     const satislar = getSatislar();
     
     // Satış numarasını aciklama alanından çıkar
-    const satisNoMatch = silinecekHareket.aciklama.match(/Satış No: (SATS-\d+|REZ-\d+)/);
+    const satisNoMatch = silinecekHareket.aciklama.match(/Satış - (SATS-\d+|REZ-\d+)/);
     
     if (satisNoMatch) {
       const satisNo = satisNoMatch[1];
