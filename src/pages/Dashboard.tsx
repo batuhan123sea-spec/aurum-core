@@ -32,7 +32,7 @@ export default function Dashboard() {
   const bugunkuSatislar = allSatislar
     .filter(s => {
       const satisTarih = new Date(s.tarih);
-      return satisTarih >= bugunBaslangic && s.durum === 'tamamlandi';
+      return satisTarih >= bugunBaslangic && s.durum === 'tamamlandi' && !s.iptalEdildi;
     })
     .sort((a, b) => new Date(b.tarih).getTime() - new Date(a.tarih).getTime());
   

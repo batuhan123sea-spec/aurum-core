@@ -1,6 +1,6 @@
 import { Musteri, HesapHareketi } from "@/types/musteri";
 import { paraBirimiTLyeCevir, getGuncelKurlar, getKur, formatCurrency } from "./kur-hesaplama";
-import { getSatislar } from "./satis-data";
+import { getSatislar, deleteSatisBySatisNo } from "./satis-data";
 
 export const MUSTERI_KEY = 'kuyumcu_musteriler';
 export const HAREKET_KEY = 'kuyumcu_hesap_hareketleri';
@@ -94,22 +94,15 @@ export function deleteHareket(hareketId: string, musteriId: string): void {
   // Bakiye değişimini izlemek için silme öncesi durumu kaydet
   const oncekiBorclar = musteriDovizBorclariniHesapla(musteriId);
   
-  // Eğer bu bir satış hareketi ise, ilgili satışı iptal olarak işaretle
+  // Eğer bu bir satış hareketi ise, ilgili satışı tamamen sil
   if (silinecekHareket.islemTuru === 'satis') {
-    const satislar = getSatislar();
-    
     // Satış numarasını aciklama alanından çıkar
     const satisNoMatch = silinecekHareket.aciklama.match(/Satış - (SATS-\d+|REZ-\d+)/);
     
     if (satisNoMatch) {
       const satisNo = satisNoMatch[1];
-      const ilgiliSatis = satislar.find(s => s.satisNo === satisNo);
-      
-      if (ilgiliSatis) {
-        ilgiliSatis.iptalEdildi = true;
-        ilgiliSatis.iptalTarihi = new Date().toISOString();
-        localStorage.setItem('kuyumcu_satislar', JSON.stringify(satislar));
-      }
+      deleteSatisBySatisNo(satisNo);
+      console.log('🗑️ Satış tamamen silindi:', satisNo);
     }
   }
   
