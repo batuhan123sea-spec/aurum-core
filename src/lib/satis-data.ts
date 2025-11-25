@@ -32,7 +32,7 @@ export const getGunlukSatislar = (tarih: Date): Satis[] => {
   const tarihStr = tarih.toISOString().split('T')[0];
   return getSatislar().filter(s => {
     const satisTarih = new Date(s.tarih).toISOString().split('T')[0];
-    return satisTarih === tarihStr && s.durum === 'tamamlandi';
+    return satisTarih === tarihStr && s.durum === 'tamamlandi' && !s.iptalEdildi;
   });
 };
 
@@ -52,6 +52,18 @@ export const generateRezervNo = (): string => {
     return num > max ? num : max;
   }, 0);
   return `REZ-${String(maxNo + 1).padStart(4, '0')}`;
+};
+
+export const deleteSatis = (satisId: string): void => {
+  const satislar = getSatislar();
+  const filtrelenmis = satislar.filter(s => s.id !== satisId);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtrelenmis));
+};
+
+export const deleteSatisBySatisNo = (satisNo: string): void => {
+  const satislar = getSatislar();
+  const filtrelenmis = satislar.filter(s => s.satisNo !== satisNo);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtrelenmis));
 };
 
 export const getBugunSatisTopla = (): number => {
