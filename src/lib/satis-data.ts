@@ -55,6 +55,6 @@ export const generateRezervNo = (): string => {
 };
 
 export const getBugunSatisTopla = (): number => {
-  const bugun = getGunlukSatislar(new Date());
+  const bugun = getGunlukSatislar(new Date()).filter(s => !s.iptalEdildi);
   return bugun.reduce((toplam, satis) => toplam + satis.genelToplam, 0);
 };

@@ -99,7 +99,9 @@ const MusteriDefterGorunumu = ({
     setYukleniyor(true);
     
     const tumSatislar = getSatislar().filter(
-      s => s.musteriId === musteriId && s.durum === 'tamamlandi'
+      s => s.musteriId === musteriId && 
+           s.durum === 'tamamlandi' &&
+           !s.iptalEdildi // İptal edilenleri defter görünümünde gösterme
     );
     
     const hareketler = getHareketlerByMusteriId(musteriId);
@@ -253,6 +255,11 @@ const MusteriDefterGorunumu = ({
     return true;
   });
 
+  // Boş günleri filtrele (hiç satış, ödeme, iade olmayanlar)
+  const gosterilecekGunler = filtrelenmisVeriler.filter(gun => 
+    gun.kalemler.length > 0 || gun.odemeler.length > 0 || gun.iadeler.length > 0
+  );
+
   if (yukleniyor) {
     return (
       <div className="text-center py-12">
@@ -262,10 +269,12 @@ const MusteriDefterGorunumu = ({
     );
   }
 
-  if (gunlukVeriler.length === 0) {
+  if (gosterilecekGunler.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        Bu müşteri için henüz satış kaydı bulunmuyor.
+        {filtre === 'tum' 
+          ? 'Bu müşteri için henüz satış kaydı bulunmuyor.'
+          : 'Seçili filtreye uygun kayıt bulunamadı.'}
       </div>
     );
   }
@@ -326,7 +335,7 @@ const MusteriDefterGorunumu = ({
 
       <ScrollArea className="h-[600px]">
         <div className="space-y-2 pr-4">
-        {filtrelenmisVeriler.map((gun, index) => (
+        {gosterilecekGunler.map((gun, index) => (
           <Card 
             key={index}
             className={gun.isCumartesi ? "border-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20" : ""}

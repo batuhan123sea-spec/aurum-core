@@ -48,5 +48,7 @@ export interface Satis {
   rezervNotu?: string;
   
   durum: 'tamamlandi' | 'iptal' | 'rezerv';
+  iptalEdildi?: boolean; // Hareket silme ile iptal edildi mi?
+  iptalTarihi?: string; // İptal tarihi
   kullanici: string;
 }
