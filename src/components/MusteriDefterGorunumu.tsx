@@ -12,6 +12,7 @@ import { formatCurrency } from "@/lib/kur-hesaplama";
 import { musteriDefterExcelAktar } from "@/lib/excel-export";
 import { HareketDuzenleModal } from "@/components/HareketDuzenleModal";
 import { YeniHareketModal } from "@/components/YeniHareketModal";
+import { YeniIadeModal } from "@/components/YeniIadeModal";
 import { format, startOfWeek, endOfWeek, isSaturday, isMonday, parseISO, isSameDay } from "date-fns";
 import { tr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -63,6 +64,7 @@ const MusteriDefterGorunumu = ({
   const [yenilemeKey, setYenilemeKey] = useState(0);
   const [filtre, setFiltre] = useState<'tum' | 'satis' | 'odeme' | 'iade'>('tum');
   const [yeniHareketModalOpen, setYeniHareketModalOpen] = useState(false);
+  const [yeniIadeModalOpen, setYeniIadeModalOpen] = useState(false);
   const [yukleniyor, setYukleniyor] = useState(true);
   const musteri = getMusteriById(musteriId);
 
@@ -314,6 +316,13 @@ const MusteriDefterGorunumu = ({
         </div>
         
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setYeniIadeModalOpen(true)}
+            className="gap-2"
+          >
+            🔄 İade Ekle
+          </Button>
           <Button 
             variant="outline" 
             onClick={() => setYeniHareketModalOpen(true)}
@@ -591,7 +600,21 @@ const MusteriDefterGorunumu = ({
         open={yeniHareketModalOpen}
         onOpenChange={setYeniHareketModalOpen}
         musteriId={musteriId}
-        onSuccess={() => setYenilemeKey(prev => prev + 1)}
+        onSuccess={() => {
+          setYenilemeKey(prev => prev + 1);
+          onHareketDuzenlendi?.();
+        }}
+      />
+
+      <YeniIadeModal
+        open={yeniIadeModalOpen}
+        onOpenChange={setYeniIadeModalOpen}
+        musteriId={musteriId}
+        musteriAdi={musteri?.adSoyad || ''}
+        onSuccess={() => {
+          setYenilemeKey(prev => prev + 1);
+          onHareketDuzenlendi?.();
+        }}
       />
 
       <AlertDialog open={!!silinecekHareketId} onOpenChange={(open) => !open && setSilinecekHareketId(null)}>
