@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -185,7 +191,12 @@ const MusteriDefterGorunumu = ({
     sortedTarihler.forEach(tarihStr => {
       const tarih = parseISO(tarihStr);
       const gunData = tarihMap.get(tarihStr)!;
-      const gunlukToplam = gunData.kalemler.reduce((sum, k) => sum + k.toplam, 0);
+      
+      // Günlük net toplam hesaplama
+      const gunlukSatisToplami = gunData.kalemler.reduce((sum, k) => sum + k.toplam, 0);
+      const gunlukOdemeToplami = gunData.odemeler.reduce((sum, o) => sum + o.tlKarsiligi, 0);
+      const gunlukIadeToplami = gunData.iadeler.reduce((sum, i) => sum + i.tlKarsiligi, 0);
+      const gunlukToplam = gunlukSatisToplami - gunlukOdemeToplami - gunlukIadeToplami;
 
       const gun: GunlukSatis = {
         tarih,
@@ -343,247 +354,264 @@ const MusteriDefterGorunumu = ({
       </div>
 
       <ScrollArea className="h-[600px]">
-        <div className="space-y-2 pr-4">
-        {gosterilecekGunler.map((gun, index) => (
-          <Card 
-            key={index}
-            className={gun.isCumartesi ? "border-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20" : ""}
-          >
-            <CardHeader className="pb-2 py-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm">📅</span>
-                  <div>
-                    <h3 className="text-sm font-semibold">
-                      {format(gun.tarih, 'dd MMMM yyyy', { locale: tr })} - {gun.gun}
-                    </h3>
-                    {gun.isCumartesi && (
-                      <Badge variant="secondary" className="mt-1">
-                        ⭐ TAHSİLAT GÜNÜ
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {gun.isPazartesi && gun.acilisBakiyesi !== undefined && (
-                <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">📖</span>
-                    <div>
-                      <p className="text-xs font-medium text-blue-900 dark:text-blue-100">
-                        Açılış Bakiyesi
-                      </p>
-                      <p className="text-base font-bold text-blue-600 dark:text-blue-400">
-                        {formatCurrency(gun.acilisBakiyesi, 'TRY')}
-                      </p>
+        <div className="pr-4">
+          <Accordion type="single" collapsible defaultValue={gosterilecekGunler[0]?.tarih.toISOString()}>
+            {gosterilecekGunler.map((gun, index) => (
+              <AccordionItem 
+                key={index} 
+                value={gun.tarih.toISOString()}
+                className={gun.isCumartesi ? "border-yellow-500" : ""}
+              >
+                <AccordionTrigger className="hover:no-underline px-4 py-3">
+                  <div className="flex items-center justify-between w-full mr-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm">📅</span>
+                      <span className="font-semibold text-sm">
+                        {format(gun.tarih, 'dd MMMM yyyy', { locale: tr })} - {gun.gun}
+                      </span>
+                      {gun.isCumartesi && (
+                        <Badge variant="secondary" className="text-xs">⭐ TAHSİLAT</Badge>
+                      )}
+                    </div>
+                    
+                    {/* Özet Bilgiler (Kapalıyken görünür) */}
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      {gun.kalemler.length > 0 && (
+                        <span>{gun.kalemler.length} ürün</span>
+                      )}
+                      {gun.odemeler.length > 0 && (
+                        <span className="text-green-600">{gun.odemeler.length} ödeme</span>
+                      )}
+                      {gun.iadeler.length > 0 && (
+                        <span className="text-blue-600">{gun.iadeler.length} iade</span>
+                      )}
+                      <span className="font-semibold text-foreground">
+                        {formatCurrency(gun.gunlukToplam, 'TRY')}
+                      </span>
                     </div>
                   </div>
-                </div>
-              )}
-            </CardHeader>
-
-            <CardContent className="space-y-2 py-2">
-              {/* Günlük Satış Tablosu */}
-              <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs py-2">İşlem Türü</TableHead>
-                      <TableHead className="text-xs py-2">Satış No / Açıklama</TableHead>
-                      <TableHead className="text-xs py-2">Ürün / Detay</TableHead>
-                      <TableHead className="text-xs text-right py-2">Adet</TableHead>
-                      <TableHead className="text-xs text-right py-2">Birim Fiyat</TableHead>
-                      <TableHead className="text-xs text-right py-2">Toplam</TableHead>
-                      <TableHead className="text-xs text-right py-2 w-20">İşlem</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {gun.kalemler.map((kalem, idx) => (
-                      <TableRow key={`${gun.tarih.getTime()}-${kalem.satisNo}-${kalem.urunAdi}-${idx}`}>
-                        <TableCell className="text-xs py-1">
-                          <Badge variant="outline">💰 Satış</Badge>
-                        </TableCell>
-                        <TableCell className="text-xs font-medium py-1">{kalem.satisNo}</TableCell>
-                        <TableCell className="text-xs py-1">{kalem.urunAdi}</TableCell>
-                        <TableCell className="text-xs text-right py-1">{kalem.adet}</TableCell>
-                        <TableCell className="text-xs text-right py-1">
-                          <div className="flex flex-col items-end">
-                            <span className="font-medium">
-                              {formatCurrency(kalem.orijinalBirimFiyat, kalem.paraBirimi)}
-                            </span>
-                            {kalem.paraBirimi !== 'TRY' && (
-                              <span className="text-[10px] text-muted-foreground/60 italic">
-                                ({formatCurrency(kalem.birimFiyat, 'TRY')})
-                              </span>
-                            )}
+                </AccordionTrigger>
+                
+                <AccordionContent className="px-4 pb-4">
+                  <div className="space-y-2">
+                    {gun.isPazartesi && gun.acilisBakiyesi !== undefined && (
+                      <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">📖</span>
+                          <div>
+                            <p className="text-xs font-medium text-blue-900 dark:text-blue-100">
+                              Açılış Bakiyesi
+                            </p>
+                            <p className="text-base font-bold text-blue-600 dark:text-blue-400">
+                              {formatCurrency(gun.acilisBakiyesi, 'TRY')}
+                            </p>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-xs text-right font-semibold py-1">
-                          <div className="flex flex-col items-end">
-                            <span className="font-semibold">
-                              {formatCurrency(kalem.orijinalToplam, kalem.paraBirimi)}
-                            </span>
-                            {kalem.paraBirimi !== 'TRY' && (
-                              <span className="text-[10px] text-muted-foreground/60 italic">
-                                ({formatCurrency(kalem.toplam, 'TRY')})
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs text-right py-1">
-                          {kalem.hareket && (
-                            <div className="flex gap-1 justify-end">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6"
-                                onClick={() => setDuzenlenecekHareket(kalem.hareket!)}
-                              >
-                                <Edit2 className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6 text-destructive hover:text-destructive"
-                                onClick={() => setSilinecekHareketId(kalem.hareket!.id)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                        </div>
+                      </div>
+                    )}
 
-                    {/* Ödemeler */}
-                    {gun.odemeler.map((odeme, idx) => (
-                      <TableRow key={`odeme-${gun.tarih.getTime()}-${odeme.id}-${idx}`} className="bg-green-50/50 dark:bg-green-950/20">
-                        <TableCell className="text-xs py-1">
-                          <Badge variant="outline" className="text-green-600 border-green-600">
-                            💵 Ödeme
-                          </Badge>
-                        </TableCell>
-                        <TableCell colSpan={3} className="text-xs py-1">
-                          {odeme.aciklama}
-                        </TableCell>
-                        <TableCell className="text-xs text-right py-1">
-                          {odeme.odemeTuru && (
-                            <Badge variant="secondary" className="text-[10px]">
-                              {odeme.odemeTuru}
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs text-right font-semibold py-1 text-green-600 dark:text-green-400">
-                          -{formatCurrency(odeme.tutar, odeme.paraBirimi)}
-                        </TableCell>
-                        <TableCell className="text-xs text-right py-1">
-                          <div className="flex gap-1 justify-end">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6"
-                              onClick={() => setDuzenlenecekHareket(odeme)}
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6 text-destructive hover:text-destructive"
-                              onClick={() => setSilinecekHareketId(odeme.id)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {/* Günlük Satış Tablosu */}
+                    <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs py-2">İşlem Türü</TableHead>
+                            <TableHead className="text-xs py-2">Satış No / Açıklama</TableHead>
+                            <TableHead className="text-xs py-2">Ürün / Detay</TableHead>
+                            <TableHead className="text-xs text-right py-2">Adet</TableHead>
+                            <TableHead className="text-xs text-right py-2">Birim Fiyat</TableHead>
+                            <TableHead className="text-xs text-right py-2">Toplam</TableHead>
+                            <TableHead className="text-xs text-right py-2 w-20">İşlem</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {gun.kalemler.map((kalem, idx) => (
+                            <TableRow key={`${gun.tarih.getTime()}-${kalem.satisNo}-${kalem.urunAdi}-${idx}`}>
+                              <TableCell className="text-xs py-1">
+                                <Badge variant="outline">💰 Satış</Badge>
+                              </TableCell>
+                              <TableCell className="text-xs font-medium py-1">{kalem.satisNo}</TableCell>
+                              <TableCell className="text-xs py-1">{kalem.urunAdi}</TableCell>
+                              <TableCell className="text-xs text-right py-1">{kalem.adet}</TableCell>
+                              <TableCell className="text-xs text-right py-1">
+                                <div className="flex flex-col items-end">
+                                  <span className="font-medium">
+                                    {formatCurrency(kalem.orijinalBirimFiyat, kalem.paraBirimi)}
+                                  </span>
+                                  {kalem.paraBirimi !== 'TRY' && (
+                                    <span className="text-[10px] text-muted-foreground/60 italic">
+                                      ({formatCurrency(kalem.birimFiyat, 'TRY')})
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-xs text-right font-semibold py-1">
+                                <div className="flex flex-col items-end">
+                                  <span className="font-semibold">
+                                    {formatCurrency(kalem.orijinalToplam, kalem.paraBirimi)}
+                                  </span>
+                                  {kalem.paraBirimi !== 'TRY' && (
+                                    <span className="text-[10px] text-muted-foreground/60 italic">
+                                      ({formatCurrency(kalem.toplam, 'TRY')})
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-xs text-right py-1">
+                                {kalem.hareket && (
+                                  <div className="flex gap-1 justify-end">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6"
+                                      onClick={() => setDuzenlenecekHareket(kalem.hareket!)}
+                                    >
+                                      <Edit2 className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6 text-destructive hover:text-destructive"
+                                      onClick={() => setSilinecekHareketId(kalem.hareket!.id)}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
 
-                    {/* İadeler */}
-                    {gun.iadeler.map((iade, idx) => (
-                      <TableRow key={`iade-${gun.tarih.getTime()}-${iade.id}-${idx}`} className="bg-blue-50/50 dark:bg-blue-950/20">
-                        <TableCell className="text-xs py-1">
-                          <Badge variant="outline" className="text-blue-600 border-blue-600">
-                            🔄 İade
-                          </Badge>
-                        </TableCell>
-                        <TableCell colSpan={4} className="text-xs py-1">
-                          {iade.aciklama}
-                        </TableCell>
-                        <TableCell className="text-xs text-right font-semibold py-1 text-blue-600 dark:text-blue-400">
-                          -{formatCurrency(iade.tutar, iade.paraBirimi)}
-                        </TableCell>
-                        <TableCell className="text-xs text-right py-1">
-                          <div className="flex gap-1 justify-end">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6"
-                              onClick={() => setDuzenlenecekHareket(iade)}
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6 text-destructive hover:text-destructive"
-                              onClick={() => setSilinecekHareketId(iade.id)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                          {/* Ödemeler */}
+                          {gun.odemeler.map((odeme, idx) => (
+                            <TableRow key={`odeme-${gun.tarih.getTime()}-${odeme.id}-${idx}`} className="bg-green-50/50 dark:bg-green-950/20">
+                              <TableCell className="text-xs py-1">
+                                <Badge variant="outline" className="text-green-600 border-green-600">
+                                  💵 Ödeme
+                                </Badge>
+                              </TableCell>
+                              <TableCell colSpan={3} className="text-xs py-1">
+                                {odeme.aciklama}
+                              </TableCell>
+                              <TableCell className="text-xs text-right py-1">
+                                {odeme.odemeTuru && (
+                                  <Badge variant="secondary" className="text-[10px]">
+                                    {odeme.odemeTuru}
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-xs text-right font-semibold py-1 text-green-600 dark:text-green-400">
+                                -{formatCurrency(odeme.tutar, odeme.paraBirimi)}
+                              </TableCell>
+                              <TableCell className="text-xs text-right py-1">
+                                <div className="flex gap-1 justify-end">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6"
+                                    onClick={() => setDuzenlenecekHareket(odeme)}
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 text-destructive hover:text-destructive"
+                                    onClick={() => setSilinecekHareketId(odeme.id)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
 
-              {/* Günlük Toplam */}
-              <div className="flex justify-end">
-                <div className="bg-muted px-3 py-1 rounded-lg">
-                  <span className="text-xs text-muted-foreground mr-2">Günlük Toplam:</span>
-                  <span className="text-sm font-bold">
-                    {formatCurrency(gun.gunlukToplam, 'TRY')}
-                  </span>
-                </div>
-              </div>
+                          {/* İadeler */}
+                          {gun.iadeler.map((iade, idx) => (
+                            <TableRow key={`iade-${gun.tarih.getTime()}-${iade.id}-${idx}`} className="bg-blue-50/50 dark:bg-blue-950/20">
+                              <TableCell className="text-xs py-1">
+                                <Badge variant="outline" className="text-blue-600 border-blue-600">
+                                  🔄 İade
+                                </Badge>
+                              </TableCell>
+                              <TableCell colSpan={4} className="text-xs py-1">
+                                {iade.aciklama}
+                              </TableCell>
+                              <TableCell className="text-xs text-right font-semibold py-1 text-blue-600 dark:text-blue-400">
+                                -{formatCurrency(iade.tutar, iade.paraBirimi)}
+                              </TableCell>
+                              <TableCell className="text-xs text-right py-1">
+                                <div className="flex gap-1 justify-end">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6"
+                                    onClick={() => setDuzenlenecekHareket(iade)}
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 text-destructive hover:text-destructive"
+                                    onClick={() => setSilinecekHareketId(iade.id)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
 
-              {/* Cumartesi Özet */}
-              {gun.isCumartesi && (
-                <div className="mt-2 space-y-1 p-2 bg-yellow-100/50 dark:bg-yellow-900/20 rounded-lg border-2 border-yellow-300 dark:border-yellow-700">
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1 text-xs font-medium">
-                      <span>📊</span> Haftalık Toplam Satış:
-                    </span>
-                    <span className="text-sm font-bold">
-                      {formatCurrency(gun.haftalikToplam || 0, 'TRY')}
-                    </span>
+                    {/* Günlük Net Toplam */}
+                    <div className="flex justify-end">
+                      <div className="bg-muted px-3 py-1 rounded-lg">
+                        <span className="text-xs text-muted-foreground mr-2">Günlük Net Toplam:</span>
+                        <span className="text-sm font-bold">
+                          {formatCurrency(gun.gunlukToplam, 'TRY')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Cumartesi Özet */}
+                    {gun.isCumartesi && (
+                      <div className="space-y-1 p-2 bg-yellow-100/50 dark:bg-yellow-900/20 rounded-lg border-2 border-yellow-300 dark:border-yellow-700">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1 text-xs font-medium">
+                            <span>📊</span> Haftalık Toplam Satış:
+                          </span>
+                          <span className="text-sm font-bold">
+                            {formatCurrency(gun.haftalikToplam || 0, 'TRY')}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1 text-xs font-medium">
+                            <span>💰</span> Tahsil Edilen Tutar:
+                          </span>
+                          <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                            {formatCurrency(gun.tahsilEdilen || 0, 'TRY')}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between pt-1 border-t border-yellow-300 dark:border-yellow-700">
+                          <span className="flex items-center gap-1 text-xs font-medium">
+                            <span>📉</span> Kalan Borç:
+                          </span>
+                          <span className="text-base font-bold text-red-600 dark:text-red-400">
+                            {formatCurrency(gun.kalanBorc || 0, 'TRY')}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1 text-xs font-medium">
-                      <span>💰</span> Tahsil Edilen Tutar:
-                    </span>
-                    <span className="text-sm font-bold text-green-600 dark:text-green-400">
-                      {formatCurrency(gun.tahsilEdilen || 0, 'TRY')}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between pt-1 border-t border-yellow-300 dark:border-yellow-700">
-                    <span className="flex items-center gap-1 text-xs font-medium">
-                      <span>📉</span> Kalan Borç:
-                    </span>
-                    <span className="text-base font-bold text-red-600 dark:text-red-400">
-                      {formatCurrency(gun.kalanBorc || 0, 'TRY')}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
       </ScrollArea>
 
