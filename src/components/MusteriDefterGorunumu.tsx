@@ -73,12 +73,11 @@ const MusteriDefterGorunumu = ({
   const [yukleniyor, setYukleniyor] = useState(true);
   const musteri = getMusteriById(musteriId);
 
-  // Türkiye timezone'ına göre tarih string'i döndürür (GMT+3)
+  // Türkiye timezone'ına göre tarih string'i döndürür
   const getTarihStr = (isoTarih: string): string => {
     const date = new Date(isoTarih);
-    // Türkiye saati için +3 saat ekle
-    const turkiyeTarihi = new Date(date.getTime() + (3 * 60 * 60 * 1000));
-    return turkiyeTarihi.toISOString().split('T')[0];
+    // Europe/Istanbul timezone'ı ile YYYY-MM-DD formatında döndür
+    return date.toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
   };
 
   const handleExcelExport = () => {
