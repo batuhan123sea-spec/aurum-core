@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { getMusteriler, getHareketlerByMusteriId } from "@/lib/musteri-data";
 import { getSatislar } from "@/lib/satis-data";
 import { formatCurrency } from "@/lib/kur-hesaplama";
+import { formatLocalDate } from "@/lib/utils";
 import { haftalikTahsilatFisiOlustur, fisYazdir } from "@/lib/fis-yazdir";
 
 interface TopluTahsilatFisiModalProps {
@@ -50,8 +51,8 @@ export function TopluTahsilatFisiModal({ musteriIds, open, onOpenChange }: Toplu
     if (open) {
       const lastSat = getLastSaturday();
       const thisSat = getThisSaturday();
-      setBaslangicTarihi(lastSat.toISOString().split('T')[0]);
-      setBitisTarihi(thisSat.toISOString().split('T')[0]);
+      setBaslangicTarihi(formatLocalDate(lastSat));
+      setBitisTarihi(formatLocalDate(thisSat));
       setYazdirilanSayisi(0);
     }
   }, [open]);
@@ -80,8 +81,8 @@ export function TopluTahsilatFisiModal({ musteriIds, open, onOpenChange }: Toplu
   const handleCumartesileriAyarla = () => {
     const lastSat = getLastSaturday();
     const thisSat = getThisSaturday();
-    setBaslangicTarihi(lastSat.toISOString().split('T')[0]);
-    setBitisTarihi(thisSat.toISOString().split('T')[0]);
+    setBaslangicTarihi(formatLocalDate(lastSat));
+    setBitisTarihi(formatLocalDate(thisSat));
   };
 
   const handleTopluYazdir = async () => {

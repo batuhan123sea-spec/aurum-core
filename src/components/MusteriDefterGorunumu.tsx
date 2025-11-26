@@ -15,6 +15,7 @@ import { FileDown, Edit2, Trash2 } from "lucide-react";
 import { getSatislar } from "@/lib/satis-data";
 import { getHareketlerByMusteriId, getMusteriById, deleteHareket } from "@/lib/musteri-data";
 import { formatCurrency } from "@/lib/kur-hesaplama";
+import { formatLocalDate } from "@/lib/utils";
 import { musteriDefterExcelAktar } from "@/lib/excel-export";
 import { HareketDuzenleModal } from "@/components/HareketDuzenleModal";
 import { YeniHareketModal } from "@/components/YeniHareketModal";
@@ -73,12 +74,8 @@ const MusteriDefterGorunumu = ({
   const [yukleniyor, setYukleniyor] = useState(true);
   const musteri = getMusteriById(musteriId);
 
-  // Türkiye timezone'ına göre tarih string'i döndürür
-  const getTarihStr = (isoTarih: string): string => {
-    const date = new Date(isoTarih);
-    // Europe/Istanbul timezone'ı ile YYYY-MM-DD formatında döndür
-    return date.toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
-  };
+  // Türkiye timezone'ına göre tarih string'i döndürür (merkezi formatLocalDate kullan)
+  const getTarihStr = (isoTarih: string): string => formatLocalDate(new Date(isoTarih));
 
   const handleExcelExport = () => {
     if (!musteri) return;
