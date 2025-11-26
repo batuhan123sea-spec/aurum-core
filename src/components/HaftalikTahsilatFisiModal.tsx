@@ -9,6 +9,7 @@ import { Printer, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { Musteri } from "@/types/musteri";
 import { formatCurrency } from "@/lib/kur-hesaplama";
+import { formatLocalDate } from "@/lib/utils";
 import { getSatislar } from "@/lib/satis-data";
 import { getHareketlerByMusteriId } from "@/lib/musteri-data";
 import { haftalikTahsilatFisiOlustur, fisYazdir } from "@/lib/fis-yazdir";
@@ -47,8 +48,8 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
     if (open) {
       const lastSat = getLastSaturday();
       const thisSat = getThisSaturday();
-      setBaslangicTarihi(lastSat.toISOString().split('T')[0]);
-      setBitisTarihi(thisSat.toISOString().split('T')[0]);
+      setBaslangicTarihi(formatLocalDate(lastSat));
+      setBitisTarihi(formatLocalDate(thisSat));
     }
   }, [open]);
 
@@ -150,8 +151,8 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
   const handleCumartesileriAyarla = () => {
     const lastSat = getLastSaturday();
     const thisSat = getThisSaturday();
-    setBaslangicTarihi(lastSat.toISOString().split('T')[0]);
-    setBitisTarihi(thisSat.toISOString().split('T')[0]);
+    setBaslangicTarihi(formatLocalDate(lastSat));
+    setBitisTarihi(formatLocalDate(thisSat));
   };
 
   return (
