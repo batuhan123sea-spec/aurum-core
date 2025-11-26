@@ -9,9 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { getSatislar } from "@/lib/satis-data";
+import { getSatislar, getSatisById, saveSatis, deleteSatis } from "@/lib/satis-data";
 import { createIadeHareket } from "@/lib/musteri-data";
 import { formatCurrency } from "@/lib/kur-hesaplama";
+import { getUrunler, saveUrun } from "@/lib/stok-data";
+import { stokHareketKaydet } from "@/lib/stok-hareket";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
@@ -32,6 +34,7 @@ interface IadeKalemi {
   satisId: string;
   satisNo: string;
   kalemId: string;
+  urunId: string; // Stok güncellemesi için gerekli
   urunAdi: string;
   maxAdet: number;
   iadeAdet: number;
@@ -67,6 +70,7 @@ export function YeniIadeModal({ open, onOpenChange, musteriId, musteriAdi, onSuc
         satisId: satis.id,
         satisNo: satis.satisNo,
         kalemId: kalem.id,
+        urunId: kalem.urunId, // Stok güncellemesi için
         urunAdi: kalem.urunAdi,
         maxAdet: kalem.adet,
         iadeAdet: 0,
@@ -111,7 +115,85 @@ export function YeniIadeModal({ open, onOpenChange, musteriId, musteriAdi, onSuc
     setYukleniyor(true);
 
     try {
-      // Her para birimi için ayrı iade hareketi oluştur
+      console.log('🔄 İade işlemi başlatıldı:', { satisNo: secilenSatis.satisNo, iadeEdilecekler });
+
+      // 1️⃣ Stokları geri ekle ve stok hareketi kaydet
+      iadeEdilecekler.forEach(kalem => {
+        const urunler = getUrunler();
+        const urun = urunler.find(u => u.id === kalem.urunId);
+        
+        if (urun) {
+          const oncekiMiktar = urun.stokMiktari;
+          const yeniMiktar = oncekiMiktar + kalem.iadeAdet;
+          
+          console.log(`📦 Stok geri ekleniyor: ${urun.ad} +${kalem.iadeAdet} (${oncekiMiktar} → ${yeniMiktar})`);
+          
+          // Stok hareketi kaydet
+          stokHareketKaydet(
+            kalem.urunId,
+            'giris',
+            kalem.iadeAdet,
+            `İade - ${secilenSatis.satisNo}`,
+            oncekiMiktar,
+            yeniMiktar
+          );
+          
+          // Stoğu artır
+          urun.stokMiktari = yeniMiktar;
+          saveUrun(urun);
+        } else {
+          console.warn('⚠️ Ürün bulunamadı:', kalem.urunId);
+        }
+      });
+
+      // 2️⃣ Satış kalemlerini güncelle
+      const guncelKalemler = secilenSatis.kalemler.map(kalem => {
+        const iadeKalemi = iadeEdilecekler.find(k => k.kalemId === kalem.id);
+        if (iadeKalemi && iadeKalemi.iadeAdet > 0) {
+          const kalanAdet = kalem.adet - iadeKalemi.iadeAdet;
+          console.log(`📝 Kalem güncelleniyor: ${kalem.urunAdi} (${kalem.adet} → ${kalanAdet})`);
+          
+          return {
+            ...kalem,
+            adet: kalanAdet,
+            toplamTutar: kalanAdet * (kalem.toplamTutar / kalem.adet),
+            kdvTutari: kalanAdet * (kalem.kdvTutari / kalem.adet),
+            indirimTL: kalanAdet * (kalem.indirimTL / kalem.adet)
+          };
+        }
+        return kalem;
+      }).filter(kalem => kalem.adet > 0); // 0 adetli kalemleri çıkar
+
+      // 3️⃣ Satışı güncelle veya tamamen sil
+      if (guncelKalemler.length === 0) {
+        // Tüm ürünler iade edildi - satışı tamamen sil
+        console.log('🗑️ Tüm ürünler iade edildi, satış siliniyor:', secilenSatis.satisNo);
+        deleteSatis(secilenSatis.id);
+      } else {
+        // Kısmi iade - satış kaydını güncelle
+        const yeniAraToplam = guncelKalemler.reduce((sum, k) => sum + k.toplamTutar, 0);
+        const yeniToplamKDV = guncelKalemler.reduce((sum, k) => sum + k.kdvTutari, 0);
+        const yeniGenelToplam = secilenSatis.kdvDahil 
+          ? yeniAraToplam + yeniToplamKDV 
+          : yeniAraToplam;
+
+        console.log('📊 Satış güncelleniyor:', {
+          oncekiToplam: secilenSatis.genelToplam,
+          yeniToplam: yeniGenelToplam,
+          kalanKalemSayisi: guncelKalemler.length
+        });
+
+        const guncelSatis = {
+          ...secilenSatis,
+          kalemler: guncelKalemler,
+          araToplam: yeniAraToplam,
+          toplamKDV: yeniToplamKDV,
+          genelToplam: yeniGenelToplam
+        };
+        saveSatis(guncelSatis);
+      }
+
+      // 4️⃣ Her para birimi için ayrı iade hareketi oluştur
       const paraBirimiGruplari = iadeEdilecekler.reduce((acc, kalem) => {
         if (!acc[kalem.paraBirimi]) {
           acc[kalem.paraBirimi] = [];
@@ -128,6 +210,8 @@ export function YeniIadeModal({ open, onOpenChange, musteriId, musteriAdi, onSuc
           ? `İade - ${secilenSatis.satisNo} - ${urunListesi} - ${aciklama}`
           : `İade - ${secilenSatis.satisNo} - ${urunListesi}`;
 
+        console.log(`💰 İade hareketi oluşturuluyor: ${toplamTutar} ${paraBirimi}`);
+
         createIadeHareket({
           musteriId,
           tarih: iadeTarihi.toISOString(),
@@ -137,6 +221,7 @@ export function YeniIadeModal({ open, onOpenChange, musteriId, musteriAdi, onSuc
         });
       }
 
+      console.log('✅ İade işlemi tamamlandı');
       toast.success('İade başarıyla kaydedildi');
       onSuccess();
       onOpenChange(false);
