@@ -35,10 +35,17 @@ const MOCK_TEDARIKCILER: Tedarikci[] = [
 export const getTedarikciler = (): Tedarikci[] => {
   const stored = localStorage.getItem(TEDARIKCI_KEY);
   if (!stored) {
-    localStorage.setItem(TEDARIKCI_KEY, JSON.stringify(MOCK_TEDARIKCILER));
-    return MOCK_TEDARIKCILER;
+    // ✅ MOCK DATA YÜKLEME - Boş array döndür
+    console.warn('⚠️ Tedarikçi verisi bulunamadı, boş liste döndürülüyor');
+    return [];
   }
-  return JSON.parse(stored);
+  
+  try {
+    return JSON.parse(stored);
+  } catch (error) {
+    console.error('❌ Tedarikçi verisi parse hatası:', error);
+    return [];
+  }
 };
 
 export const saveTedarikci = (tedarikci: Tedarikci): void => {

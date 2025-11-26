@@ -9,10 +9,17 @@ export const HAREKET_KEY = 'kuyumcu_hesap_hareketleri';
 export function getMusteriler(): Musteri[] {
   const stored = localStorage.getItem(MUSTERI_KEY);
   if (!stored) {
-    initializeMockData();
-    return getMusteriler();
+    // ✅ MOCK DATA YÜKLEME - Boş array döndür
+    console.warn('⚠️ Müşteri verisi bulunamadı, boş liste döndürülüyor');
+    return [];
   }
-  return JSON.parse(stored);
+  
+  try {
+    return JSON.parse(stored);
+  } catch (error) {
+    console.error('❌ Müşteri verisi parse hatası:', error);
+    return [];
+  }
 }
 
 export function getMusteriById(id: string): Musteri | null {

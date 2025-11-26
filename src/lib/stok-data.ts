@@ -273,16 +273,18 @@ export const getUrunler = (): Urun[] => {
   
   const stored = localStorage.getItem(STORAGE_KEY);
   if (!stored) {
-    // İlk kez çalışıyorsa mock data'yı kaydet (migration ile)
-    const migratedMockData = MOCK_URUNLER.map(urun => ({
-      ...urun,
-      satisFiyatiParaBirimi: urun.satisFiyatiParaBirimi || urun.alisFiyatiParaBirimi
-    }));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(migratedMockData));
-    localStorage.setItem(MIGRATION_KEY, 'done');
-    return migratedMockData;
+    // ✅ MOCK DATA YÜKLEME - Boş array döndür
+    console.warn('⚠️ Ürün verisi bulunamadı, boş liste döndürülüyor');
+    return [];
   }
-  return JSON.parse(stored);
+  
+  try {
+    return JSON.parse(stored);
+  } catch (error) {
+    console.error('❌ Ürün verisi parse hatası:', error);
+    // JSON bozuksa, VERİYİ SİLME, sadece hata döndür
+    return [];
+  }
 };
 
 export const saveUrun = (urun: Urun): void => {

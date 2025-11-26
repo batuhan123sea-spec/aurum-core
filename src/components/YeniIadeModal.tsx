@@ -118,11 +118,15 @@ export function YeniIadeModal({ open, onOpenChange, musteriId, musteriAdi, onSuc
       console.log('🔄 İade işlemi başlatıldı:', { satisNo: secilenSatis.satisNo, iadeEdilecekler });
 
       // 1️⃣ Stokları geri ekle ve stok hareketi kaydet
+      // ✅ RACE CONDITION FIX: Tüm ürünleri BİR KERE al
+      let urunler = getUrunler();
+      
+      // Tüm güncellemeleri hafızada yap
       iadeEdilecekler.forEach(kalem => {
-        const urunler = getUrunler();
-        const urun = urunler.find(u => u.id === kalem.urunId);
+        const urunIndex = urunler.findIndex(u => u.id === kalem.urunId);
         
-        if (urun) {
+        if (urunIndex !== -1) {
+          const urun = urunler[urunIndex];
           const oncekiMiktar = urun.stokMiktari;
           const yeniMiktar = oncekiMiktar + kalem.iadeAdet;
           
@@ -138,13 +142,19 @@ export function YeniIadeModal({ open, onOpenChange, musteriId, musteriAdi, onSuc
             yeniMiktar
           );
           
-          // Stoğu artır
-          urun.stokMiktari = yeniMiktar;
-          saveUrun(urun);
+          // Hafızadaki ürünü güncelle
+          urunler[urunIndex] = {
+            ...urun,
+            stokMiktari: yeniMiktar,
+            guncellemeTarihi: new Date().toISOString()
+          };
         } else {
           console.warn('⚠️ Ürün bulunamadı:', kalem.urunId);
         }
       });
+      
+      // TÜM ÜRÜNLERİ TEK SEFERDE KAYDET
+      localStorage.setItem('kuyumcu_stok_urunler', JSON.stringify(urunler));
 
       // 2️⃣ Satış kalemlerini güncelle
       const guncelKalemler = secilenSatis.kalemler.map(kalem => {
