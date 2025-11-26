@@ -19,6 +19,7 @@ import { formatLocalDate } from "@/lib/utils";
 import { musteriDefterExcelAktar } from "@/lib/excel-export";
 import { HareketDuzenleModal } from "@/components/HareketDuzenleModal";
 import { YeniHareketModal } from "@/components/YeniHareketModal";
+import { YeniIadeModal } from "@/components/YeniIadeModal";
 import { format, startOfWeek, endOfWeek, isSaturday, isMonday, parseISO, isSameDay } from "date-fns";
 import { tr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -71,6 +72,7 @@ const MusteriDefterGorunumu = ({
   const [yenilemeKey, setYenilemeKey] = useState(0);
   const [filtre, setFiltre] = useState<'tum' | 'satis' | 'odeme'>('tum');
   const [yeniHareketModalOpen, setYeniHareketModalOpen] = useState(false);
+  const [iadeModalOpen, setIadeModalOpen] = useState(false);
   const [yukleniyor, setYukleniyor] = useState(true);
   const musteri = getMusteriById(musteriId);
 
@@ -336,6 +338,13 @@ const MusteriDefterGorunumu = ({
             className="gap-2"
           >
             + Yeni Hareket Ekle
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => setIadeModalOpen(true)}
+            className="gap-2"
+          >
+            🔄 İade Ekle
           </Button>
           <Button 
             variant="outline" 
@@ -650,6 +659,17 @@ const MusteriDefterGorunumu = ({
         open={yeniHareketModalOpen}
         onOpenChange={setYeniHareketModalOpen}
         musteriId={musteriId}
+        onSuccess={() => {
+          setYenilemeKey(prev => prev + 1);
+          onHareketDuzenlendi?.();
+        }}
+      />
+
+      <YeniIadeModal
+        open={iadeModalOpen}
+        onOpenChange={setIadeModalOpen}
+        musteriId={musteriId}
+        musteriAdi={musteri?.adSoyad || ''}
         onSuccess={() => {
           setYenilemeKey(prev => prev + 1);
           onHareketDuzenlendi?.();
