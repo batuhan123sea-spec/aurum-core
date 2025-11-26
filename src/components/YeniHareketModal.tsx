@@ -64,8 +64,8 @@ export const YeniHareketModal = ({ open, onOpenChange, musteriId, onSuccess }: Y
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="satis">💰 Satış (Borç Ekle)</SelectItem>
-                <SelectItem value="odeme">💵 Ödeme (Alacak Ekle)</SelectItem>
+                <SelectItem value="satis">📝 Eski Borç Aktarımı</SelectItem>
+                <SelectItem value="odeme">💵 Ödeme</SelectItem>
                 <SelectItem value="iade">🔄 İade</SelectItem>
               </SelectContent>
             </Select>

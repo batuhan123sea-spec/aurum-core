@@ -314,7 +314,13 @@ export function musteriDovizBorclariniHesapla(musteriId: string): {
 } {
   const hareketler = getHareketlerByMusteriId(musteriId);
   
-  console.log('🔢 Borç hesaplama başladı, hareket sayısı:', hareketler.length);
+  // ✅ KRİTİK: Kümülatif muhasebe için ESKİDEN YENİYE sırala
+  // getHareketlerByMusteriId ters kronolojik döndürüyor, biz düz kronolojik istiyoruz
+  const kronolojikHareketler = [...hareketler].sort(
+    (a, b) => new Date(a.tarih).getTime() - new Date(b.tarih).getTime()
+  );
+  
+  console.log('🔢 Borç hesaplama başladı, hareket sayısı:', kronolojikHareketler.length);
   
   const borclar = {
     TRY: 0,
@@ -322,7 +328,7 @@ export function musteriDovizBorclariniHesapla(musteriId: string): {
     EUR: 0
   };
   
-  hareketler.forEach((hareket, index) => {
+  kronolojikHareketler.forEach((hareket, index) => {
     const miktar = hareket.tutar;
     const paraBirimi = hareket.paraBirimi;
     
