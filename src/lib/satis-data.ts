@@ -90,13 +90,14 @@ export const deleteSatisBySatisNo = (satisNo: string): void => {
     return;
   }
   
-  // 🔄 Stokları geri ekle
+  // ✅ Stokları geri ekle - ATOMIC (Tek seferde kaydet)
+  let urunler = getUrunler();
+  
   silinecekSatis.kalemler.forEach(kalem => {
-    const urunler = getUrunler();
-    const urun = urunler.find(u => u.id === kalem.urunId);
+    const urunIndex = urunler.findIndex(u => u.id === kalem.urunId);
     
-    if (urun) {
-      const oncekiMiktar = urun.stokMiktari;
+    if (urunIndex !== -1) {
+      const oncekiMiktar = urunler[urunIndex].stokMiktari;
       const yeniMiktar = oncekiMiktar + kalem.adet;
       
       // Stok hareketi kaydet (giriş olarak)
@@ -109,13 +110,19 @@ export const deleteSatisBySatisNo = (satisNo: string): void => {
         yeniMiktar
       );
       
-      // Stoğu artır
-      urun.stokMiktari = yeniMiktar;
-      saveUrun(urun);
+      // Hafızada güncelle
+      urunler[urunIndex] = {
+        ...urunler[urunIndex],
+        stokMiktari: yeniMiktar,
+        guncellemeTarihi: new Date().toISOString()
+      };
       
-      console.log(`📦 Stok geri eklendi: ${urun.ad} +${kalem.adet} (Yeni: ${yeniMiktar})`);
+      console.log(`📦 Stok geri eklendi: ${urunler[urunIndex].ad} +${kalem.adet} (Yeni: ${yeniMiktar})`);
     }
   });
+  
+  // ✅ TÜM ÜRÜNLERİ TEK SEFERDE KAYDET
+  localStorage.setItem('kuyumcu_stok_urunler', JSON.stringify(urunler));
   
   // Satışı sil
   const filtrelenmis = satislar.filter(s => s.satisNo !== satisNo);
