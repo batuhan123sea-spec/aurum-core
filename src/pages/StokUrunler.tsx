@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { StokKategoriKart } from "@/components/StokKategoriKart";
 import { YeniUrunModal } from "@/components/YeniUrunModal";
 import { HizliStokGirisiModal } from "@/components/HizliStokGirisiModal";
+import { StokGirisiModal } from "@/components/StokGirisiModal";
 import { StokSayimModal } from "@/components/StokSayimModal";
 import { BarkodYazdirModal } from "@/components/BarkodYazdirModal";
 import { KATEGORILER } from "@/types/stok";
@@ -38,6 +39,7 @@ export default function StokUrunler() {
   const [activeFilter, setActiveFilter] = useState("tumunu");
   const [yeniUrunModalOpen, setYeniUrunModalOpen] = useState(false);
   const [hizliStokModalOpen, setHizliStokModalOpen] = useState(false);
+  const [stokGirisiModalOpen, setStokGirisiModalOpen] = useState(false);
   const [stokSayimModalOpen, setStokSayimModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [barkodModalOpen, setBarkodModalOpen] = useState(false);
@@ -169,6 +171,14 @@ export default function StokUrunler() {
                 >
                   <Plus className="mr-2" />
                   Yeni Ürün Ekle
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  onClick={() => setStokGirisiModalOpen(true)}
+                >
+                  <Package className="mr-2" />
+                  Stok Girişi
                 </Button>
                 <Button 
                   variant="outline" 
@@ -528,6 +538,11 @@ export default function StokUrunler() {
       <StokSayimModal
         open={stokSayimModalOpen}
         onOpenChange={setStokSayimModalOpen}
+        onSuccess={handleSuccess}
+      />
+      <StokGirisiModal
+        open={stokGirisiModalOpen}
+        onOpenChange={setStokGirisiModalOpen}
         onSuccess={handleSuccess}
       />
       <BarkodYazdirModal

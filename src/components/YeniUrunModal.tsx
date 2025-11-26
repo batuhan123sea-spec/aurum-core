@@ -62,7 +62,6 @@ interface TedarikciItem {
   tedarikciId: string;
   alisFiyati: number;
   paraBirimi: 'TRY' | 'USD' | 'EUR';
-  teslimatSuresi: number;
   varsayilan: boolean;
 }
 
@@ -75,7 +74,6 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
       tedarikciId: t.tedarikciId,
       alisFiyati: t.alisFiyati,
       paraBirimi: t.paraBirimi,
-      teslimatSuresi: t.teslimatSuresi,
       varsayilan: t.varsayilan
     })) || []
   );
@@ -114,7 +112,6 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
         tedarikciId: "",
         alisFiyati: 0,
         paraBirimi: "TRY",
-        teslimatSuresi: 7,
         varsayilan: tedarikcilerList.length === 0
       }
     ]);
@@ -182,7 +179,6 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
         tedarikciAdi: tedarikci?.firmaAdi || '',
         alisFiyati: t.alisFiyati,
         paraBirimi: t.paraBirimi,
-        teslimatSuresi: t.teslimatSuresi,
         varsayilan: t.varsayilan,
         sonAlisTarihi: initialData?.tedarikciler?.find(it => it.tedarikciId === t.tedarikciId)?.sonAlisTarihi
       };
@@ -493,25 +489,14 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-xs text-muted-foreground">Alış Fiyatı</label>
-                          <Input 
-                            type="number" 
-                            step="0.01"
-                            value={ted.alisFiyati}
-                            onChange={(e) => updateTedarikci(idx, 'alisFiyati', parseFloat(e.target.value) || 0)}
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-xs text-muted-foreground">Teslimat Süresi (gün)</label>
-                          <Input 
-                            type="number"
-                            value={ted.teslimatSuresi}
-                            onChange={(e) => updateTedarikci(idx, 'teslimatSuresi', parseInt(e.target.value) || 7)}
-                          />
-                        </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground">Alış Fiyatı</label>
+                        <Input 
+                          type="number" 
+                          step="0.01"
+                          value={ted.alisFiyati}
+                          onChange={(e) => updateTedarikci(idx, 'alisFiyati', parseFloat(e.target.value) || 0)}
+                        />
                       </div>
 
                       <div className="flex items-center gap-2">

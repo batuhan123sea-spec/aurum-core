@@ -261,7 +261,6 @@ export default function UrunDetay() {
                           <TableRow>
                             <TableHead>Tedarikçi</TableHead>
                             <TableHead className="text-right">Alış Fiyatı</TableHead>
-                            <TableHead className="text-center">Teslimat Süresi</TableHead>
                             <TableHead className="text-center">Son Alış</TableHead>
                             <TableHead className="text-center">Durum</TableHead>
                           </TableRow>
@@ -275,9 +274,6 @@ export default function UrunDetay() {
                               </TableCell>
                               <TableCell className="text-right font-semibold">
                                 {formatCurrency(tedarikci.alisFiyati, tedarikci.paraBirimi)}
-                              </TableCell>
-                              <TableCell className="text-center">
-                                {tedarikci.teslimatSuresi} gün
                               </TableCell>
                               <TableCell className="text-center text-sm">
                                 {tedarikci.sonAlisTarihi 
