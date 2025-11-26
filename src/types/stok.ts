@@ -5,7 +5,6 @@ export interface UrunTedarikci {
   tedarikciAdi: string;
   alisFiyati: number;
   paraBirimi: 'TRY' | 'USD' | 'EUR';
-  teslimatSuresi: number; // gün
   sonAlisTarihi?: string;
   varsayilan: boolean;
 }

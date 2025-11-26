@@ -151,11 +151,15 @@ export const YeniAlimModal = ({ open, onOpenChange, tedarikciId, onSuccess }: Ye
     const tedarikci = getTedarikciById(tedarikciId);
     const tedarikciAdi = tedarikci?.firmaAdi || 'Bilinmeyen Tedarikçi';
     
+    // Tüm ürünleri bir kere al (race condition önleme)
+    let allUrunlerGuncel = getUrunler();
+    
     // Stokları arttır, hareket kaydet ve tedarikçi bilgisini güncelle
     urunler.forEach(urunItem => {
-      const allUrunler = getUrunler();
-      const urun = allUrunler.find(u => u.id === urunItem.urunId);
-      if (urun) {
+      const urunIndex = allUrunlerGuncel.findIndex(u => u.id === urunItem.urunId);
+      
+      if (urunIndex !== -1) {
+        const urun = allUrunlerGuncel[urunIndex];
         const oncekiMiktar = urun.stokMiktari;
         const yeniMiktar = oncekiMiktar + urunItem.miktar;
         
@@ -193,15 +197,17 @@ export const YeniAlimModal = ({ open, onOpenChange, tedarikciId, onSuccess }: Ye
             tedarikciAdi: tedarikciAdi,
             alisFiyati: urunItem.birimFiyat,
             paraBirimi: urunItem.paraBirimi,
-            teslimatSuresi: 7, // Varsayılan 7 gün
             sonAlisTarihi: new Date().toISOString(),
-            varsayilan: urun.tedarikciler.length === 0, // İlk tedarikçi varsayılan olur
+            varsayilan: urun.tedarikciler.length === 0,
           });
         }
         
-        saveUrun(urun);
+        allUrunlerGuncel[urunIndex] = urun;
       }
     });
+    
+    // Tek seferde kaydet (atomic update)
+    localStorage.setItem('kuyumcu_stok_urunler', JSON.stringify(allUrunlerGuncel));
     
     toast({
       title: "Başarılı!",

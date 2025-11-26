@@ -41,15 +41,14 @@ const MOCK_URUNLER: Urun[] = [
     kategori: 'kutular-aksesuarlar',
     stokMiktari: 45,
     birim: 'Adet',
-    tedarikciler: [{
-      id: '1',
-      tedarikciId: '1',
-      tedarikciAdi: 'Kutu Dünyası A.Ş.',
-      alisFiyati: 2.20,
-      paraBirimi: 'EUR',
-      teslimatSuresi: 7,
-      varsayilan: true
-    }],
+      tedarikciler: [{
+        id: '1',
+        tedarikciId: '1',
+        tedarikciAdi: 'Kutu Dünyası A.Ş.',
+        alisFiyati: 2.20,
+        paraBirimi: 'EUR',
+        varsayilan: true
+      }],
     alisFiyati: 2.20,
     alisFiyatiParaBirimi: 'EUR',
     karMarji: 40,
@@ -74,7 +73,6 @@ const MOCK_URUNLER: Urun[] = [
       tedarikciAdi: 'Kutu Dünyası A.Ş.',
       alisFiyati: 15.00,
       paraBirimi: 'TRY',
-      teslimatSuresi: 5,
       varsayilan: true
     }],
     alisFiyati: 15.00,
@@ -101,7 +99,6 @@ const MOCK_URUNLER: Urun[] = [
       tedarikciAdi: 'Ahşap Sanatları Ltd.',
       alisFiyati: 85,
       paraBirimi: 'USD',
-      teslimatSuresi: 10,
       varsayilan: true
     }],
     alisFiyati: 85,
@@ -128,7 +125,6 @@ const MOCK_URUNLER: Urun[] = [
       tedarikciAdi: 'Kutu Dünyası A.Ş.',
       alisFiyati: 0.50,
       paraBirimi: 'EUR',
-      teslimatSuresi: 5,
       varsayilan: true
     }],
     alisFiyati: 0.50,
@@ -155,7 +151,6 @@ const MOCK_URUNLER: Urun[] = [
       tedarikciAdi: 'Kimya Ticaret A.Ş.',
       alisFiyati: 3.50,
       paraBirimi: 'TRY',
-      teslimatSuresi: 3,
       varsayilan: true
     }],
     alisFiyati: 3.50,
