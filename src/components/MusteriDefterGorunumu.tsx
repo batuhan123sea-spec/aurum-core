@@ -18,7 +18,6 @@ import { formatCurrency } from "@/lib/kur-hesaplama";
 import { musteriDefterExcelAktar } from "@/lib/excel-export";
 import { HareketDuzenleModal } from "@/components/HareketDuzenleModal";
 import { YeniHareketModal } from "@/components/YeniHareketModal";
-import { YeniIadeModal } from "@/components/YeniIadeModal";
 import { format, startOfWeek, endOfWeek, isSaturday, isMonday, parseISO, isSameDay } from "date-fns";
 import { tr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -51,6 +50,7 @@ interface GunlukSatis {
   tahsilEdilen?: number;
   kalanBorc?: number;
   acilisBakiyesi?: number;
+  kapanisBakiyesi?: number;
 }
 
 interface MusteriDefterGorunumuProps {
@@ -68,9 +68,8 @@ const MusteriDefterGorunumu = ({
   const [duzenlenecekHareket, setDuzenlenecekHareket] = useState<HesapHareketi | null>(null);
   const [silinecekHareketId, setSilinecekHareketId] = useState<string | null>(null);
   const [yenilemeKey, setYenilemeKey] = useState(0);
-  const [filtre, setFiltre] = useState<'tum' | 'satis' | 'odeme' | 'iade'>('tum');
+  const [filtre, setFiltre] = useState<'tum' | 'satis' | 'odeme'>('tum');
   const [yeniHareketModalOpen, setYeniHareketModalOpen] = useState(false);
-  const [yeniIadeModalOpen, setYeniIadeModalOpen] = useState(false);
   const [yukleniyor, setYukleniyor] = useState(true);
   const musteri = getMusteriById(musteriId);
 
@@ -182,21 +181,58 @@ const MusteriDefterGorunumu = ({
       }
     });
 
-    // Günlük verileri oluştur
+    // Günlük verileri oluştur ve kümülatif bakiye hesapla
     const gunler: GunlukSatis[] = [];
+    
+    // Tarihleri eskiden yeniye sırala (kümülatif hesaplama için)
     const sortedTarihler = Array.from(tarihMap.keys()).sort((a, b) => 
-      new Date(b).getTime() - new Date(a).getTime()
+      new Date(a).getTime() - new Date(b).getTime()
     );
+
+    // İlk gün için başlangıç bakiyesini hesapla (tüm önceki işlemler)
+    let kumulatifBakiye = 0;
+    const ilkTarih = sortedTarihler.length > 0 ? parseISO(sortedTarihler[0]) : null;
+    
+    if (ilkTarih) {
+      const oncekiSatislar = tumSatislar.filter(s => {
+        const satisTarih = parseISO(s.tarih);
+        return satisTarih < ilkTarih;
+      });
+      const oncekiHareketler = hareketler.filter(h => {
+        const hareketTarih = parseISO(h.tarih);
+        return hareketTarih < ilkTarih;
+      });
+      
+      const oncekiSatisTopla = oncekiSatislar.reduce((sum, s) => sum + s.genelToplam, 0);
+      const oncekiOdemeTopla = oncekiHareketler
+        .filter(h => h.islemTuru === 'odeme')
+        .reduce((sum, h) => sum + h.tlKarsiligi, 0);
+      const oncekiIadeTopla = oncekiHareketler
+        .filter(h => h.islemTuru === 'iade')
+        .reduce((sum, h) => sum + h.tlKarsiligi, 0);
+      
+      kumulatifBakiye = oncekiSatisTopla - oncekiOdemeTopla - oncekiIadeTopla;
+      console.log('📊 Başlangıç bakiyesi:', kumulatifBakiye.toFixed(2), 'TRY');
+    }
 
     sortedTarihler.forEach(tarihStr => {
       const tarih = parseISO(tarihStr);
       const gunData = tarihMap.get(tarihStr)!;
       
-      // Günlük net toplam hesaplama
+      // Günlük açılış bakiyesi = önceki günün kapanış bakiyesi
+      const acilisBakiyesi = kumulatifBakiye;
+      
+      // Günlük işlem toplamları
       const gunlukSatisToplami = gunData.kalemler.reduce((sum, k) => sum + k.toplam, 0);
       const gunlukOdemeToplami = gunData.odemeler.reduce((sum, o) => sum + o.tlKarsiligi, 0);
       const gunlukIadeToplami = gunData.iadeler.reduce((sum, i) => sum + i.tlKarsiligi, 0);
-      const gunlukToplam = gunlukSatisToplami - gunlukOdemeToplami - gunlukIadeToplami;
+      const gunlukNet = gunlukSatisToplami - gunlukOdemeToplami - gunlukIadeToplami;
+      
+      // Günlük kapanış bakiyesi = açılış + net işlemler
+      const kapanisBakiyesi = acilisBakiyesi + gunlukNet;
+      
+      // Sonraki gün için güncelle
+      kumulatifBakiye = kapanisBakiyesi;
 
       const gun: GunlukSatis = {
         tarih,
@@ -204,12 +240,14 @@ const MusteriDefterGorunumu = ({
         kalemler: gunData.kalemler,
         odemeler: gunData.odemeler,
         iadeler: gunData.iadeler,
-        gunlukToplam,
+        gunlukToplam: gunlukNet,
+        acilisBakiyesi,
+        kapanisBakiyesi,
         isCumartesi: isSaturday(tarih),
         isPazartesi: isMonday(tarih)
       };
 
-      // Cumartesi için haftalık hesaplama
+      // Cumartesi için haftalık hesaplama (eskisi gibi)
       if (gun.isCumartesi) {
         const haftaBaslangic = startOfWeek(tarih, { weekStartsOn: 1 });
         const haftaBitis = endOfWeek(tarih, { weekStartsOn: 1 });
@@ -230,42 +268,18 @@ const MusteriDefterGorunumu = ({
         gun.kalanBorc = gun.haftalikToplam - gun.tahsilEdilen;
       }
 
-      // Pazartesi için açılış bakiyesi
-      if (gun.isPazartesi) {
-        const oncekiCumartesi = gunler.find(g => 
-          g.isCumartesi && g.tarih < tarih
-        );
-        
-        if (oncekiCumartesi && oncekiCumartesi.kalanBorc !== undefined) {
-          gun.acilisBakiyesi = oncekiCumartesi.kalanBorc;
-        } else {
-          const oncekiSatislar = tumSatislar.filter(s => {
-            const satisTarih = parseISO(s.tarih);
-            return satisTarih < tarih;
-          });
-          const oncekiOdemeler = hareketler.filter(h => {
-            const hareketTarih = parseISO(h.tarih);
-            return h.islemTuru === 'odeme' && hareketTarih < tarih;
-          });
-          
-          const toplamSatis = oncekiSatislar.reduce((sum, s) => sum + s.genelToplam, 0);
-          const toplamOdeme = oncekiOdemeler.reduce((sum, h) => sum + h.tlKarsiligi, 0);
-          gun.acilisBakiyesi = toplamSatis - toplamOdeme;
-        }
-      }
-
       gunler.push(gun);
     });
 
-    setGunlukVeriler(gunler);
+    // Görüntüleme için ters çevir (en yeni üstte)
+    setGunlukVeriler(gunler.reverse());
     setYukleniyor(false);
   }, [musteriId, yenilemeKey]);
 
   const filtrelenmisVeriler = gunlukVeriler.filter(gun => {
     if (filtre === 'satis') return gun.kalemler.length > 0;
     if (filtre === 'odeme') return gun.odemeler.length > 0;
-    if (filtre === 'iade') return gun.iadeler.length > 0;
-    return true;
+    return true; // 'tum' için hepsini göster
   });
 
   // Boş günleri filtrele (hiç satış, ödeme, iade olmayanlar)
@@ -317,23 +331,9 @@ const MusteriDefterGorunumu = ({
           >
             Ödemeler
           </Button>
-          <Button 
-            size="sm" 
-            variant={filtre === 'iade' ? 'default' : 'outline'}
-            onClick={() => setFiltre('iade')}
-          >
-            İadeler
-          </Button>
         </div>
         
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => setYeniIadeModalOpen(true)}
-            className="gap-2"
-          >
-            🔄 İade Ekle
-          </Button>
           <Button 
             variant="outline" 
             onClick={() => setYeniHareketModalOpen(true)}
@@ -348,7 +348,7 @@ const MusteriDefterGorunumu = ({
             disabled={gunlukVeriler.length === 0}
           >
             <FileDown className="w-4 h-4" />
-            Excel'e Aktar
+            Excel
           </Button>
         </div>
       </div>
@@ -393,19 +393,45 @@ const MusteriDefterGorunumu = ({
                 </AccordionTrigger>
                 
                 <AccordionContent className="px-4 pb-4">
-                  <div className="space-y-2">
-                    {gun.isPazartesi && gun.acilisBakiyesi !== undefined && (
-                      <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">📖</span>
+                  <div className="space-y-3">
+                    {/* Günlük Bakiye Özeti - Her gün için göster */}
+                    {gun.acilisBakiyesi !== undefined && gun.kapanisBakiyesi !== undefined && (
+                      <div className="p-3 bg-muted/30 rounded-lg border">
+                        <div className="grid grid-cols-2 gap-3 text-sm">
                           <div>
-                            <p className="text-xs font-medium text-blue-900 dark:text-blue-100">
-                              Açılış Bakiyesi
-                            </p>
-                            <p className="text-base font-bold text-blue-600 dark:text-blue-400">
-                              {formatCurrency(gun.acilisBakiyesi, 'TRY')}
-                            </p>
+                            <p className="text-xs text-muted-foreground mb-1">Açılış Bakiyesi</p>
+                            <p className="font-semibold">{formatCurrency(gun.acilisBakiyesi, 'TRY')}</p>
                           </div>
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground mb-1">Kapanış Bakiyesi</p>
+                            <p className="font-bold text-lg">{formatCurrency(gun.kapanisBakiyesi, 'TRY')}</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-border/50 grid grid-cols-3 gap-2 text-xs">
+                          {gun.kalemler.length > 0 && (
+                            <div>
+                              <span className="text-muted-foreground">Satışlar: </span>
+                              <span className="font-medium text-green-600">
+                                +{formatCurrency(gun.kalemler.reduce((sum, k) => sum + k.toplam, 0), 'TRY')}
+                              </span>
+                            </div>
+                          )}
+                          {gun.odemeler.length > 0 && (
+                            <div>
+                              <span className="text-muted-foreground">Ödemeler: </span>
+                              <span className="font-medium text-red-600">
+                                -{formatCurrency(gun.odemeler.reduce((sum, o) => sum + o.tlKarsiligi, 0), 'TRY')}
+                              </span>
+                            </div>
+                          )}
+                          {gun.iadeler.length > 0 && (
+                            <div>
+                              <span className="text-muted-foreground">İadeler: </span>
+                              <span className="font-medium text-blue-600">
+                                -{formatCurrency(gun.iadeler.reduce((sum, i) => sum + i.tlKarsiligi, 0), 'TRY')}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -628,17 +654,6 @@ const MusteriDefterGorunumu = ({
         open={yeniHareketModalOpen}
         onOpenChange={setYeniHareketModalOpen}
         musteriId={musteriId}
-        onSuccess={() => {
-          setYenilemeKey(prev => prev + 1);
-          onHareketDuzenlendi?.();
-        }}
-      />
-
-      <YeniIadeModal
-        open={yeniIadeModalOpen}
-        onOpenChange={setYeniIadeModalOpen}
-        musteriId={musteriId}
-        musteriAdi={musteri?.adSoyad || ''}
         onSuccess={() => {
           setYenilemeKey(prev => prev + 1);
           onHareketDuzenlendi?.();
