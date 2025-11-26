@@ -1,8 +1,9 @@
-import { getSatislar, getGunlukSatislar } from './satis-data';
+import { getSatislar, getGunlukSatislar, getHaftalikSatislar } from './satis-data';
 import { getMusteriler, getHareketler } from './musteri-data';
 import { getUrunler } from './stok-data';
 import { Satis } from '@/types/satis';
 import { paraBirimiTLyeCevir } from './kur-hesaplama';
+import { formatLocalDate } from './utils';
 
 export interface GunlukSatisRapor {
   tarih: string;
@@ -26,6 +27,22 @@ export interface StokDurumRapor {
   toplamUrun: number;
   toplamStokDegeri: number;
   kritikStokUrunler: number;
+}
+
+export interface HaftalikSatisRapor {
+  baslangicTarih: string;
+  bitisTarih: string;
+  toplamSatis: number;
+  toplamAdet: number;
+  ortalamaSepet: number;
+  gunlukDetay: {
+    tarih: string;
+    gun: string;
+    toplamSatis: number;
+    toplamAdet: number;
+    satisSayisi: number;
+  }[];
+  satislar: Satis[];
 }
 
 export const getGunlukSatisRaporu = (tarih: Date): GunlukSatisRapor => {
@@ -84,10 +101,58 @@ export const getStokDurumRaporu = (): StokDurumRapor[] => {
   });
 };
 
+export const getHaftalikSatisRaporu = (baslangicTarih: Date): HaftalikSatisRapor => {
+  // Hafta başlangıcını Pazartesi'ye ayarla
+  const gunIndex = baslangicTarih.getDay();
+  const pazartesi = new Date(baslangicTarih);
+  const fark = gunIndex === 0 ? -6 : 1 - gunIndex; // Pazar ise -6, diğerleri için 1-gunIndex
+  pazartesi.setDate(pazartesi.getDate() + fark);
+  
+  const satislar = getHaftalikSatislar(pazartesi);
+  const toplamSatis = satislar.reduce((sum, s) => sum + s.genelToplam, 0);
+  const toplamAdet = satislar.reduce((sum, s) => 
+    sum + s.kalemler.reduce((adet, k) => adet + k.adet, 0), 0);
+  
+  // Günlük detay
+  const gunler = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
+  const gunlukDetay = gunler.map((gun, index) => {
+    const gunTarih = new Date(pazartesi);
+    gunTarih.setDate(pazartesi.getDate() + index);
+    const gunSatislar = satislar.filter(s => 
+      formatLocalDate(new Date(s.tarih)) === formatLocalDate(gunTarih)
+    );
+    
+    return {
+      tarih: formatLocalDate(gunTarih),
+      gun,
+      toplamSatis: gunSatislar.reduce((sum, s) => sum + s.genelToplam, 0),
+      toplamAdet: gunSatislar.reduce((sum, s) => 
+        sum + s.kalemler.reduce((adet, k) => adet + k.adet, 0), 0),
+      satisSayisi: gunSatislar.length
+    };
+  });
+  
+  const pazar = new Date(pazartesi);
+  pazar.setDate(pazartesi.getDate() + 6);
+  
+  return {
+    baslangicTarih: formatLocalDate(pazartesi),
+    bitisTarih: formatLocalDate(pazar),
+    toplamSatis,
+    toplamAdet,
+    ortalamaSepet: satislar.length > 0 ? toplamSatis / satislar.length : 0,
+    gunlukDetay,
+    satislar
+  };
+};
+
 export const getKarZararAnalizi = (baslangic: Date, bitis: Date) => {
+  const baslangicStr = formatLocalDate(baslangic);
+  const bitisStr = formatLocalDate(bitis);
+  
   const satislar = getSatislar().filter(s => {
-    const satisTarih = new Date(s.tarih);
-    return satisTarih >= baslangic && satisTarih <= bitis && s.durum === 'tamamlandi' && !s.iptalEdildi;
+    const satisTarih = formatLocalDate(new Date(s.tarih));
+    return satisTarih >= baslangicStr && satisTarih <= bitisStr && s.durum === 'tamamlandi' && !s.iptalEdildi;
   });
   
   const toplamSatis = satislar.reduce((sum, s) => sum + s.genelToplam, 0);
@@ -114,10 +179,10 @@ export const getKarZararAnalizi = (baslangic: Date, bitis: Date) => {
   const tumHareketler = getHareketler();
   const toplamTahsilat = tumHareketler
     .filter(h => {
-      const hareketTarih = new Date(h.tarih);
+      const hareketTarih = formatLocalDate(new Date(h.tarih));
       return (
-        hareketTarih >= baslangic && 
-        hareketTarih <= bitis && 
+        hareketTarih >= baslangicStr && 
+        hareketTarih <= bitisStr && 
         h.islemTuru === 'odeme'
       );
     })

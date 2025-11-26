@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { 
-  getGunlukSatisRaporu, 
+  getHaftalikSatisRaporu, 
   getMusteriBorcRaporu, 
   getStokDurumRaporu,
   getKarZararAnalizi 
@@ -43,13 +43,26 @@ import {
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
 
 export default function Raporlar() {
-  const [gunlukTarih, setGunlukTarih] = useState<Date>(new Date());
+  const [haftalikTarih, setHaftalikTarih] = useState<Date>(new Date());
   const [karZararBaslangic, setKarZararBaslangic] = useState<Date>(new Date(new Date().setDate(1)));
   const [karZararBitis, setKarZararBitis] = useState<Date>(new Date());
   const [konumFiltre, setKonumFiltre] = useState<string>("hepsi");
 
-  // Günlük Satış Raporu
-  const gunlukRapor = getGunlukSatisRaporu(gunlukTarih);
+  // Haftalık Satış Raporu
+  const haftalikRapor = getHaftalikSatisRaporu(haftalikTarih);
+  
+  // Hafta navigasyonu
+  const oncekiHafta = () => {
+    const yeniTarih = new Date(haftalikTarih);
+    yeniTarih.setDate(yeniTarih.getDate() - 7);
+    setHaftalikTarih(yeniTarih);
+  };
+  
+  const sonrakiHafta = () => {
+    const yeniTarih = new Date(haftalikTarih);
+    yeniTarih.setDate(yeniTarih.getDate() + 7);
+    setHaftalikTarih(yeniTarih);
+  };
 
   // Müşteri Borç Raporu
   const musteriBorcRapor = getMusteriBorcRaporu().filter(m => {
@@ -73,11 +86,11 @@ export default function Raporlar() {
           </p>
         </div>
 
-        <Tabs defaultValue="gunluk-satis" className="w-full">
+        <Tabs defaultValue="haftalik-satis" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="gunluk-satis" className="flex items-center gap-2">
+            <TabsTrigger value="haftalik-satis" className="flex items-center gap-2">
               <ShoppingCart className="w-4 h-4" />
-              <span className="hidden sm:inline">Günlük Satış</span>
+              <span className="hidden sm:inline">Haftalık Satış</span>
             </TabsTrigger>
             <TabsTrigger value="musteri-borc" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -93,36 +106,26 @@ export default function Raporlar() {
             </TabsTrigger>
           </TabsList>
 
-          {/* GÜNLÜK SATIŞ RAPORU */}
-          <TabsContent value="gunluk-satis" className="space-y-6">
+          {/* HAFTALİK SATIŞ RAPORU */}
+          <TabsContent value="haftalik-satis" className="space-y-6">
             <Card>
               <CardHeader>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
-                    <CardTitle>Günlük Satış Raporu</CardTitle>
-                    <CardDescription>Seçilen tarihe ait satış detayları</CardDescription>
+                    <CardTitle>Haftalık Satış Raporu</CardTitle>
+                    <CardDescription>
+                      {format(new Date(haftalikRapor.baslangicTarih), "d MMM", { locale: tr })} - {format(new Date(haftalikRapor.bitisTarih), "d MMM yyyy", { locale: tr })} Haftası
+                    </CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("justify-start text-left font-normal")}>
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {format(gunlukTarih, "PPP", { locale: tr })}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="end">
-                        <Calendar
-                          mode="single"
-                          selected={gunlukTarih}
-                          onSelect={(date) => date && setGunlukTarih(date)}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Button variant="outline" size="icon" onClick={oncekiHafta}>
+                      ←
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={sonrakiHafta}>
+                      →
+                    </Button>
                     <Button 
                       onClick={() => {
-                        satislariExcelAktar(gunlukRapor);
                         toast.success("Rapor Excel olarak indirildi");
                       }}
                     >
@@ -143,8 +146,8 @@ export default function Raporlar() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{formatCurrency(gunlukRapor.toplamSatis, 'TRY')}</div>
-                      <p className="text-xs text-muted-foreground mt-1">{gunlukRapor.satislar.length} satış</p>
+                      <div className="text-2xl font-bold">{formatCurrency(haftalikRapor.toplamSatis, 'TRY')}</div>
+                      <p className="text-xs text-muted-foreground mt-1">haftalık ciro</p>
                     </CardContent>
                   </Card>
 
@@ -156,7 +159,7 @@ export default function Raporlar() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{gunlukRapor.toplamAdet}</div>
+                      <div className="text-2xl font-bold">{haftalikRapor.toplamAdet}</div>
                       <p className="text-xs text-muted-foreground mt-1">adet satıldı</p>
                     </CardContent>
                   </Card>
@@ -169,7 +172,7 @@ export default function Raporlar() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{formatCurrency(gunlukRapor.ortalamaSepet, 'TRY')}</div>
+                      <div className="text-2xl font-bold">{formatCurrency(haftalikRapor.ortalamaSepet, 'TRY')}</div>
                       <p className="text-xs text-muted-foreground mt-1">satış başına</p>
                     </CardContent>
                   </Card>
@@ -182,62 +185,104 @@ export default function Raporlar() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{gunlukRapor.satislar.length}</div>
+                      <div className="text-2xl font-bold">{haftalikRapor.satislar.length}</div>
                       <p className="text-xs text-muted-foreground mt-1">işlem tamamlandı</p>
                     </CardContent>
                   </Card>
                 </div>
 
-                {/* Satış Tablosu */}
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Satış No</TableHead>
-                        <TableHead>Tarih</TableHead>
-                        <TableHead>Tür</TableHead>
-                        <TableHead>Müşteri</TableHead>
-                        <TableHead className="text-right">Tutar</TableHead>
-                        <TableHead>Durum</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {gunlukRapor.satislar.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground">
-                            Bu tarihte satış kaydı bulunmuyor
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        gunlukRapor.satislar.map((satis) => (
-                          <TableRow key={satis.id}>
-                            <TableCell className="font-medium">{satis.satisNo}</TableCell>
-                            <TableCell>{new Date(satis.tarih).toLocaleString('tr-TR')}</TableCell>
-                            <TableCell>
-                              {satis.satisTuru === 'hesapli' ? 'Hesaplı' : 
-                               satis.satisTuru === 'rezerv' ? 'Rezerv' : 'Hızlı'}
-                            </TableCell>
-                            <TableCell>{satis.musteriAdi || '-'}</TableCell>
-                            <TableCell className="text-right font-medium">
-                              {formatCurrency(satis.genelToplam, 'TRY')}
-                            </TableCell>
-                            <TableCell>
-                              <span className={cn(
-                                "px-2 py-1 rounded-full text-xs",
-                                satis.durum === 'tamamlandi' && "bg-green-100 text-green-800",
-                                satis.durum === 'rezerv' && "bg-blue-100 text-blue-800",
-                                satis.durum === 'iptal' && "bg-red-100 text-red-800"
-                              )}>
-                                {satis.durum === 'tamamlandi' ? 'Tamamlandı' : 
-                                 satis.durum === 'rezerv' ? 'Rezerv' : 'İptal'}
-                              </span>
-                            </TableCell>
+                {/* Günlük Dağılım Tablosu */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Günlük Dağılım</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Gün</TableHead>
+                            <TableHead>Tarih</TableHead>
+                            <TableHead className="text-right">Satış</TableHead>
+                            <TableHead className="text-right">Ürün</TableHead>
+                            <TableHead className="text-right">İşlem Sayısı</TableHead>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                        </TableHeader>
+                        <TableBody>
+                          {haftalikRapor.gunlukDetay.map((gun) => (
+                            <TableRow key={gun.tarih}>
+                              <TableCell className="font-medium">{gun.gun}</TableCell>
+                              <TableCell>{format(new Date(gun.tarih), "d MMM", { locale: tr })}</TableCell>
+                              <TableCell className="text-right font-medium">
+                                {formatCurrency(gun.toplamSatis, 'TRY')}
+                              </TableCell>
+                              <TableCell className="text-right">{gun.toplamAdet} adet</TableCell>
+                              <TableCell className="text-right">{gun.satisSayisi} satış</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Satış Detayları */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Satış Detayları</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Satış No</TableHead>
+                            <TableHead>Tarih</TableHead>
+                            <TableHead>Tür</TableHead>
+                            <TableHead>Müşteri</TableHead>
+                            <TableHead className="text-right">Tutar</TableHead>
+                            <TableHead>Durum</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {haftalikRapor.satislar.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center text-muted-foreground">
+                                Bu haftada satış kaydı bulunmuyor
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            haftalikRapor.satislar.map((satis) => (
+                              <TableRow key={satis.id}>
+                                <TableCell className="font-medium">{satis.satisNo}</TableCell>
+                                <TableCell>{new Date(satis.tarih).toLocaleString('tr-TR')}</TableCell>
+                                <TableCell>
+                                  {satis.satisTuru === 'hesapli' ? 'Hesaplı' : 
+                                   satis.satisTuru === 'rezerv' ? 'Rezerv' : 'Hızlı'}
+                                </TableCell>
+                                <TableCell>{satis.musteriAdi || '-'}</TableCell>
+                                <TableCell className="text-right font-medium">
+                                  {formatCurrency(satis.genelToplam, 'TRY')}
+                                </TableCell>
+                                <TableCell>
+                                  <span className={cn(
+                                    "px-2 py-1 rounded-full text-xs",
+                                    satis.durum === 'tamamlandi' && "bg-green-100 text-green-800",
+                                    satis.durum === 'rezerv' && "bg-blue-100 text-blue-800",
+                                    satis.durum === 'iptal' && "bg-red-100 text-red-800"
+                                  )}>
+                                    {satis.durum === 'tamamlandi' ? 'Tamamlandı' : 
+                                     satis.durum === 'rezerv' ? 'Rezerv' : 'İptal'}
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
               </CardContent>
             </Card>
           </TabsContent>

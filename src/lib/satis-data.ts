@@ -1,6 +1,7 @@
 import { Satis } from '@/types/satis';
 import { getUrunler, saveUrun } from './stok-data';
 import { stokHareketKaydet } from './stok-hareket';
+import { formatLocalDate } from './utils';
 
 const STORAGE_KEY = 'kuyumcu_satislar';
 
@@ -35,10 +36,23 @@ export const getRezervler = (): Satis[] => {
 };
 
 export const getGunlukSatislar = (tarih: Date): Satis[] => {
-  const tarihStr = tarih.toISOString().split('T')[0];
+  const tarihStr = formatLocalDate(tarih);
   return getSatislar().filter(s => {
-    const satisTarih = new Date(s.tarih).toISOString().split('T')[0];
+    const satisTarih = formatLocalDate(new Date(s.tarih));
     return satisTarih === tarihStr && s.durum === 'tamamlandi' && !s.iptalEdildi;
+  });
+};
+
+export const getHaftalikSatislar = (baslangicTarih: Date): Satis[] => {
+  const baslangic = formatLocalDate(baslangicTarih);
+  const bitis = new Date(baslangicTarih);
+  bitis.setDate(bitis.getDate() + 6);
+  const bitisStr = formatLocalDate(bitis);
+  
+  return getSatislar().filter(s => {
+    const satisTarih = formatLocalDate(new Date(s.tarih));
+    return satisTarih >= baslangic && satisTarih <= bitisStr && 
+           s.durum === 'tamamlandi' && !s.iptalEdildi;
   });
 };
 
