@@ -48,12 +48,14 @@ export function hesapliSatisYap(
       kullanici: 'Admin'
     };
     
-    // Stokları düş
+    // ✅ Stokları düş - ATOMIC (Tek seferde kaydet)
+    let urunler = getUrunler();
+    
     kalemler.forEach(kalem => {
-      const urunler = getUrunler();
-      const urun = urunler.find(u => u.id === kalem.urunId);
-      if (urun) {
-        const oncekiMiktar = urun.stokMiktari;
+      const urunIndex = urunler.findIndex(u => u.id === kalem.urunId);
+      
+      if (urunIndex !== -1) {
+        const oncekiMiktar = urunler[urunIndex].stokMiktari;
         const yeniMiktar = oncekiMiktar - kalem.adet;
         
         stokHareketKaydet(
@@ -65,24 +67,31 @@ export function hesapliSatisYap(
           yeniMiktar
         );
         
-        urun.stokMiktari = yeniMiktar;
-        saveUrun(urun);
+        // Hafızada güncelle
+        urunler[urunIndex] = {
+          ...urunler[urunIndex],
+          stokMiktari: yeniMiktar,
+          guncellemeTarihi: new Date().toISOString()
+        };
 
         // Stok uyarısı kontrolü
-        if (yeniMiktar <= urun.kritikStokSeviyesi) {
+        if (yeniMiktar <= urunler[urunIndex].kritikStokSeviyesi) {
           toast({
             title: "🚨 Kritik Stok Uyarısı!",
-            description: `${urun.ad} kritik seviyede! (Kalan: ${yeniMiktar})`,
+            description: `${urunler[urunIndex].ad} kritik seviyede! (Kalan: ${yeniMiktar})`,
             variant: "destructive"
           });
-        } else if (yeniMiktar <= urun.minStokSeviyesi) {
+        } else if (yeniMiktar <= urunler[urunIndex].minStokSeviyesi) {
           toast({
             title: "⚠️ Düşük Stok",
-            description: `${urun.ad} minimum seviyeye yaklaştı! (Kalan: ${yeniMiktar})`
+            description: `${urunler[urunIndex].ad} minimum seviyeye yaklaştı! (Kalan: ${yeniMiktar})`
           });
         }
       }
     });
+    
+    // ✅ TÜM ÜRÜNLERİ TEK SEFERDE KAYDET
+    localStorage.setItem('kuyumcu_stok_urunler', JSON.stringify(urunler));
     
     // Mevcut borcu hesapla (hareket kaydetmeden ÖNCE)
     const mevcutBorclar = musteriDovizBorclariniHesapla(musteriId);
@@ -223,12 +232,14 @@ export function hizliSatisYap(
   
   saveSatis(satis);
   
-  // Stokları düş
+  // ✅ Stokları düş - ATOMIC (Tek seferde kaydet)
+  let urunler = getUrunler();
+  
   kalemler.forEach(kalem => {
-    const urunler = getUrunler();
-    const urun = urunler.find(u => u.id === kalem.urunId);
-    if (urun) {
-      const oncekiMiktar = urun.stokMiktari;
+    const urunIndex = urunler.findIndex(u => u.id === kalem.urunId);
+    
+    if (urunIndex !== -1) {
+      const oncekiMiktar = urunler[urunIndex].stokMiktari;
       const yeniMiktar = oncekiMiktar - kalem.adet;
       
       stokHareketKaydet(
@@ -240,24 +251,31 @@ export function hizliSatisYap(
         yeniMiktar
       );
       
-      urun.stokMiktari = yeniMiktar;
-      saveUrun(urun);
+      // Hafızada güncelle
+      urunler[urunIndex] = {
+        ...urunler[urunIndex],
+        stokMiktari: yeniMiktar,
+        guncellemeTarihi: new Date().toISOString()
+      };
 
       // Stok uyarısı kontrolü
-      if (yeniMiktar <= urun.kritikStokSeviyesi) {
+      if (yeniMiktar <= urunler[urunIndex].kritikStokSeviyesi) {
         toast({
           title: "🚨 Kritik Stok Uyarısı!",
-          description: `${urun.ad} kritik seviyede! (Kalan: ${yeniMiktar})`,
+          description: `${urunler[urunIndex].ad} kritik seviyede! (Kalan: ${yeniMiktar})`,
           variant: "destructive"
         });
-      } else if (yeniMiktar <= urun.minStokSeviyesi) {
+      } else if (yeniMiktar <= urunler[urunIndex].minStokSeviyesi) {
         toast({
           title: "⚠️ Düşük Stok",
-          description: `${urun.ad} minimum seviyeye yaklaştı! (Kalan: ${yeniMiktar})`
+          description: `${urunler[urunIndex].ad} minimum seviyeye yaklaştı! (Kalan: ${yeniMiktar})`
         });
       }
     }
   });
+  
+  // ✅ TÜM ÜRÜNLERİ TEK SEFERDE KAYDET
+  localStorage.setItem('kuyumcu_stok_urunler', JSON.stringify(urunler));
   
   toast({
     title: "Satış Tamamlandı",
