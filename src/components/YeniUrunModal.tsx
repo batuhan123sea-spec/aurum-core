@@ -60,8 +60,6 @@ interface YeniUrunModalProps {
 
 interface TedarikciItem {
   tedarikciId: string;
-  alisFiyati: number;
-  paraBirimi: 'TRY' | 'USD' | 'EUR';
   varsayilan: boolean;
 }
 
@@ -72,8 +70,6 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
   const [tedarikcilerList, setTedarikcilerList] = useState<TedarikciItem[]>(
     initialData?.tedarikciler?.map(t => ({
       tedarikciId: t.tedarikciId,
-      alisFiyati: t.alisFiyati,
-      paraBirimi: t.paraBirimi,
       varsayilan: t.varsayilan
     })) || []
   );
@@ -110,8 +106,6 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
       ...tedarikcilerList,
       {
         tedarikciId: "",
-        alisFiyati: 0,
-        paraBirimi: "TRY",
         varsayilan: tedarikcilerList.length === 0
       }
     ]);
@@ -150,11 +144,11 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
       return;
     }
 
-    const invalidTedarikci = tedarikcilerList.find(t => !t.tedarikciId || t.alisFiyati <= 0);
+    const invalidTedarikci = tedarikcilerList.find(t => !t.tedarikciId);
     if (invalidTedarikci) {
       toast({
         title: "Hata",
-        description: "Tüm tedarikçi bilgilerini eksiksiz doldurun",
+        description: "Tüm tedarikçileri seçmelisiniz",
         variant: "destructive"
       });
       return;
@@ -170,15 +164,15 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
       return;
     }
 
-    // Tedarikçi detaylarını hazırla
+    // Tedarikçi detaylarını hazırla - üstteki fiyatı kullan
     const tedarikcilerData = tedarikcilerList.map(t => {
       const tedarikci = tedarikciler.find(td => td.id === t.tedarikciId);
       return {
         id: initialData?.tedarikciler?.find(it => it.tedarikciId === t.tedarikciId)?.id || Date.now().toString() + Math.random(),
         tedarikciId: t.tedarikciId,
         tedarikciAdi: tedarikci?.firmaAdi || '',
-        alisFiyati: t.alisFiyati,
-        paraBirimi: t.paraBirimi,
+        alisFiyati: data.alisFiyati,
+        paraBirimi: data.paraBirimi,
         varsayilan: t.varsayilan,
         sonAlisTarihi: initialData?.tedarikciler?.find(it => it.tedarikciId === t.tedarikciId)?.sonAlisTarihi
       };
@@ -451,52 +445,23 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
                 <Card key={idx} className="p-3">
                   <div className="flex items-start gap-2">
                     <div className="flex-1 space-y-3">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-xs text-muted-foreground">Tedarikçi</label>
-                          <Select 
-                            value={ted.tedarikciId} 
-                            onValueChange={(value) => updateTedarikci(idx, 'tedarikciId', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seçin" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {tedarikciler.map((t) => (
-                                <SelectItem key={t.id} value={t.id}>
-                                  {t.firmaAdi}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div>
-                          <label className="text-xs text-muted-foreground">Para Birimi</label>
-                          <Select 
-                            value={ted.paraBirimi}
-                            onValueChange={(value: 'TRY' | 'USD' | 'EUR') => updateTedarikci(idx, 'paraBirimi', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="TRY">₺ TRY</SelectItem>
-                              <SelectItem value="USD">$ USD</SelectItem>
-                              <SelectItem value="EUR">€ EUR</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
                       <div>
-                        <label className="text-xs text-muted-foreground">Alış Fiyatı</label>
-                        <Input 
-                          type="number" 
-                          step="0.01"
-                          value={ted.alisFiyati}
-                          onChange={(e) => updateTedarikci(idx, 'alisFiyati', parseFloat(e.target.value) || 0)}
-                        />
+                        <label className="text-xs text-muted-foreground">Tedarikçi</label>
+                        <Select 
+                          value={ted.tedarikciId} 
+                          onValueChange={(value) => updateTedarikci(idx, 'tedarikciId', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seçin" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {tedarikciler.map((t) => (
+                              <SelectItem key={t.id} value={t.id}>
+                                {t.firmaAdi}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div className="flex items-center gap-2">
