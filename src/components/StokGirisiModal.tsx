@@ -67,6 +67,7 @@ export const StokGirisiModal = ({ open, onOpenChange, onSuccess }: StokGirisiMod
   });
 
   const secilenUrunId = form.watch("urunId");
+  const secilenTedarikciId = form.watch("tedarikciId");
 
   // Ürün seçildiğinde alış fiyatı ve para birimini otomatik doldur
   useEffect(() => {
@@ -78,6 +79,21 @@ export const StokGirisiModal = ({ open, onOpenChange, onSuccess }: StokGirisiMod
       }
     }
   }, [secilenUrunId, allUrunler]);
+
+  // Tedarikçi seçildiğinde, o tedarikçinin mevcut fiyatını doldur
+  useEffect(() => {
+    if (secilenUrunId && secilenTedarikciId) {
+      const urun = allUrunler.find(u => u.id === secilenUrunId);
+      if (urun?.tedarikciler) {
+        const mevcutTedarikci = urun.tedarikciler.find(t => t.tedarikciId === secilenTedarikciId);
+        if (mevcutTedarikci) {
+          // Tedarikçinin mevcut fiyatını doldur
+          form.setValue("alisFiyati", mevcutTedarikci.alisFiyati);
+          form.setValue("paraBirimi", mevcutTedarikci.paraBirimi);
+        }
+      }
+    }
+  }, [secilenTedarikciId, secilenUrunId, allUrunler]);
 
   const onSubmit = (data: StokGirisiFormValues) => {
     const urun = allUrunler.find(u => u.id === data.urunId);
