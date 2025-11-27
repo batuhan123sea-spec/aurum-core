@@ -11,7 +11,7 @@ import { ArrowLeft, Package, TrendingUp, TrendingDown, History, Pencil, Download
 import Barcode from 'react-barcode';
 import { YeniUrunModal } from "@/components/YeniUrunModal";
 import { getUrunler, saveUrun, generateBarkod } from "@/lib/stok-data";
-import { getTedarikciAlimlari } from "@/lib/tedarikci-data";
+import { getTedarikciAlimlar } from "@/lib/tedarikci-data";
 import { getSatislar } from "@/lib/satis-data";
 import { getUrunHareketleri } from "@/lib/stok-hareket";
 import { formatCurrency } from "@/lib/kur-hesaplama";
@@ -36,7 +36,7 @@ export default function UrunDetay() {
   }
 
   // Alım geçmişi - tüm alımlardan bu ürünü filtrele
-  const tumAlimlar = getTedarikciAlimlari('');
+  const tumAlimlar = getTedarikciAlimlar();
   const urunAlimlari = tumAlimlar.map(alim => ({
     ...alim,
     urun: alim.urunler.find(u => u.urunId === urunId)
