@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowLeft, Edit, DollarSign, Receipt } from "lucide-react";
-import { getMusteriById } from "@/lib/musteri-data";
+import { getMusteriById, musteriBalanceGuncelle } from "@/lib/musteri-data";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, getGuncelKurlar } from "@/lib/kur-hesaplama";
 import HesapEkstresiTable from "@/components/HesapEkstresiTable";
@@ -63,6 +63,7 @@ const MusteriDetay = () => {
 
   const handleOdemeSuccess = () => {
     if (musteriId) {
+      musteriBalanceGuncelle(musteriId);
       setMusteri(getMusteriById(musteriId));
       setYenilemeKey(prev => prev + 1);
     }
@@ -70,6 +71,7 @@ const MusteriDetay = () => {
 
   const handleYeniHareketSuccess = () => {
     if (musteriId) {
+      musteriBalanceGuncelle(musteriId);
       setMusteri(getMusteriById(musteriId));
       setYenilemeKey(prev => prev + 1);
     }
