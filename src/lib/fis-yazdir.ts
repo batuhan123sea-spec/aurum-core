@@ -73,7 +73,7 @@ export function haftalikTahsilatFisiOlustur(
   baslangicTarihi: string,
   bitisTarihi: string,
   baslangicBakiyesi: number,
-  buHaftaOdemeler: Array<{ tarih: string; aciklama: string; tutar: number }>,
+  buHaftaOdemeler: Array<{ tarih: string; aciklama: string; tutar: number; odemeTuru?: string }>,
   buHaftaSatislar: Array<{ 
     tarih: string; 
     satisNo: string; 
@@ -91,71 +91,58 @@ export function haftalikTahsilatFisiOlustur(
   const firma = ayarlar.firma;
   const fisAyarlari = ayarlar.fis;
   
-  const formatTarih = (tarih: string) => new Date(tarih).toLocaleDateString('tr-TR');
-  const W = 38; // Genişlik
-  const line = (char: string = '=') => char.repeat(W);
-  const center = (text: string) => {
-    const padding = Math.floor((W - text.length) / 2);
-    return ' '.repeat(padding) + text;
-  };
-  const rightAlign = (text: string, width: number = W) => {
-    return text.padStart(width);
-  };
-  
+  // Hesaplamalar
   const toplamSatis = buHaftaSatislar.reduce((sum, s) => sum + s.tutar, 0);
+  const toplamOdeme = buHaftaOdemeler.reduce((sum, o) => sum + o.tutar, 0);
   
   let fis = '\n';
-  fis += line('=') + '\n';
-  fis += center(firma.firmaAdi || 'FİRMA ADI') + '\n';
-  fis += center(fisAyarlari.baslik || 'HAFTALİK TAHSİLAT FİŞİ') + '\n';
-  fis += line('=') + '\n';
-  fis += `Müşteri: ${musteri.adSoyad.substring(0, 28)}\n`;
-  fis += `Tel: ${musteri.telefon}\n`;
-  fis += '\n';
-  fis += `Önceki Bakiye: ${formatCurrency(baslangicBakiyesi, 'TRY')}\n`;
-  fis += line('=') + '\n';
-  fis += '\n';
   
-  // Ürün listesi
-  fis += 'BU HAFTA ALINAN ÜRÜNLER\n';
-  fis += line('-') + '\n';
-  fis += 'Ürün Adı              Adet     Fiyat\n';
-  fis += line('-') + '\n';
+  // 1. BAŞLIK - Firma adı ve reklam
+  fis += `${firma.firmaAdi || 'FİRMA ADI'}`;
+  if (fisAyarlari.reklamAlani) {
+    fis += ` ${fisAyarlari.reklamAlani}`;
+  }
+  fis += '\n\n';
   
-  // Tüm ürünleri listele
+  // 2. MÜŞTERİ - Sadece isim
+  fis += `Sayın ${musteri.adSoyad}\n\n`;
+  
+  // 3. GEÇEN HAFTA BORÇ
+  fis += `geçen haftadan kalan borç: ${formatCurrency(baslangicBakiyesi, 'TRY')}\n\n`;
+  
+  // 4. BU HAFTA ÜRÜNLER
+  fis += `bu hafta alınan ürünler:\n`;
+  fis += `Ürün          adet    fiyat    toplam\n`;
+  
   buHaftaSatislar.forEach(satis => {
     satis.kalemler.forEach(kalem => {
-      const urunAdi = kalem.urunAdi.substring(0, 20).padEnd(20);
+      const urunAdi = kalem.urunAdi.substring(0, 12).padEnd(12);
       const adet = String(kalem.adet).padStart(4);
-      const fiyat = formatCurrency(kalem.toplamTutar, 'TRY').padStart(13);
-      fis += `${urunAdi}  ${adet} ${fiyat}\n`;
+      const fiyat = kalem.birimFiyati.toFixed(0).padStart(8);
+      const toplam = `${kalem.toplamTutar.toFixed(0)} ₺`.padStart(10);
+      fis += ` ${urunAdi}  ${adet}  ${fiyat}  ${toplam}\n`;
     });
   });
   
-  fis += line('-') + '\n';
-  fis += `Toplam:         ${rightAlign(formatCurrency(toplamSatis, 'TRY'), 23)}\n`;
-  fis += '\n';
-  fis += '\n';
-  fis += line('=') + '\n';
-  fis += '\n';
-  fis += center('GÜNCEL BAKİYE') + '\n';
-  fis += center(formatCurrency(guncelBakiye, 'TRY')) + '\n';
-  fis += '\n';
-  fis += line('=') + '\n';
-  fis += '\n';
-  fis += center(fisAyarlari.altBilgi || 'Teşekkür Ederiz!') + '\n';
+  fis += `                    ürünler toplamı: ${formatCurrency(toplamSatis, 'TRY')}\n\n`;
   
-  if (firma.telefon) {
-    fis += center(`📞 ${firma.telefon}`) + '\n';
+  // 5. BU HAFTA ÖDEMELER (SADECE VARSA)
+  if (buHaftaOdemeler.length > 0) {
+    fis += `bu hafta yapılan ödemeler:\n`;
+    buHaftaOdemeler.forEach(odeme => {
+      const odemeTuru = odeme.odemeTuru === 'kredi-karti' ? 'Kredi Kartı' :
+                        odeme.odemeTuru === 'eft' ? 'EFT' :
+                        odeme.odemeTuru === 'havale' ? 'Havale' : 'Nakit';
+      fis += `- ${odemeTuru}: ${formatCurrency(odeme.tutar, 'TRY')}\n`;
+    });
+    fis += `                    ödemeler toplamı: ${formatCurrency(toplamOdeme, 'TRY')}\n\n`;
   }
   
-  fis += line('=') + '\n';
+  // 6. TOPLAM BAKİYE
+  fis += `toplam bakiye: ${formatCurrency(guncelBakiye, 'TRY')}\n\n`;
   
-  if (fisAyarlari.reklamAlani) {
-    fis += center(fisAyarlari.reklamAlani.substring(0, W)) + '\n';
-  }
-  
-  fis += '\n';
+  // 7. TEŞEKKÜR
+  fis += `Bizi tercih ettiğiniz için teşekkür ederiz.\n`;
   
   return fis;
 }
