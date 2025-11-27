@@ -28,7 +28,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getUrunler, saveUrun } from "@/lib/stok-data";
-import { getTedarikciler } from "@/lib/tedarikci-data";
+import { getTedarikciler, saveTedarikciAlim } from "@/lib/tedarikci-data";
+import { TedarikciAlim } from "@/types/tedarikci";
 import { stokHareketKaydet } from "@/lib/stok-hareket";
 import { useToast } from "@/hooks/use-toast";
 
@@ -158,6 +159,27 @@ export const StokGirisiModal = ({ open, onOpenChange, onSuccess }: StokGirisiMod
           varsayilan: urun.tedarikciler.length === 0,
         });
       }
+      
+      // Tedarikçi alım kaydı oluştur
+      const alimKaydi: TedarikciAlim = {
+        id: Date.now().toString(),
+        tedarikciId: data.tedarikciId,
+        tarih: new Date().toISOString(),
+        faturaNo: `ALM-${Date.now().toString().slice(-6)}`,
+        urunler: [{
+          urunId: data.urunId,
+          urunAdi: urun.ad,
+          miktar: data.miktar,
+          birimFiyat: data.alisFiyati,
+          paraBirimi: data.paraBirimi,
+          toplamTutar: data.alisFiyati * data.miktar
+        }],
+        genelToplam: data.alisFiyati * data.miktar,
+        odemeDurumu: 'odendi',
+        aciklama: data.aciklama || undefined
+      };
+      
+      saveTedarikciAlim(alimKaydi);
     }
     
     saveUrun(urun);
