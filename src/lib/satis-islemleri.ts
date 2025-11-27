@@ -105,13 +105,35 @@ export function hesapliSatisYap(
     };
 
     kalemler.forEach(kalem => {
+      // Orijinal para birimindeki fiyattan başla
       let kalemTutari = kalem.orijinalBirimFiyati * kalem.adet;
+      
+      // 🆕 İNDİRİM UYGULA (iade ile aynı mantık)
+      if (kalem.indirimYuzde > 0) {
+        kalemTutari = kalemTutari * (1 - kalem.indirimYuzde / 100);
+      } else if (kalem.indirimTL > 0) {
+        // TL indirimini orijinal para birimine çevir
+        const indirimOrani = kalem.indirimTL / (kalem.birimFiyati * kalem.adet);
+        kalemTutari = kalemTutari * (1 - indirimOrani);
+      }
       
       // KDV dahil satışsa, KDV'yi ekle
       if (kdvDahil) {
         const kdvTutari = kalemTutari * (kalem.kdvOrani / 100);
         kalemTutari += kdvTutari;
       }
+      
+      console.log('💰 Müşteri borca eklenen tutar:', {
+        urunAdi: kalem.urunAdi,
+        paraBirimi: kalem.paraBirimi,
+        orijinalFiyat: kalem.orijinalBirimFiyati,
+        adet: kalem.adet,
+        indirimYuzde: kalem.indirimYuzde,
+        indirimTL: kalem.indirimTL,
+        indirimSonrasi: kalemTutari / kalem.adet,
+        kdvDahil,
+        toplamKalemTutari: kalemTutari
+      });
       
       paraBirimiGroups[kalem.paraBirimi] += kalemTutari;
     });
