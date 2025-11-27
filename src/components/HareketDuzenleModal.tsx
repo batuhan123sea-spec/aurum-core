@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { HesapHareketi, ParaBirimi, IslemTuru, OdemeTuru } from "@/types/musteri";
 import { updateHareket } from "@/lib/musteri-data";
 import { getKur } from "@/lib/kur-hesaplama";
+import { utcToLocalDateTimeString } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface HareketDuzenleModalProps {
@@ -27,8 +28,7 @@ export const HareketDuzenleModal = ({ open, onOpenChange, hareket, onSuccess }: 
 
   useEffect(() => {
     if (open && hareket) {
-      const tarihObj = new Date(hareket.tarih);
-      const tarihStr = tarihObj.toISOString().slice(0, 16);
+      const tarihStr = utcToLocalDateTimeString(hareket.tarih);
       setTarih(tarihStr);
       setTutar(hareket.tutar.toString());
       setParaBirimi(hareket.paraBirimi);
