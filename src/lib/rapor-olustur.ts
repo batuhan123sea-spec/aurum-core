@@ -2,8 +2,9 @@ import { getSatislar, getGunlukSatislar, getHaftalikSatislar } from './satis-dat
 import { getMusteriler, getHareketler } from './musteri-data';
 import { getUrunler } from './stok-data';
 import { Satis } from '@/types/satis';
-import { paraBirimiTLyeCevir } from './kur-hesaplama';
+import { paraBirimiTLyeCevir, getKur } from './kur-hesaplama';
 import { formatLocalDate } from './utils';
+import type { ParaBirimi } from '@/types/musteri';
 
 export interface GunlukSatisRapor {
   tarih: string;
@@ -62,17 +63,50 @@ export const getGunlukSatisRaporu = (tarih: Date): GunlukSatisRapor => {
 
 export const getMusteriBorcRaporu = (): MusteriBorcRapor[] => {
   const musteriler = getMusteriler();
+  const tumHareketler = getHareketler();
   
-  return musteriler
-    .filter(m => m.toplamBorcTL > 0)
-    .map(m => ({
-      musteriId: m.id,
-      musteriAdi: m.adSoyad,
-      konum: m.konum,
-      borcTL: m.toplamBorcTL,
-      paraBirimi: m.varsayilanParaBirimi,
-      borcOrijinal: m.toplamBorcTL
-    }))
+  // ✅ Her müşteri için borcu HesapHareketi'den güncel kurla hesapla
+  const musteriListesi = musteriler.map(musteri => {
+    const hareketler = tumHareketler.filter(h => h.musteriId === musteri.id);
+    
+    // Para birimi bazında borç hesaplama
+    const paraBirimiBorc: Record<ParaBirimi, number> = {
+      TRY: 0,
+      USD: 0,
+      EUR: 0
+    };
+    
+    // Hareketleri kronolojik sırala ve hesapla
+    hareketler
+      .sort((a, b) => new Date(a.tarih).getTime() - new Date(b.tarih).getTime())
+      .forEach(hareket => {
+        if (hareket.islemTuru === 'satis') {
+          paraBirimiBorc[hareket.paraBirimi] += hareket.tutar;
+        } else if (hareket.islemTuru === 'odeme' || hareket.islemTuru === 'iade') {
+          // Ödeme ve iade para biriminden düş
+          paraBirimiBorc[hareket.paraBirimi] = Math.max(0, paraBirimiBorc[hareket.paraBirimi] - hareket.tutar);
+        }
+      });
+    
+    // Toplam borcu güncel kurla TL'ye çevir
+    const borcTL = 
+      paraBirimiBorc.TRY +
+      (paraBirimiBorc.USD * getKur('USD')) +
+      (paraBirimiBorc.EUR * getKur('EUR'));
+    
+    return {
+      musteriId: musteri.id,
+      musteriAdi: musteri.adSoyad,
+      konum: musteri.konum,
+      borcTL: Math.round(borcTL * 100) / 100, // Virgülden sonra 2 basamak
+      paraBirimi: musteri.varsayilanParaBirimi,
+      borcOrijinal: borcTL
+    };
+  });
+  
+  // Sadece borçlu müşterileri filtrele ve sırala
+  return musteriListesi
+    .filter(m => m.borcTL > 0)
     .sort((a, b) => b.borcTL - a.borcTL);
 };
 
@@ -175,7 +209,7 @@ export const getKarZararAnalizi = (baslangic: Date, bitis: Date) => {
     return sum + maliyet;
   }, 0);
   
-  // Tahsilat hesaplama
+  // Tahsilat hesaplama - Güncel kurla
   const tumHareketler = getHareketler();
   const toplamTahsilat = tumHareketler
     .filter(h => {
@@ -186,7 +220,10 @@ export const getKarZararAnalizi = (baslangic: Date, bitis: Date) => {
         h.islemTuru === 'odeme'
       );
     })
-    .reduce((sum, h) => sum + h.tlKarsiligi, 0);
+    .reduce((sum, h) => {
+      const kur = getKur(h.paraBirimi);
+      return sum + (h.tutar * kur);
+    }, 0);
   
   return {
     toplamSatis,
