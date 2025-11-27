@@ -95,54 +95,86 @@ export function haftalikTahsilatFisiOlustur(
   const toplamSatis = buHaftaSatislar.reduce((sum, s) => sum + s.tutar, 0);
   const toplamOdeme = buHaftaOdemeler.reduce((sum, o) => sum + o.tutar, 0);
   
+  const W = 40; // Termal yazıcı genişliği
   let fis = '\n';
   
-  // 1. BAŞLIK - Firma adı ve reklam
-  fis += `${firma.firmaAdi || 'FİRMA ADI'}`;
+  // 1. BAŞLIK
+  fis += line(W, '=') + '\n';
+  fis += center(firma.firmaAdi || 'FIRMA ADI', W) + '\n';
   if (fisAyarlari.reklamAlani) {
-    fis += ` ${fisAyarlari.reklamAlani}`;
+    fis += center(`(${fisAyarlari.reklamAlani})`, W) + '\n';
   }
-  fis += '\n\n';
+  fis += line(W, '=') + '\n';
+  fis += '\n';
   
-  // 2. MÜŞTERİ - Sadece isim
-  fis += `Sayın ${musteri.adSoyad}\n\n`;
+  // 2. MÜŞTERİ
+  fis += `Sayin ${musteri.adSoyad}\n`;
+  fis += '\n';
   
   // 3. GEÇEN HAFTA BORÇ
-  fis += `geçen haftadan kalan borç: ${formatCurrency(baslangicBakiyesi, 'TRY')}\n\n`;
+  fis += line(W, '-') + '\n';
+  const gecenHaftaBorcStr = `Gecen Haftadan Kalan Borc:`;
+  const borcTutarStr = `${formatCurrency(baslangicBakiyesi, 'TRY')}`;
+  const borcSatir = gecenHaftaBorcStr + ' '.repeat(Math.max(1, W - gecenHaftaBorcStr.length - borcTutarStr.length)) + borcTutarStr;
+  fis += borcSatir + '\n';
+  fis += line(W, '-') + '\n';
+  fis += '\n';
   
   // 4. BU HAFTA ÜRÜNLER
-  fis += `bu hafta alınan ürünler:\n`;
-  fis += `Ürün          adet    fiyat    toplam\n`;
-  
-  buHaftaSatislar.forEach(satis => {
-    satis.kalemler.forEach(kalem => {
-      const urunAdi = kalem.urunAdi.substring(0, 12).padEnd(12);
-      const adet = String(kalem.adet).padStart(4);
-      const fiyat = kalem.birimFiyati.toFixed(0).padStart(8);
-      const toplam = `${kalem.toplamTutar.toFixed(0)} ₺`.padStart(10);
-      fis += ` ${urunAdi}  ${adet}  ${fiyat}  ${toplam}\n`;
+  if (buHaftaSatislar.length > 0) {
+    fis += 'Bu Hafta Alinan Urunler:\n';
+    fis += line(W, '-') + '\n';
+    fis += 'Urun           Adet   Fiyat    Toplam\n';
+    fis += line(W, '-') + '\n';
+    
+    buHaftaSatislar.forEach(satis => {
+      satis.kalemler.forEach(kalem => {
+        const urunAdi = kalem.urunAdi.substring(0, 13).padEnd(13);
+        const adet = String(kalem.adet).padStart(4);
+        const fiyat = kalem.birimFiyati.toFixed(0).padStart(7);
+        const toplam = `${kalem.toplamTutar.toFixed(0)} TL`.padStart(10);
+        fis += ` ${urunAdi} ${adet} ${fiyat} ${toplam}\n`;
+      });
     });
-  });
+    
+    fis += line(W, '-') + '\n';
+    const urunlerToplamStr = `Urunler Toplami: ${formatCurrency(toplamSatis, 'TRY')}`;
+    fis += ' '.repeat(Math.max(0, W - urunlerToplamStr.length)) + urunlerToplamStr + '\n';
+    fis += '\n';
+  }
   
-  fis += `                    ürünler toplamı: ${formatCurrency(toplamSatis, 'TRY')}\n\n`;
-  
-  // 5. BU HAFTA ÖDEMELER (SADECE VARSA)
+  // 5. BU HAFTA ÖDEMELER
   if (buHaftaOdemeler.length > 0) {
-    fis += `bu hafta yapılan ödemeler:\n`;
+    fis += 'Bu Hafta Yapilan Odemeler:\n';
+    fis += line(W, '-') + '\n';
+    
     buHaftaOdemeler.forEach(odeme => {
-      const odemeTuru = odeme.odemeTuru === 'kredi-karti' ? 'Kredi Kartı' :
+      const odemeTuru = odeme.odemeTuru === 'kredi-karti' ? 'Kredi Karti' :
                         odeme.odemeTuru === 'eft' ? 'EFT' :
                         odeme.odemeTuru === 'havale' ? 'Havale' : 'Nakit';
-      fis += `- ${odemeTuru}: ${formatCurrency(odeme.tutar, 'TRY')}\n`;
+      const odemeTutarStr = formatCurrency(odeme.tutar, 'TRY');
+      const odemeSatir = `- ${odemeTuru}:` + ' '.repeat(Math.max(1, W - odemeTuru.length - odemeTutarStr.length - 4)) + odemeTutarStr;
+      fis += odemeSatir + '\n';
     });
-    fis += `                    ödemeler toplamı: ${formatCurrency(toplamOdeme, 'TRY')}\n\n`;
+    
+    fis += line(W, '-') + '\n';
+    const odemelerToplamStr = `Odemeler Toplami: ${formatCurrency(toplamOdeme, 'TRY')}`;
+    fis += ' '.repeat(Math.max(0, W - odemelerToplamStr.length)) + odemelerToplamStr + '\n';
+    fis += '\n';
   }
   
   // 6. TOPLAM BAKİYE
-  fis += `toplam bakiye: ${formatCurrency(guncelBakiye, 'TRY')}\n\n`;
+  fis += line(W, '=') + '\n';
+  const bakiyeStr = `TOPLAM BAKIYE: ${formatCurrency(guncelBakiye, 'TRY')}`;
+  fis += center(bakiyeStr, W) + '\n';
+  fis += line(W, '=') + '\n';
+  fis += '\n';
   
   // 7. TEŞEKKÜR
-  fis += `Bizi tercih ettiğiniz için teşekkür ederiz.\n`;
+  fis += center('Bizi tercih ettiginiz icin', W) + '\n';
+  fis += center('tesekkur ederiz.', W) + '\n';
+  fis += '\n';
+  fis += line(W, '=') + '\n';
   
   return fis;
 }
