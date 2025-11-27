@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ParaBirimi, OdemeTuru, IslemTuru } from "@/types/musteri";
 import { createManualHareket } from "@/lib/musteri-data";
+import { getLocalDateTimeString } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface YeniHareketModalProps {
@@ -18,7 +19,7 @@ interface YeniHareketModalProps {
 
 export const YeniHareketModal = ({ open, onOpenChange, musteriId, onSuccess }: YeniHareketModalProps) => {
   const [islemTuru, setIslemTuru] = useState<IslemTuru>('odeme');
-  const [tarih, setTarih] = useState(new Date().toISOString().slice(0, 16));
+  const [tarih, setTarih] = useState(getLocalDateTimeString());
   const [tutar, setTutar] = useState("");
   const [paraBirimi, setParaBirimi] = useState<ParaBirimi>("TRY");
   const [aciklama, setAciklama] = useState("");

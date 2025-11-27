@@ -11,6 +11,7 @@ import { Musteri, HesapHareketi, ParaBirimi, OdemeTuru } from "@/types/musteri";
 import { getKur, formatCurrency, paraBirimiTLyeCevir } from "@/lib/kur-hesaplama";
 import { odemeIsle, musteriBalanceGuncelle, getMusteriById } from "@/lib/musteri-data";
 import { tahsilatFisiOlustur, fisYazdir } from "@/lib/fis-yazdir";
+import { getLocalDateTimeString } from "@/lib/utils";
 import { Printer } from "lucide-react";
 
 interface OdemeAlModalProps {
@@ -22,7 +23,7 @@ interface OdemeAlModalProps {
 
 const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalProps) => {
   const [formData, setFormData] = useState({
-    odemeTarihi: new Date().toISOString().slice(0, 16),
+    odemeTarihi: getLocalDateTimeString(),
     odemeTutari: "",
     odemeParaBirimi: "TRY" as ParaBirimi,
     odemeTuru: "nakit" as OdemeTuru,
@@ -35,7 +36,7 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
   useEffect(() => {
     if (open && musteri) {
       setFormData({
-        odemeTarihi: new Date().toISOString().slice(0, 16),
+        odemeTarihi: getLocalDateTimeString(),
         odemeTutari: "",
         odemeParaBirimi: musteri.varsayilanParaBirimi,
         odemeTuru: "nakit",
