@@ -181,13 +181,13 @@ const MusteriDefterGorunumu = ({
           
           // Satış numarasını açıklamadan çıkarmaya çalış
           const satisNoMatch = hareket.aciklama.match(/(SATS-\d+|REZ-\d+)/);
-          const satisNo = satisNoMatch ? satisNoMatch[1] : 'KAYIP';
+          const satisNo = satisNoMatch ? satisNoMatch[1] : 'SATIS';
           
           // Bağımsız satış hareketi olarak ekle
           tarihMap.get(tarihStr)!.kalemler.push({
             satisNo: satisNo,
             musteriAdi: musteri?.adSoyad || 'Müşteri',
-            urunAdi: hareket.aciklama || 'Satış (Detay Kayıp)',
+            urunAdi: hareket.aciklama || 'Satış',
             adet: 1,
             paraBirimi: hareket.paraBirimi,
             orijinalBirimFiyat: hareket.tutar,
@@ -196,14 +196,6 @@ const MusteriDefterGorunumu = ({
             toplam: hareket.tlKarsiligi,
             hareketId: hareket.id,
             hareket: hareket
-          });
-          
-          console.log('⚠️ Bağımsız satış hareketi tespit edildi ve eklendi:', {
-            satisNo,
-            tutar: hareket.tutar,
-            paraBirimi: hareket.paraBirimi,
-            aciklama: hareket.aciklama,
-            tarih: tarihStr
           });
         }
       }
@@ -528,8 +520,8 @@ const MusteriDefterGorunumu = ({
                           {gun.kalemler.map((kalem, idx) => (
                             <TableRow key={`${gun.tarih.getTime()}-${kalem.satisNo}-${kalem.urunAdi}-${idx}`}>
                               <TableCell className="text-xs py-1">
-                                <Badge variant={kalem.satisNo === 'KAYIP' ? 'destructive' : 'outline'}>
-                                  {kalem.satisNo === 'KAYIP' ? '⚠️ Satış (Kayıp)' : '💰 Satış'}
+                                <Badge variant="outline">
+                                  💰 Satış
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-xs font-medium py-1">
