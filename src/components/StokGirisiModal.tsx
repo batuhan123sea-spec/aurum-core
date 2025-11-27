@@ -62,7 +62,7 @@ export const StokGirisiModal = ({ open, onOpenChange, onSuccess }: StokGirisiMod
       miktar: 1,
       alisFiyati: 0,
       paraBirimi: 'TRY',
-      tedarikciId: "",
+      tedarikciId: undefined,
       aciklama: "",
     },
   });
@@ -138,7 +138,7 @@ export const StokGirisiModal = ({ open, onOpenChange, onSuccess }: StokGirisiMod
     urun.stokMiktari = yeniMiktar;
     
     // Tedarikçi seçildiyse, ürünün tedarikçi listesine ekle/güncelle
-    if (data.tedarikciId) {
+    if (data.tedarikciId && data.tedarikciId.trim().length > 0) {
       const tedarikci = allTedarikciler.find(t => t.id === data.tedarikciId);
       
       if (!urun.tedarikciler) {

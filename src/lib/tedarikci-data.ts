@@ -3,34 +3,14 @@ import { Tedarikci, TedarikciAlim } from '@/types/tedarikci';
 const TEDARIKCI_KEY = 'kuyumcu_tedarikciler';
 const ALIM_KEY = 'kuyumcu_tedarikci_alimlar';
 
-const MOCK_TEDARIKCILER: Tedarikci[] = [
-  {
-    id: '1',
-    kod: 'TED-001',
-    firmaAdi: 'Kutu Dünyası A.Ş.',
-    yetkiliKisi: 'Ahmet Yılmaz',
-    telefon: '0532 123 4567',
-    email: 'info@kutudunyasi.com',
-    adres: 'İstanbul Kuyumcular Çarşısı No:45',
-    vergiNo: '1234567890',
-    durum: 'aktif',
-    olusturmaTarihi: new Date().toISOString(),
-    guncellemeTarihi: new Date().toISOString()
-  },
-  {
-    id: '2',
-    kod: 'TED-002',
-    firmaAdi: 'Ahşap Sanatları Ltd.',
-    yetkiliKisi: 'Mehmet Demir',
-    telefon: '0533 234 5678',
-    email: 'info@ahsapsanatlar.com',
-    adres: 'Ankara Ticaret Merkezi No:12',
-    vergiNo: '9876543210',
-    durum: 'aktif',
-    olusturmaTarihi: new Date().toISOString(),
-    guncellemeTarihi: new Date().toISOString()
-  }
-];
+// 🗑️ Otomatik veri temizleme (bir kerelik)
+const CLEANUP_VERSION = 'tedarikci_cleanup_v1';
+if (!localStorage.getItem(CLEANUP_VERSION)) {
+  localStorage.removeItem(TEDARIKCI_KEY);
+  localStorage.removeItem(ALIM_KEY);
+  localStorage.setItem(CLEANUP_VERSION, 'done');
+  console.log('🗑️ Tedarikçi verileri sıfırlandı');
+}
 
 export const getTedarikciler = (): Tedarikci[] => {
   const stored = localStorage.getItem(TEDARIKCI_KEY);
