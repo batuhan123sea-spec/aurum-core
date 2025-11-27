@@ -334,24 +334,8 @@ export default function Ayarlar() {
     }
     
     // Password validation
-    if (newPassword.length < 12) {
-      toast.error('Şifre en az 12 karakter olmalı');
-      return;
-    }
-    if (!/[A-Z]/.test(newPassword)) {
-      toast.error('Şifre en az bir büyük harf içermelidir');
-      return;
-    }
-    if (!/[a-z]/.test(newPassword)) {
-      toast.error('Şifre en az bir küçük harf içermelidir');
-      return;
-    }
-    if (!/[0-9]/.test(newPassword)) {
-      toast.error('Şifre en az bir rakam içermelidir');
-      return;
-    }
-    if (!/[^A-Za-z0-9]/.test(newPassword)) {
-      toast.error('Şifre en az bir özel karakter içermelidir');
+    if (newPassword.length < 6) {
+      toast.error('Şifre en az 6 karakter olmalı');
       return;
     }
 

@@ -113,36 +113,8 @@ serve(async (req) => {
       });
     }
     
-    if (password.length < 12) {
-      return new Response(JSON.stringify({ error: 'Password must be at least 12 characters' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
-    if (!/[A-Z]/.test(password)) {
-      return new Response(JSON.stringify({ error: 'Password must contain at least one uppercase letter' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
-    if (!/[a-z]/.test(password)) {
-      return new Response(JSON.stringify({ error: 'Password must contain at least one lowercase letter' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
-    if (!/[0-9]/.test(password)) {
-      return new Response(JSON.stringify({ error: 'Password must contain at least one number' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
-    if (!/[^A-Za-z0-9]/.test(password)) {
-      return new Response(JSON.stringify({ error: 'Password must contain at least one special character' }), {
+    if (password.length < 6) {
+      return new Response(JSON.stringify({ error: 'Password must be at least 6 characters' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -163,6 +135,19 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
+    }
+
+    // Add user to profiles table
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .insert({
+        id: newUser.user.id,
+        username: username
+      });
+
+    if (profileError) {
+      console.error('Profile creation error:', profileError);
+      // Don't fail the request, user was created
     }
 
     // Assign admin role if requested

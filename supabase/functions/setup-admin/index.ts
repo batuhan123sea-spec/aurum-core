@@ -41,7 +41,7 @@ serve(async (req) => {
     // Create the first admin user
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: 'admin@app.local',
-      password: 'Admin123!@#',
+      password: 'admin123',
       email_confirm: true,
       user_metadata: { username: 'admin' }
     });
@@ -80,7 +80,7 @@ serve(async (req) => {
         message: 'İlk admin kullanıcısı başarıyla oluşturuldu',
         credentials: {
           username: 'admin',
-          password: 'Admin123!@#'
+          password: 'admin123'
         }
       }), 
       {
