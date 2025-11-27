@@ -144,6 +144,11 @@ export default function TedarikciListe() {
                 <TableBody>
                   {filteredTedarikciler.map((tedarikci) => {
                     const alimlar = getTedarikciAlimlari(tedarikci.id);
+                    console.log('📊 TedarikciListe - Alımlar:', { 
+                      tedarikciId: tedarikci.id, 
+                      firmaAdi: tedarikci.firmaAdi,
+                      alimSayisi: alimlar.length 
+                    });
                     const toplamAlim = alimlar.reduce((sum, a) => sum + a.genelToplam, 0);
 
                     return (

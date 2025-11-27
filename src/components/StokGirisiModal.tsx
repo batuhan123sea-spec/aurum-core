@@ -97,6 +97,16 @@ export const StokGirisiModal = ({ open, onOpenChange, onSuccess }: StokGirisiMod
   }, [secilenTedarikciId, secilenUrunId, allUrunler]);
 
   const onSubmit = (data: StokGirisiFormValues) => {
+    console.log('📦 Stok Girişi Form Data:', {
+      urunId: data.urunId,
+      tedarikciId: data.tedarikciId,
+      tedarikciIdDolu: !!data.tedarikciId,
+      miktar: data.miktar,
+      alisFiyati: data.alisFiyati,
+      paraBirimi: data.paraBirimi,
+      aciklama: data.aciklama
+    });
+
     const urun = allUrunler.find(u => u.id === data.urunId);
     if (!urun) {
       toast({
@@ -179,7 +189,11 @@ export const StokGirisiModal = ({ open, onOpenChange, onSuccess }: StokGirisiMod
         aciklama: data.aciklama || undefined
       };
       
+      console.log('✅ Tedarikçi Alım Kaydı Oluşturuluyor:', alimKaydi);
       saveTedarikciAlim(alimKaydi);
+      console.log('💾 Kayıt sonrası localStorage:', localStorage.getItem('kuyumcu_tedarikci_alimlar'));
+    } else {
+      console.log('⚠️ Tedarikçi seçilmedi, alım kaydı oluşturulmayacak');
     }
     
     saveUrun(urun);

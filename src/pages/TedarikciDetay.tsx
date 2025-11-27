@@ -27,6 +27,11 @@ export default function TedarikciDetay() {
 
   const tedarikci = tedarikciId ? getTedarikciById(tedarikciId) : null;
   const alimlar = tedarikciId ? getTedarikciAlimlari(tedarikciId) : [];
+  console.log('📊 TedarikciDetay - Alımlar:', { 
+    tedarikciId, 
+    alimSayisi: alimlar.length, 
+    alimlar 
+  });
   const tedarikciUrunleri = tedarikciId 
     ? getUrunler().filter(u => u.tedarikciler?.some(t => t.tedarikciId === tedarikciId) || false)
     : [];
