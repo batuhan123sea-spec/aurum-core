@@ -321,37 +321,34 @@ export function musteriDovizBorclariniHesapla(musteriId: string): {
 } {
   const hareketler = getHareketlerByMusteriId(musteriId);
   
-  // ✅ KRİTİK: Kümülatif muhasebe için ESKİDEN YENİYE sırala
-  // getHareketlerByMusteriId ters kronolojik döndürüyor, biz düz kronolojik istiyoruz
-  const kronolojikHareketler = [...hareketler].sort(
-    (a, b) => new Date(a.tarih).getTime() - new Date(b.tarih).getTime()
-  );
+  console.log('🔢 Borç hesaplama başladı, hareket sayısı:', hareketler.length);
   
-  console.log('🔢 Borç hesaplama başladı, hareket sayısı:', kronolojikHareketler.length);
+  // 🆕 AŞAMA 1: Önce tüm satışları topla (para birimi bazında)
+  const satislar = { TRY: 0, USD: 0, EUR: 0 };
   
-  const borclar = {
-    TRY: 0,
-    USD: 0,
-    EUR: 0
-  };
-  
-  kronolojikHareketler.forEach((hareket, index) => {
-    const miktar = hareket.tutar;
-    const paraBirimi = hareket.paraBirimi;
-    
+  hareketler.forEach(hareket => {
     if (hareket.islemTuru === 'satis') {
-      borclar[paraBirimi] += miktar;
-      console.log(`  [${index + 1}] ➕ Satış: +${miktar.toFixed(2)} ${paraBirimi} → Toplam: ${borclar[paraBirimi].toFixed(2)}`);
-    } else if (hareket.islemTuru === 'odeme') {
-      const eskiBakiye = borclar[paraBirimi];
-      borclar[paraBirimi] = Math.max(0, borclar[paraBirimi] - miktar);
-      console.log(`  [${index + 1}] ➖ Ödeme: -${miktar.toFixed(2)} ${paraBirimi} (${eskiBakiye.toFixed(2)} → ${borclar[paraBirimi].toFixed(2)})`);
-    } else if (hareket.islemTuru === 'iade') {
-      const eskiBakiye = borclar[paraBirimi];
-      borclar[paraBirimi] = Math.max(0, borclar[paraBirimi] - miktar);
-      console.log(`  [${index + 1}] 🔄 İade: -${miktar.toFixed(2)} ${paraBirimi} (${eskiBakiye.toFixed(2)} → ${borclar[paraBirimi].toFixed(2)})`);
+      satislar[hareket.paraBirimi] += hareket.tutar;
+      console.log(`  ➕ Satış: +${hareket.tutar.toFixed(2)} ${hareket.paraBirimi}`);
     }
   });
+  
+  // 🆕 AŞAMA 2: Sonra tüm ödeme ve iadeleri topla
+  const odemeler = { TRY: 0, USD: 0, EUR: 0 };
+  
+  hareketler.forEach(hareket => {
+    if (hareket.islemTuru === 'odeme' || hareket.islemTuru === 'iade') {
+      odemeler[hareket.paraBirimi] += hareket.tutar;
+      console.log(`  ➖ ${hareket.islemTuru}: -${hareket.tutar.toFixed(2)} ${hareket.paraBirimi}`);
+    }
+  });
+  
+  // 🆕 AŞAMA 3: Net borç = Satışlar - Ödemeler (negatif olamaz)
+  const borclar = {
+    TRY: Math.max(0, satislar.TRY - odemeler.TRY),
+    USD: Math.max(0, satislar.USD - odemeler.USD),
+    EUR: Math.max(0, satislar.EUR - odemeler.EUR)
+  };
   
   // Güncel kurlarla TL karşılığını hesapla
   const kurlar = getGuncelKurlar();
@@ -361,9 +358,9 @@ export function musteriDovizBorclariniHesapla(musteriId: string): {
     (borclar.EUR * kurlar.eur);
   
   console.log('✅ Hesaplama tamamlandı:', {
-    TRY: borclar.TRY.toFixed(2),
-    USD: borclar.USD.toFixed(2),
-    EUR: borclar.EUR.toFixed(2),
+    satislar,
+    odemeler,
+    netBorclar: borclar,
     toplamTL: toplamTL.toFixed(2)
   });
   
