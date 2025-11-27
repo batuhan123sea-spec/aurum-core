@@ -163,6 +163,52 @@ const MusteriDefterGorunumu = ({
       });
     });
 
+    // 🆕 Bağımsız satış hareketlerini ekle (Satis kaydı olmayan HesapHareketi kayıtları)
+    hareketler.forEach(hareket => {
+      if (hareket.islemTuru === 'satis') {
+        const tarihStr = getTarihStr(hareket.tarih);
+        
+        // Bu hareketin bir Satis kaydıyla eşleşip eşleşmediğini kontrol et
+        const eslesmeSatisVar = tumSatislar.some(satis => 
+          hareket.aciklama.includes(satis.satisNo)
+        );
+        
+        // Eğer eşleşme YOKSA, bu bağımsız bir satış kaydı (kayıp/silinen Satis kaydı)
+        if (!eslesmeSatisVar) {
+          if (!tarihMap.has(tarihStr)) {
+            tarihMap.set(tarihStr, { kalemler: [], odemeler: [], iadeler: [] });
+          }
+          
+          // Satış numarasını açıklamadan çıkarmaya çalış
+          const satisNoMatch = hareket.aciklama.match(/(SATS-\d+|REZ-\d+)/);
+          const satisNo = satisNoMatch ? satisNoMatch[1] : 'KAYIP';
+          
+          // Bağımsız satış hareketi olarak ekle
+          tarihMap.get(tarihStr)!.kalemler.push({
+            satisNo: satisNo,
+            musteriAdi: musteri?.adSoyad || 'Müşteri',
+            urunAdi: hareket.aciklama || 'Satış (Detay Kayıp)',
+            adet: 1,
+            paraBirimi: hareket.paraBirimi,
+            orijinalBirimFiyat: hareket.tutar,
+            orijinalToplam: hareket.tutar,
+            birimFiyat: hareket.tutar * getKur(hareket.paraBirimi),
+            toplam: hareket.tlKarsiligi,
+            hareketId: hareket.id,
+            hareket: hareket
+          });
+          
+          console.log('⚠️ Bağımsız satış hareketi tespit edildi ve eklendi:', {
+            satisNo,
+            tutar: hareket.tutar,
+            paraBirimi: hareket.paraBirimi,
+            aciklama: hareket.aciklama,
+            tarih: tarihStr
+          });
+        }
+      }
+    });
+
     // Ödemeleri ve iadeleri ekle
     hareketler.forEach(hareket => {
       if (hareket.islemTuru === 'odeme' || hareket.islemTuru === 'iade') {
@@ -482,9 +528,17 @@ const MusteriDefterGorunumu = ({
                           {gun.kalemler.map((kalem, idx) => (
                             <TableRow key={`${gun.tarih.getTime()}-${kalem.satisNo}-${kalem.urunAdi}-${idx}`}>
                               <TableCell className="text-xs py-1">
-                                <Badge variant="outline">💰 Satış</Badge>
+                                <Badge variant={kalem.satisNo === 'KAYIP' ? 'destructive' : 'outline'}>
+                                  {kalem.satisNo === 'KAYIP' ? '⚠️ Satış (Kayıp)' : '💰 Satış'}
+                                </Badge>
                               </TableCell>
-                              <TableCell className="text-xs font-medium py-1">{kalem.satisNo}</TableCell>
+                              <TableCell className="text-xs font-medium py-1">
+                                {kalem.satisNo === 'KAYIP' ? (
+                                  <span className="text-muted-foreground italic">Detay Yok</span>
+                                ) : (
+                                  kalem.satisNo
+                                )}
+                              </TableCell>
                               <TableCell className="text-xs py-1">{kalem.urunAdi}</TableCell>
                               <TableCell className="text-xs text-right py-1">{kalem.adet}</TableCell>
                               <TableCell className="text-xs text-right py-1">
