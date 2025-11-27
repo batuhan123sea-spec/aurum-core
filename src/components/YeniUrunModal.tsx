@@ -31,7 +31,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { KATEGORILER, Urun } from "@/types/stok";
 import { saveUrun, generateUrunKodu, generateBarkod } from "@/lib/stok-data";
-import { getTedarikciler } from "@/lib/tedarikci-data";
+import { getTedarikciler, saveTedarikciAlim } from "@/lib/tedarikci-data";
+import { TedarikciAlim } from "@/types/tedarikci";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, X } from "lucide-react";
 
@@ -229,6 +230,30 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
       };
 
       saveUrun(yeniUrun);
+      
+      // OTOMATİK TEDARİKÇİ ALIM KAYDI OLUŞTUR
+      tedarikcilerData.forEach(tedarikci => {
+        const alimKaydi: TedarikciAlim = {
+          id: Date.now().toString() + Math.random().toString(),
+          tedarikciId: tedarikci.tedarikciId,
+          tarih: new Date().toISOString(),
+          faturaNo: `ALM-${Date.now().toString().slice(-6)}`,
+          urunler: [{
+            urunId: yeniUrun.id,
+            urunAdi: yeniUrun.ad,
+            miktar: data.stokMiktari,
+            birimFiyat: tedarikci.alisFiyati,
+            paraBirimi: tedarikci.paraBirimi,
+            toplamTutar: data.stokMiktari * tedarikci.alisFiyati
+          }],
+          genelToplam: data.stokMiktari * tedarikci.alisFiyati,
+          odemeDurumu: 'odendi',
+          aciklama: 'Yeni ürün girişi'
+        };
+        
+        saveTedarikciAlim(alimKaydi);
+      });
+      
       toast({
         title: "Başarılı!",
         description: "Ürün başarıyla eklendi.",

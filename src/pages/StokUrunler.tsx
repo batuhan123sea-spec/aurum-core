@@ -9,7 +9,8 @@ import { HizliStokGirisiModal } from "@/components/HizliStokGirisiModal";
 import { StokGirisiModal } from "@/components/StokGirisiModal";
 import { StokSayimModal } from "@/components/StokSayimModal";
 import { BarkodYazdirModal } from "@/components/BarkodYazdirModal";
-import { KATEGORILER } from "@/types/stok";
+import { UrunDetayModal } from "@/components/UrunDetayModal";
+import { KATEGORILER, Urun } from "@/types/stok";
 import { getUrunler, searchUrunler } from "@/lib/stok-data";
 import { getStokHareketler } from "@/lib/stok-hareket";
 import { 
@@ -43,6 +44,8 @@ export default function StokUrunler() {
   const [stokSayimModalOpen, setStokSayimModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [barkodModalOpen, setBarkodModalOpen] = useState(false);
+  const [seciliUrun, setSeciliUrun] = useState<Urun | null>(null);
+  const [urunModalOpen, setUrunModalOpen] = useState(false);
 
   // Stok Hareketleri filtreleri
   const [hareketFiltreler, setHareketFiltreler] = useState({
@@ -281,7 +284,10 @@ export default function StokUrunler() {
                             <TableRow 
                               key={urun.id}
                               className="hover:bg-muted/50 cursor-pointer"
-                              onClick={() => navigate(`/stok/urun/${urun.id}`)}
+                              onClick={() => {
+                                setSeciliUrun(urun);
+                                setUrunModalOpen(true);
+                              }}
                             >
                               <TableCell className="font-medium">
                                 {urun.kod}
@@ -549,6 +555,11 @@ export default function StokUrunler() {
         open={barkodModalOpen}
         onOpenChange={setBarkodModalOpen}
         urunler={filtrelenmisUrunler}
+      />
+      <UrunDetayModal
+        open={urunModalOpen}
+        onOpenChange={setUrunModalOpen}
+        urun={seciliUrun}
       />
     </Layout>
   );
