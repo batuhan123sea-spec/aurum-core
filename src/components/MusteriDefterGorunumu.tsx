@@ -516,7 +516,7 @@ const MusteriDefterGorunumu = ({
                         <TableHeader>
                           <TableRow>
                             <TableHead className="text-xs py-2">İşlem Türü</TableHead>
-                            <TableHead className="text-xs py-2">Satış No / Açıklama</TableHead>
+                            <TableHead className="text-xs py-2">Tarih / Saat</TableHead>
                             <TableHead className="text-xs py-2">Ürün / Detay</TableHead>
                             <TableHead className="text-xs text-right py-2">Adet</TableHead>
                             <TableHead className="text-xs text-right py-2">Birim Fiyat</TableHead>
@@ -533,10 +533,17 @@ const MusteriDefterGorunumu = ({
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-xs font-medium py-1">
-                                {kalem.satisNo === 'KAYIP' ? (
-                                  <span className="text-muted-foreground italic">Detay Yok</span>
+                                {kalem.hareket ? (
+                                  <span className="text-muted-foreground">
+                                    {new Date(kalem.hareket.tarih).toLocaleTimeString('tr-TR', {
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </span>
                                 ) : (
-                                  kalem.satisNo
+                                  <span className="text-muted-foreground">
+                                    {format(gun.tarih, 'HH:mm', { locale: tr })}
+                                  </span>
                                 )}
                               </TableCell>
                               <TableCell className="text-xs py-1">{kalem.urunAdi}</TableCell>

@@ -292,7 +292,6 @@ export function SatisGecmisiTable({ musteriId }: SatisGecmisiTableProps) {
               <CollapsibleTrigger className="w-full">
                 <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
                   <div className="flex items-center gap-4">
-                    <Badge variant="outline" className="font-mono">{satis.satisNo}</Badge>
                     <span className="text-sm text-muted-foreground">
                       {new Date(satis.tarih).toLocaleDateString('tr-TR', {
                         day: '2-digit',
@@ -302,6 +301,11 @@ export function SatisGecmisiTable({ musteriId }: SatisGecmisiTableProps) {
                         minute: '2-digit'
                       })}
                     </span>
+                    {satis.satisTuru === 'hesapli' && satis.musteriAdi && (
+                      <Badge variant="secondary" className="font-medium">
+                        👤 {satis.musteriAdi}
+                      </Badge>
+                    )}
                     {getSatisTuruBadge(satis.satisTuru)}
                   </div>
                   <div className="flex items-center gap-4">
