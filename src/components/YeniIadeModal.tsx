@@ -66,19 +66,38 @@ export function YeniIadeModal({ open, onOpenChange, musteriId, musteriAdi, onSuc
     setSecilenSatis(satis);
     // Tüm ürünleri iade listesine ekle (başlangıç adedi 0)
     setIadeKalemleri(
-      satis.kalemler.map(kalem => ({
-        satisId: satis.id,
-        satisNo: satis.satisNo,
-        kalemId: kalem.id,
-        urunId: kalem.urunId, // Stok güncellemesi için
-        urunAdi: kalem.urunAdi,
-        maxAdet: kalem.adet,
-        iadeAdet: 0,
-        paraBirimi: kalem.paraBirimi,
-        gercekBirimFiyat: kalem.toplamTutar / kalem.adet, // Gerçek net birim fiyat (indirim dahil)
-        orijinalBirimFiyat: kalem.orijinalBirimFiyati,
-        toplamTutar: 0
-      }))
+      satis.kalemler.map(kalem => {
+        // Orijinal para birimindeki gerçek satış fiyatını hesapla
+        let iadebirimFiyat = kalem.orijinalBirimFiyati;
+        
+        // İndirim varsa uygula
+        if (kalem.indirimYuzde > 0) {
+          iadebirimFiyat = iadebirimFiyat * (1 - kalem.indirimYuzde / 100);
+        } else if (kalem.indirimTL > 0) {
+          // Yüzde yerine TL indirimi varsa, orijinal para birimine çevir
+          const indirimOranı = kalem.indirimTL / (kalem.birimFiyati * kalem.adet);
+          iadebirimFiyat = iadebirimFiyat * (1 - indirimOranı);
+        }
+        
+        // KDV dahil satışsa KDV'yi ekle
+        if (satis.kdvDahil) {
+          iadebirimFiyat = iadebirimFiyat * (1 + kalem.kdvOrani / 100);
+        }
+        
+        return {
+          satisId: satis.id,
+          satisNo: satis.satisNo,
+          kalemId: kalem.id,
+          urunId: kalem.urunId,
+          urunAdi: kalem.urunAdi,
+          maxAdet: kalem.adet,
+          iadeAdet: 0,
+          paraBirimi: kalem.paraBirimi,
+          gercekBirimFiyat: iadebirimFiyat, // Orijinal para biriminde gerçek fiyat
+          orijinalBirimFiyat: kalem.orijinalBirimFiyati,
+          toplamTutar: 0
+        };
+      })
     );
   };
 
