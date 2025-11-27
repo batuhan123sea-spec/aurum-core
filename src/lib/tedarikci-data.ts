@@ -80,9 +80,12 @@ export const getTedarikciAlimlar = (): TedarikciAlim[] => {
 };
 
 export const saveTedarikciAlim = (alim: TedarikciAlim): void => {
+  console.log('💾 saveTedarikciAlim çağrıldı:', alim);
   const alimlar = getTedarikciAlimlar();
+  console.log('📋 Mevcut alımlar sayısı:', alimlar.length);
   alimlar.push(alim);
   localStorage.setItem(ALIM_KEY, JSON.stringify(alimlar));
+  console.log('✅ Alım kaydedildi, yeni toplam:', alimlar.length);
 };
 
 export const getTedarikciAlimlari = (tedarikciId: string): TedarikciAlim[] => {
