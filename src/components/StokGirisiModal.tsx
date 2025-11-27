@@ -309,7 +309,6 @@ export const StokGirisiModal = ({ open, onOpenChange, onSuccess }: StokGirisiMod
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Tedarikçi Yok</SelectItem>
                       {allTedarikciler
                         .filter(t => t.durum === 'aktif')
                         .map(t => (
