@@ -70,7 +70,7 @@ const MusteriDefterGorunumu = ({
   const [duzenlenecekHareket, setDuzenlenecekHareket] = useState<HesapHareketi | null>(null);
   const [silinecekHareketId, setSilinecekHareketId] = useState<string | null>(null);
   const [yenilemeKey, setYenilemeKey] = useState(0);
-  const [filtre, setFiltre] = useState<'tum' | 'satis' | 'odeme'>('tum');
+  const [filtre, setFiltre] = useState<'tum' | 'odeme'>('tum');
   const [yeniHareketModalOpen, setYeniHareketModalOpen] = useState(false);
   const [iadeModalOpen, setIadeModalOpen] = useState(false);
   const [yukleniyor, setYukleniyor] = useState(true);
@@ -275,7 +275,6 @@ const MusteriDefterGorunumu = ({
   }, [musteriId, yenilemeKey]);
 
   const filtrelenmisVeriler = gunlukVeriler.filter(gun => {
-    if (filtre === 'satis') return gun.kalemler.length > 0;
     if (filtre === 'odeme') return gun.odemeler.length > 0;
     return true; // 'tum' için hepsini göster
   });
@@ -314,13 +313,6 @@ const MusteriDefterGorunumu = ({
             onClick={() => setFiltre('tum')}
           >
             Tümü
-          </Button>
-          <Button 
-            size="sm" 
-            variant={filtre === 'satis' ? 'default' : 'outline'}
-            onClick={() => setFiltre('satis')}
-          >
-            Satışlar
           </Button>
           <Button 
             size="sm" 

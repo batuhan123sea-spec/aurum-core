@@ -79,6 +79,20 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
 
     const oncekiBorc = musteri.toplamBorcTL;
 
+    // 🆕 DEBUG LOG - Ödeme öncesi
+    console.log('💳 Ödeme başlatılıyor:', {
+      musteriId: musteri.id,
+      musteriAdi: musteri.adSoyad,
+      tutar,
+      paraBirimi: formData.odemeParaBirimi,
+      oncekiBorc,
+      musteriBorclar: {
+        USD: musteri.borclar.USD,
+        EUR: musteri.borclar.EUR,
+        TRY: musteri.borclar.TRY
+      }
+    });
+
     // Yeni ödeme işleme fonksiyonunu kullan
     const sonuc = odemeIsle(
       musteri.id,
@@ -88,6 +102,13 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
       formData.odemeTuru,
       formData.aciklama || 'Ödeme alındı'
     );
+
+    // 🆕 DEBUG LOG - Ödeme sonrası
+    console.log('💳 Ödeme sonucu:', {
+      success: sonuc.success,
+      message: sonuc.message,
+      hareketSayisi: sonuc.hareketler?.length
+    });
 
     if (!sonuc.success) {
       toast({
