@@ -53,6 +53,7 @@ interface GunlukSatis {
   kalanBorc?: number;
   acilisBakiyesi?: number;
   kapanisBakiyesi?: number;
+  satisToplamFromHareket?: number; // ✅ HesapHareketi'den hesaplanan satış toplamı
 }
 
 interface MusteriDefterGorunumuProps {
@@ -223,9 +224,15 @@ const MusteriDefterGorunumu = ({
       const acilisBakiyesi = kumulatifBakiye;
       
       // Günlük işlem toplamları - GÜNCEL KURLA
-      const gunlukSatisToplami = gunData.kalemler.reduce((sum, k) => {
-        const kur = getKur(k.paraBirimi);
-        return sum + (k.orijinalToplam * kur);
+      // ✅ Satış toplamını HesapHareketi'den hesapla (Satis.kalemler'den değil)
+      const gunlukSatisHareketleri = hareketler.filter(h => {
+        const hareketTarihStr = getTarihStr(h.tarih);
+        return h.islemTuru === 'satis' && hareketTarihStr === tarihStr;
+      });
+      
+      const gunlukSatisToplami = gunlukSatisHareketleri.reduce((sum, h) => {
+        const kur = getKur(h.paraBirimi);
+        return sum + (h.tutar * kur);
       }, 0);
       const gunlukOdemeToplami = gunData.odemeler.reduce((sum, o) => {
         const kur = getKur(o.paraBirimi);
@@ -252,6 +259,7 @@ const MusteriDefterGorunumu = ({
         gunlukToplam: gunlukNet,
         acilisBakiyesi,
         kapanisBakiyesi,
+        satisToplamFromHareket: gunlukSatisToplami, // ✅ HesapHareketi'den hesaplanan değer
         isCumartesi: isSaturday(tarih),
         isPazartesi: isMonday(tarih)
       };
@@ -422,14 +430,11 @@ const MusteriDefterGorunumu = ({
                           </div>
                         </div>
                         <div className="mt-2 pt-2 border-t border-border/50 grid grid-cols-3 gap-2 text-xs">
-                          {gun.kalemler.length > 0 && (
+                          {gun.kalemler.length > 0 && gun.satisToplamFromHareket !== undefined && (
                             <div>
                               <span className="text-muted-foreground">Satışlar: </span>
                               <span className="font-medium text-green-600">
-                                +{formatCurrency(gun.kalemler.reduce((sum, k) => {
-                                  const kur = getKur(k.paraBirimi);
-                                  return sum + (k.orijinalToplam * kur);
-                                }, 0), 'TRY')}
+                                +{formatCurrency(gun.satisToplamFromHareket, 'TRY')}
                               </span>
                             </div>
                           )}
