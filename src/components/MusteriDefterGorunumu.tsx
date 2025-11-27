@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { FileDown, Edit2, Trash2 } from "lucide-react";
 import { getSatislar } from "@/lib/satis-data";
 import { getHareketlerByMusteriId, getMusteriById, deleteHareket } from "@/lib/musteri-data";
-import { formatCurrency } from "@/lib/kur-hesaplama";
+import { formatCurrency, getKur } from "@/lib/kur-hesaplama";
 import { formatLocalDate } from "@/lib/utils";
 import { musteriDefterExcelAktar } from "@/lib/excel-export";
 import { HareketDuzenleModal } from "@/components/HareketDuzenleModal";
@@ -192,25 +192,27 @@ const MusteriDefterGorunumu = ({
     const ilkTarih = sortedTarihler.length > 0 ? parseISO(sortedTarihler[0]) : null;
     
     if (ilkTarih) {
-      const oncekiSatislar = tumSatislar.filter(s => {
-        const satisTarih = parseISO(s.tarih);
-        return satisTarih < ilkTarih;
-      });
+      // Önceki hareketlerden bakiyeyi güncel kurla hesapla
       const oncekiHareketler = hareketler.filter(h => {
         const hareketTarih = parseISO(h.tarih);
         return hareketTarih < ilkTarih;
       });
       
-      const oncekiSatisTopla = oncekiSatislar.reduce((sum, s) => sum + s.genelToplam, 0);
-      const oncekiOdemeTopla = oncekiHareketler
-        .filter(h => h.islemTuru === 'odeme')
-        .reduce((sum, h) => sum + h.tlKarsiligi, 0);
-      const oncekiIadeTopla = oncekiHareketler
-        .filter(h => h.islemTuru === 'iade')
-        .reduce((sum, h) => sum + h.tlKarsiligi, 0);
+      // Kronolojik sıralama
+      oncekiHareketler.sort((a, b) => new Date(a.tarih).getTime() - new Date(b.tarih).getTime());
       
-      kumulatifBakiye = oncekiSatisTopla - oncekiOdemeTopla - oncekiIadeTopla;
-      console.log('📊 Başlangıç bakiyesi:', kumulatifBakiye.toFixed(2), 'TRY');
+      oncekiHareketler.forEach(h => {
+        const kur = getKur(h.paraBirimi);
+        const tlDeger = h.tutar * kur;
+        
+        if (h.islemTuru === 'satis') {
+          kumulatifBakiye += tlDeger;
+        } else {
+          kumulatifBakiye = Math.max(0, kumulatifBakiye - tlDeger);
+        }
+      });
+      
+      console.log('📊 Başlangıç bakiyesi (güncel kurla):', kumulatifBakiye.toFixed(2), 'TRY');
     }
 
     sortedTarihler.forEach(tarihStr => {
@@ -220,10 +222,19 @@ const MusteriDefterGorunumu = ({
       // Günlük açılış bakiyesi = önceki günün kapanış bakiyesi
       const acilisBakiyesi = kumulatifBakiye;
       
-      // Günlük işlem toplamları
-      const gunlukSatisToplami = gunData.kalemler.reduce((sum, k) => sum + k.toplam, 0);
-      const gunlukOdemeToplami = gunData.odemeler.reduce((sum, o) => sum + o.tlKarsiligi, 0);
-      const gunlukIadeToplami = gunData.iadeler.reduce((sum, i) => sum + i.tlKarsiligi, 0);
+      // Günlük işlem toplamları - GÜNCEL KURLA
+      const gunlukSatisToplami = gunData.kalemler.reduce((sum, k) => {
+        const kur = getKur(k.paraBirimi);
+        return sum + (k.orijinalToplam * kur);
+      }, 0);
+      const gunlukOdemeToplami = gunData.odemeler.reduce((sum, o) => {
+        const kur = getKur(o.paraBirimi);
+        return sum + (o.tutar * kur);
+      }, 0);
+      const gunlukIadeToplami = gunData.iadeler.reduce((sum, i) => {
+        const kur = getKur(i.paraBirimi);
+        return sum + (i.tutar * kur);
+      }, 0);
       const gunlukNet = gunlukSatisToplami - gunlukOdemeToplami - gunlukIadeToplami;
       
       // Günlük kapanış bakiyesi = açılış + net işlemler
@@ -245,24 +256,30 @@ const MusteriDefterGorunumu = ({
         isPazartesi: isMonday(tarih)
       };
 
-      // Cumartesi için haftalık hesaplama (eskisi gibi)
+      // Cumartesi için haftalık hesaplama - GÜNCEL KURLA
       if (gun.isCumartesi) {
         const haftaBaslangic = startOfWeek(tarih, { weekStartsOn: 1 });
         const haftaBitis = endOfWeek(tarih, { weekStartsOn: 1 });
         
-        const haftalikSatislar = tumSatislar.filter(s => {
-          const satisTarih = parseISO(s.tarih);
-          return satisTarih >= haftaBaslangic && satisTarih <= haftaBitis;
+        const haftalikHareketler = hareketler.filter(h => {
+          const hareketTarih = parseISO(h.tarih);
+          return h.islemTuru === 'satis' && hareketTarih >= haftaBaslangic && hareketTarih <= haftaBitis;
         });
         
-        gun.haftalikToplam = haftalikSatislar.reduce((sum, s) => sum + s.genelToplam, 0);
+        gun.haftalikToplam = haftalikHareketler.reduce((sum, h) => {
+          const kur = getKur(h.paraBirimi);
+          return sum + (h.tutar * kur);
+        }, 0);
         
         const cumartesiOdemeler = hareketler.filter(h => {
           const hareketTarih = parseISO(h.tarih);
           return h.islemTuru === 'odeme' && isSameDay(hareketTarih, tarih);
         });
         
-        gun.tahsilEdilen = cumartesiOdemeler.reduce((sum, h) => sum + h.tlKarsiligi, 0);
+        gun.tahsilEdilen = cumartesiOdemeler.reduce((sum, h) => {
+          const kur = getKur(h.paraBirimi);
+          return sum + (h.tutar * kur);
+        }, 0);
         gun.kalanBorc = gun.haftalikToplam - gun.tahsilEdilen;
       }
 
@@ -409,7 +426,10 @@ const MusteriDefterGorunumu = ({
                             <div>
                               <span className="text-muted-foreground">Satışlar: </span>
                               <span className="font-medium text-green-600">
-                                +{formatCurrency(gun.kalemler.reduce((sum, k) => sum + k.toplam, 0), 'TRY')}
+                                +{formatCurrency(gun.kalemler.reduce((sum, k) => {
+                                  const kur = getKur(k.paraBirimi);
+                                  return sum + (k.orijinalToplam * kur);
+                                }, 0), 'TRY')}
                               </span>
                             </div>
                           )}
@@ -417,7 +437,10 @@ const MusteriDefterGorunumu = ({
                             <div>
                               <span className="text-muted-foreground">Ödemeler: </span>
                               <span className="font-medium text-red-600">
-                                -{formatCurrency(gun.odemeler.reduce((sum, o) => sum + o.tlKarsiligi, 0), 'TRY')}
+                                -{formatCurrency(gun.odemeler.reduce((sum, o) => {
+                                  const kur = getKur(o.paraBirimi);
+                                  return sum + (o.tutar * kur);
+                                }, 0), 'TRY')}
                               </span>
                             </div>
                           )}
@@ -425,7 +448,10 @@ const MusteriDefterGorunumu = ({
                             <div>
                               <span className="text-muted-foreground">İadeler: </span>
                               <span className="font-medium text-blue-600">
-                                -{formatCurrency(gun.iadeler.reduce((sum, i) => sum + i.tlKarsiligi, 0), 'TRY')}
+                                -{formatCurrency(gun.iadeler.reduce((sum, i) => {
+                                  const kur = getKur(i.paraBirimi);
+                                  return sum + (i.tutar * kur);
+                                }, 0), 'TRY')}
                               </span>
                             </div>
                           )}
