@@ -90,7 +90,8 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
         aciklama: h.odemeTuru === 'nakit' ? 'Nakit' :
                   h.odemeTuru === 'kredi-karti' ? 'K.Kartı' :
                   h.odemeTuru === 'eft' ? 'EFT' : 'Havale',
-        tutar: h.tlKarsiligi
+        tutar: h.tlKarsiligi,
+        odemeTuru: h.odemeTuru
       }));
 
     // Bu hafta yapılan satışları al

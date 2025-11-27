@@ -122,7 +122,8 @@ export function TopluTahsilatFisiModal({ musteriIds, open, onOpenChange }: Toplu
             aciklama: h.odemeTuru === 'nakit' ? 'Nakit' :
                       h.odemeTuru === 'kredi-karti' ? 'K.Kartı' :
                       h.odemeTuru === 'eft' ? 'EFT' : 'Havale',
-            tutar: h.tlKarsiligi
+            tutar: h.tlKarsiligi,
+            odemeTuru: h.odemeTuru
           }));
 
         const tumSatislar = getSatislar();
