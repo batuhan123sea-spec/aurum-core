@@ -94,7 +94,27 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
         odemeTuru: h.odemeTuru
       }));
 
-    // Bu hafta yapılan satışları al
+    // Bu hafta yapılan iadeleri al
+    const buHaftaIadeler = tumHareketler
+      .filter(h => {
+        const tarih = new Date(h.tarih);
+        return h.islemTuru === 'iade' && tarih >= baslangic && tarih <= bitis;
+      });
+
+    // İade edilen ürün ve adetleri parse et
+    const tumIadeAdetleri = new Map<string, number>();
+    buHaftaIadeler.forEach(iade => {
+      // "Ürün Adı (x3)" formatını yakala
+      const regex = /([^,]+?)\s*\(x(\d+)\)/g;
+      let match;
+      while ((match = regex.exec(iade.aciklama)) !== null) {
+        const urunAdi = match[1].replace(/^İade - SATS-\d+ - /, '').trim();
+        const adet = parseInt(match[2]);
+        tumIadeAdetleri.set(urunAdi, (tumIadeAdetleri.get(urunAdi) || 0) + adet);
+      }
+    });
+
+    // Bu hafta yapılan satışları al ve iade adetlerini düş
     const tumSatislar = getSatislar();
     const buHaftaSatislar = tumSatislar
       .filter(s => {
@@ -104,12 +124,38 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
                tarih >= baslangic && 
                tarih <= bitis;
       })
-      .map(s => ({
-        tarih: s.tarih,
-        satisNo: s.satisNo,
-        tutar: s.genelToplam,
-        kalemler: s.kalemler
-      }));
+      .map(s => {
+        // Her satış kaleminden iade adetlerini düş
+        const guncelKalemler = s.kalemler
+          .map(kalem => {
+            const iadeAdet = tumIadeAdetleri.get(kalem.urunAdi) || 0;
+            const netAdet = kalem.adet - iadeAdet;
+            
+            // Kullanılan iade adetini düş (birden fazla satışta aynı ürün olabilir)
+            if (iadeAdet > 0 && netAdet < kalem.adet) {
+              const kullanilan = kalem.adet - Math.max(0, netAdet);
+              tumIadeAdetleri.set(kalem.urunAdi, Math.max(0, iadeAdet - kullanilan));
+            }
+            
+            return {
+              ...kalem,
+              adet: Math.max(0, netAdet),
+              toplamTutar: Math.max(0, netAdet) * kalem.birimFiyati
+            };
+          })
+          .filter(kalem => kalem.adet > 0); // 0 veya negatif adetli kalemleri çıkar
+
+        // Satış toplamını yeniden hesapla
+        const yeniToplam = guncelKalemler.reduce((sum, k) => sum + k.toplamTutar, 0);
+        
+        return {
+          tarih: s.tarih,
+          satisNo: s.satisNo,
+          tutar: yeniToplam,
+          kalemler: guncelKalemler
+        };
+      })
+      .filter(s => s.kalemler.length > 0); // Boş satışları çıkar
 
     // Güncel bakiyeyi hesapla
     const toplamOdeme = buHaftaOdemeler.reduce((sum, o) => sum + o.tutar, 0);
