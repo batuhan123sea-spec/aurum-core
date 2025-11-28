@@ -126,12 +126,15 @@ export function deleteHareket(hareketId: string, musteriId: string): void {
       const satis = getSatisBySatisNo(satisNo);
       
       if (satis) {
+        // Önce "İade - SATS-XXXX - " prefix'ini temizle
+        const aciklamaIcerik = silinecekHareket.aciklama.replace(/^İade - (SATS-\d+|REZ-\d+) - /, '');
+        
         // Ürün ve adetleri parse et: "Ürün Adı (x3)" formatından
-        const urunRegex = /([^,]+?)\s*\(x(\d+)\)/g;
+        const urunRegex = /([^,(]+?)\s*\(x(\d+)\)/g;
         let match;
         const iadeEdilenler: { urunAdi: string; adet: number }[] = [];
         
-        while ((match = urunRegex.exec(silinecekHareket.aciklama)) !== null) {
+        while ((match = urunRegex.exec(aciklamaIcerik)) !== null) {
           iadeEdilenler.push({
             urunAdi: match[1].trim(),
             adet: parseInt(match[2])
@@ -183,16 +186,25 @@ export function deleteHareket(hareketId: string, musteriId: string): void {
           const iadeKalem = iadeEdilenler.find(i => i.urunAdi === kalem.urunAdi);
           if (iadeKalem) {
             const yeniAdet = kalem.adet + iadeKalem.adet;
-            const birimFiyat = kalem.adet > 0 ? kalem.toplamTutar / kalem.adet : kalem.birimFiyati;
-            const birimKDV = kalem.adet > 0 ? kalem.kdvTutari / kalem.adet : 0;
-            const birimIndirim = kalem.adet > 0 ? kalem.indirimTL / kalem.adet : 0;
+            
+            // ✅ Orijinal birim fiyatını kullan - SatisKalemi'nde sabit
+            const birimFiyat = kalem.birimFiyati; // TL cinsinden, sabit
+            
+            // İndirim oranını mevcut adet üzerinden hesapla
+            const toplamIndirimOrani = kalem.adet > 0 ? kalem.indirimTL / (kalem.adet * birimFiyat) : 0;
+            const toplamKDVOrani = kalem.kdvOrani / 100;
+            
+            // Yeni değerleri hesapla
+            const yeniToplamTutar = yeniAdet * birimFiyat * (1 - toplamIndirimOrani);
+            const yeniKDVTutari = yeniAdet * birimFiyat * toplamKDVOrani;
+            const yeniIndirimTL = yeniAdet * birimFiyat * toplamIndirimOrani;
             
             return {
               ...kalem,
               adet: yeniAdet,
-              toplamTutar: yeniAdet * birimFiyat,
-              kdvTutari: yeniAdet * birimKDV,
-              indirimTL: yeniAdet * birimIndirim
+              toplamTutar: yeniToplamTutar,
+              kdvTutari: yeniKDVTutari,
+              indirimTL: yeniIndirimTL
             };
           }
           return kalem;
