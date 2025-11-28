@@ -142,9 +142,9 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
             return {
               ...kalem,
               adet: Math.max(0, netAdet),
-              // Orantılı hesapla (indirim ve KDV'yi korur)
+              // Güncel kur ile hesapla
               toplamTutar: kalem.adet > 0 
-                ? (kalem.toplamTutar / kalem.adet) * Math.max(0, netAdet) 
+                ? (kalem.orijinalBirimFiyati || 0) * Math.max(0, netAdet) * getKur(kalem.paraBirimi || 'TRY')
                 : 0,
               // Para birimi bilgilerini aktar
               paraBirimi: kalem.paraBirimi,
