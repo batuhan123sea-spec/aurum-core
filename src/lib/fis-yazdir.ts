@@ -260,72 +260,66 @@ export function rezervFisiOlustur(rezerv: any): string {
   const firma = ayarlar.firma;
   const fisAyarlari = ayarlar.fis;
   
-  const W = 45;
+  const W = 40;
   let fis = '';
   
+  // Başlık
   fis += '\n';
-  fis += line(W, '═') + '\n';
-  fis += center(fisAyarlari.baslik || 'REZERV FİŞİ', W) + '\n';
+  fis += line(W, '=') + '\n';
   fis += center(firma.firmaAdi || 'Firma Adı', W) + '\n';
-  fis += line(W, '═') + '\n';
+  if (fisAyarlari.reklamAlani) {
+    fis += center(`(${fisAyarlari.reklamAlani})`, W) + '\n';
+  }
+  fis += line(W, '=') + '\n';
   fis += '\n';
   
   // Rezerv bilgileri
-  fis += `  Rezerv No: ${rezerv.satisNo}\n`;
-  fis += `  Tarih: ${new Date(rezerv.tarih).toLocaleString('tr-TR', {
+  fis += `REZERV FISI - ${rezerv.satisNo}\n`;
+  fis += `Tarih: ${new Date(rezerv.tarih).toLocaleString('tr-TR', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit'
   })}\n`;
-  if (rezerv.rezervNotu) {
-    fis += `  Not: ${rezerv.rezervNotu}\n`;
-  }
-  fis += '\n';
-  fis += line(W, '─') + '\n';
-  fis += center('REZERVE EDİLEN ÜRÜNLER', W) + '\n';
-  fis += line(W, '─') + '\n';
   fis += '\n';
   
-  // Ürünler - KDV detaylı
+  fis += line(W, '-') + '\n';
+  fis += center('REZERVE EDILEN URUNLER', W) + '\n';
+  fis += line(W, '-') + '\n';
+  
+  // Ürünler - orijinal para biriminde
   rezerv.kalemler.forEach((kalem: any, index: number) => {
-    fis += `  ${index + 1}. ${kalem.urunAdi}\n`;
-    fis += `     ${kalem.adet} adet x ${kalem.birimFiyati.toFixed(2)} ₺\n`;
-    fis += `     KDV (%${kalem.kdvOrani}): ${kalem.kdvTutari.toFixed(2)} ₺\n`;
-    fis += `     Toplam: ${kalem.toplamTutar.toFixed(2)} ₺\n`;
+    const paraBirimiSimge = kalem.paraBirimi === 'USD' ? '$' : 
+                           kalem.paraBirimi === 'EUR' ? '€' : 'TL';
+    const birimFiyat = kalem.orijinalBirimFiyati || kalem.birimFiyati;
+    const toplamFiyat = birimFiyat * kalem.adet;
+    
+    fis += ` ${index + 1}. ${kalem.urunAdi}\n`;
+    fis += `    ${kalem.adet} adet x ${birimFiyat.toLocaleString('tr-TR', {minimumFractionDigits: 2})} ${paraBirimiSimge}`;
+    fis += ` = ${toplamFiyat.toLocaleString('tr-TR', {minimumFractionDigits: 2})} ${paraBirimiSimge}\n`;
     fis += '\n';
   });
   
-  fis += line(W, '─') + '\n';
+  fis += line(W, '-') + '\n';
   fis += '\n';
   
-  // Toplam - Detaylı
-  fis += `  Ara Toplam (KDV Hariç): ${rezerv.araToplam.toFixed(2)} ₺\n`;
-  fis += `  Toplam KDV: ${rezerv.toplamKDV.toFixed(2)} ₺\n`;
-  fis += line(W, '─') + '\n';
-  fis += center(`GENEL TOPLAM: ${rezerv.genelToplam.toFixed(2)} ₺`, W) + '\n';
-  fis += center('(KDV Dahil)', W) + '\n';
+  // Genel toplam (TL cinsinden)
+  fis += center(`GENEL TOPLAM: ${rezerv.genelToplam.toLocaleString('tr-TR', {minimumFractionDigits: 2})} TL`, W) + '\n';
   fis += '\n';
-  fis += line(W, '═') + '\n';
-  fis += '\n';
-  fis += center('Bu fiş bilgi amaçlıdır,', W) + '\n';
-  fis += center('mali değeri yoktur.', W) + '\n';
-  fis += '\n';
-  fis += line(W, '═') + '\n';
-  fis += center(fisAyarlari.altBilgi || 'Teşekkür Ederiz!', W) + '\n';
+  
+  // Mali değeri yoktur notu
+  fis += line(W, '=') + '\n';
+  fis += center('Bu fis bilgi amaclidir,', W) + '\n';
+  fis += center('mali degeri yoktur.', W) + '\n';
+  fis += line(W, '=') + '\n';
+  
+  // Alt bilgi
+  fis += center(fisAyarlari.altBilgi || 'Tesekkur Ederiz!', W) + '\n';
   if (firma.telefon) {
-    fis += center(`📞 ${firma.telefon}`, W) + '\n';
+    fis += center(`Tel: ${firma.telefon}`, W) + '\n';
   }
-  if (firma.email) {
-    fis += center(firma.email, W) + '\n';
-  }
-  fis += line(W, '═') + '\n';
-  if (fisAyarlari.reklamAlani) {
-    fis += '\n';
-    fis += center(fisAyarlari.reklamAlani, W) + '\n';
-  }
-  fis += '\n';
+  fis += line(W, '=') + '\n';
   
   return fis;
 }
