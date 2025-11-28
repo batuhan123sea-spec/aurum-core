@@ -140,7 +140,13 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
             return {
               ...kalem,
               adet: Math.max(0, netAdet),
-              toplamTutar: Math.max(0, netAdet) * kalem.birimFiyati
+              // Orantılı hesapla (indirim ve KDV'yi korur)
+              toplamTutar: kalem.adet > 0 
+                ? (kalem.toplamTutar / kalem.adet) * Math.max(0, netAdet) 
+                : 0,
+              // Para birimi bilgilerini aktar
+              paraBirimi: kalem.paraBirimi,
+              orijinalBirimFiyati: kalem.orijinalBirimFiyati
             };
           })
           .filter(kalem => kalem.adet > 0); // 0 veya negatif adetli kalemleri çıkar

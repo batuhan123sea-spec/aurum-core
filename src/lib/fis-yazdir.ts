@@ -83,6 +83,8 @@ export function haftalikTahsilatFisiOlustur(
       adet: number;
       birimFiyati: number;
       toplamTutar: number;
+      paraBirimi?: 'TRY' | 'USD' | 'EUR';
+      orijinalBirimFiyati?: number;
     }>
   }>,
   guncelBakiye: number
@@ -91,7 +93,16 @@ export function haftalikTahsilatFisiOlustur(
   const firma = ayarlar.firma;
   const fisAyarlari = ayarlar.fis;
   
-  // Hesaplamalar
+  // Hesaplamalar - Para birimine göre grupla
+  const toplamlarByPB: Record<string, number> = { TRY: 0, USD: 0, EUR: 0 };
+  buHaftaSatislar.forEach(satis => {
+    satis.kalemler.forEach(kalem => {
+      const pb = kalem.paraBirimi || 'TRY';
+      const birimFiyat = kalem.orijinalBirimFiyati || kalem.birimFiyati;
+      toplamlarByPB[pb] += kalem.adet * birimFiyat;
+    });
+  });
+  
   const toplamSatis = buHaftaSatislar.reduce((sum, s) => sum + s.tutar, 0);
   const toplamOdeme = buHaftaOdemeler.reduce((sum, o) => sum + o.tutar, 0);
   
@@ -131,15 +142,35 @@ export function haftalikTahsilatFisiOlustur(
       satis.kalemler.forEach(kalem => {
         const urunAdi = kalem.urunAdi.substring(0, 13).padEnd(13);
         const adet = String(kalem.adet).padStart(4);
-        const fiyat = kalem.birimFiyati.toFixed(0).padStart(7);
-        const toplam = `${kalem.toplamTutar.toFixed(0)} TL`.padStart(10);
+        
+        // Para birimine göre fiyat ve sembol
+        const paraBirimi = kalem.paraBirimi || 'TRY';
+        const birimFiyat = kalem.orijinalBirimFiyati || kalem.birimFiyati;
+        const kalemToplam = kalem.adet * birimFiyat;
+        
+        const symbol = paraBirimi === 'USD' ? '$' : paraBirimi === 'EUR' ? '€' : 'TL';
+        const fiyat = birimFiyat.toFixed(0).padStart(7);
+        const toplam = `${kalemToplam.toFixed(0)} ${symbol}`.padStart(10);
+        
         fis += ` ${urunAdi} ${adet} ${fiyat} ${toplam}\n`;
       });
     });
     
     fis += line(W, '-') + '\n';
-    const urunlerToplamStr = `Urunler Toplami: ${formatCurrency(toplamSatis, 'TRY')}`;
-    fis += ' '.repeat(Math.max(0, W - urunlerToplamStr.length)) + urunlerToplamStr + '\n';
+    
+    // Her para birimi için ayrı toplam satırı
+    if (toplamlarByPB.USD > 0) {
+      const usdToplamStr = `Urunler (USD): ${toplamlarByPB.USD.toFixed(0)} $`;
+      fis += ' '.repeat(Math.max(0, W - usdToplamStr.length)) + usdToplamStr + '\n';
+    }
+    if (toplamlarByPB.EUR > 0) {
+      const eurToplamStr = `Urunler (EUR): ${toplamlarByPB.EUR.toFixed(0)} €`;
+      fis += ' '.repeat(Math.max(0, W - eurToplamStr.length)) + eurToplamStr + '\n';
+    }
+    if (toplamlarByPB.TRY > 0) {
+      const tryToplamStr = `Urunler (TRY): ${formatCurrency(toplamlarByPB.TRY, 'TRY')}`;
+      fis += ' '.repeat(Math.max(0, W - tryToplamStr.length)) + tryToplamStr + '\n';
+    }
     fis += '\n';
   }
   
