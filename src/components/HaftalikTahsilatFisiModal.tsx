@@ -54,7 +54,7 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
   }, [open]);
 
   const hesaplamalar = useMemo(() => {
-    if (!baslangicTarihi || !bitisTarihi) {
+    if (!open || !baslangicTarihi || !bitisTarihi) {
       return {
         baslangicBakiyesi: 0,
         buHaftaOdemeler: [] as Array<{ tarih: string; aciklama: string; tutar: number; odemeTuru?: string }>,
@@ -174,7 +174,7 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
       satisToplamGuncel: satisToplamByHareket,
       iadeToplamGuncel: iadeToplamByHareket
     };
-  }, [musteri.id, baslangicTarihi, bitisTarihi]);
+  }, [musteri.id, baslangicTarihi, bitisTarihi, open]);
 
   const handleFisYazdir = () => {
     if (!baslangicTarihi || !bitisTarihi) {
