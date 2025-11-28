@@ -96,27 +96,7 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
         odemeTuru: h.odemeTuru
       }));
 
-    // Bu hafta yapılan iadeleri al
-    const buHaftaIadeler = tumHareketler
-      .filter(h => {
-        const tarih = new Date(h.tarih);
-        return h.islemTuru === 'iade' && tarih >= baslangic && tarih <= bitis;
-      });
-
-    // İade edilen ürün ve adetleri parse et
-    const tumIadeAdetleri = new Map<string, number>();
-    buHaftaIadeler.forEach(iade => {
-      // "Ürün Adı (x3)" formatını yakala
-      const regex = /([^,]+?)\s*\(x(\d+)\)/g;
-      let match;
-      while ((match = regex.exec(iade.aciklama)) !== null) {
-        const urunAdi = match[1].replace(/^İade - SATS-\d+ - /, '').trim();
-        const adet = parseInt(match[2]);
-        tumIadeAdetleri.set(urunAdi, (tumIadeAdetleri.get(urunAdi) || 0) + adet);
-      }
-    });
-
-    // ✅ Fiş için satış detaylarını al (görüntüleme amaçlı - orijinal para birimi ile)
+    // ✅ Fiş için satış detaylarını al - Satis kaydı zaten iade sonrası güncellenmiş
     const tumSatislar = getSatislar();
     const buHaftaSatislar = tumSatislar
       .filter(s => {
@@ -127,33 +107,15 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
                tarih <= bitis;
       })
       .map(s => {
-        // Her satış kaleminden iade adetlerini düş
-        const guncelKalemler = s.kalemler
-          .map(kalem => {
-            const iadeAdet = tumIadeAdetleri.get(kalem.urunAdi) || 0;
-            const netAdet = kalem.adet - iadeAdet;
-            
-            // Kullanılan iade adetini düş (birden fazla satışta aynı ürün olabilir)
-            if (iadeAdet > 0 && netAdet < kalem.adet) {
-              const kullanilan = kalem.adet - Math.max(0, netAdet);
-              tumIadeAdetleri.set(kalem.urunAdi, Math.max(0, iadeAdet - kullanilan));
-            }
-            
-            return {
-              ...kalem,
-              adet: Math.max(0, netAdet),
-              // Güncel kur ile hesapla
-              toplamTutar: kalem.adet > 0 
-                ? (kalem.orijinalBirimFiyati || 0) * Math.max(0, netAdet) * getKur(kalem.paraBirimi || 'TRY')
-                : 0,
-              // Para birimi bilgilerini aktar
-              paraBirimi: kalem.paraBirimi,
-              orijinalBirimFiyati: kalem.orijinalBirimFiyati
-            };
-          })
-          .filter(kalem => kalem.adet > 0); // 0 veya negatif adetli kalemleri çıkar
+        // Kalemler zaten güncel adetleri içeriyor (iadeler YeniIadeModal'da düşürülmüş)
+        const guncelKalemler = s.kalemler.map(kalem => ({
+          ...kalem,
+          // Güncel kur ile hesapla
+          toplamTutar: (kalem.orijinalBirimFiyati || 0) * kalem.adet * getKur(kalem.paraBirimi || 'TRY'),
+          paraBirimi: kalem.paraBirimi,
+          orijinalBirimFiyati: kalem.orijinalBirimFiyati
+        }));
 
-        // Satış toplamını yeniden hesapla
         const yeniToplam = guncelKalemler.reduce((sum, k) => sum + k.toplamTutar, 0);
         
         return {
@@ -162,8 +124,7 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
           tutar: yeniToplam,
           kalemler: guncelKalemler
         };
-      })
-      .filter(s => s.kalemler.length > 0); // Boş satışları çıkar
+      });
 
     // ✅ GÜNCEL KUR İLE HESAPLAMA: HesapHareketi'nden satış ve iade toplamlarını al
     // Bu hafta yapılan satış hareketlerini al (islemTuru='satis')
