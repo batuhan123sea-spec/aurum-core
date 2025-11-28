@@ -70,8 +70,8 @@ export interface Kategori {
 export const KATEGORILER: Kategori[] = [
   {
     id: 'kuyumcu-makineleri',
-    emoji: '🛠️',
-    ad: 'KUYUMCU MAKİNELERİ'
+    emoji: '⚙️',
+    ad: 'MAKİNELER'
   },
   {
     id: 'el-aletleri',
@@ -100,12 +100,12 @@ export const KATEGORILER: Kategori[] = [
   },
   {
     id: 'olcum-cihazlari',
-    emoji: '📏',
-    ad: 'ÖLÇÜM CİHAZLARI'
+    emoji: '•••',
+    ad: 'DİĞER'
   },
   {
     id: 'kutular-aksesuarlar',
-    emoji: '💎',
+    emoji: '💍',
     ad: 'KUTULAR VE AKSESUARLAR'
   }
 ];
