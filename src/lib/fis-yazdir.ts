@@ -74,18 +74,26 @@ export function haftalikTahsilatFisiOlustur(
   bitisTarihi: string,
   baslangicBakiyesi: number,
   buHaftaOdemeler: Array<{ tarih: string; aciklama: string; tutar: number; odemeTuru?: string }>,
-  buHaftaSatislar: Array<{ 
-    tarih: string; 
-    satisNo: string; 
+  buHaftaSatislar: Array<{
+    tarih: string;
+    satisNo: string;
     tutar: number;
+    paraBirimi: string;
+    orijinalTutar: number;
     kalemler: Array<{
       urunAdi: string;
       adet: number;
-      birimFiyati: number;
+      orijinalBirimFiyati: number;
+      paraBirimi: string;
       toplamTutar: number;
-      paraBirimi?: 'TRY' | 'USD' | 'EUR';
-      orijinalBirimFiyati?: number;
-    }>
+    }>;
+  }>,
+  buHaftaIadeler: Array<{
+    tarih: string;
+    aciklama: string;
+    tutar: number;
+    paraBirimi: string;
+    orijinalTutar: number;
   }>,
   guncelBakiye: number
 ): string {
@@ -97,13 +105,12 @@ export function haftalikTahsilatFisiOlustur(
   const toplamlarByPB: Record<string, number> = { TRY: 0, USD: 0, EUR: 0 };
   buHaftaSatislar.forEach(satis => {
     satis.kalemler.forEach(kalem => {
-      const pb = kalem.paraBirimi || 'TRY';
-      const birimFiyat = kalem.orijinalBirimFiyati || kalem.birimFiyati;
+      const pb = kalem.paraBirimi;
+      const birimFiyat = kalem.orijinalBirimFiyati;
       toplamlarByPB[pb] += kalem.adet * birimFiyat;
     });
   });
   
-  const toplamSatis = buHaftaSatislar.reduce((sum, s) => sum + s.tutar, 0);
   const toplamOdeme = buHaftaOdemeler.reduce((sum, o) => sum + o.tutar, 0);
   
   const W = 40; // Termal yazıcı genişliği
@@ -131,7 +138,9 @@ export function haftalikTahsilatFisiOlustur(
   fis += line(W, '-') + '\n';
   fis += '\n';
   
-  // 4. BU HAFTA ÜRÜNLER
+  // 4. BU HAFTA SATIŞLAR
+  const toplamSatis = buHaftaSatislar.reduce((sum, s) => sum + s.tutar, 0);
+  
   if (buHaftaSatislar.length > 0) {
     fis += 'Bu Hafta Alinan Urunler:\n';
     fis += line(W, '-') + '\n';
@@ -144,8 +153,8 @@ export function haftalikTahsilatFisiOlustur(
         const adet = String(kalem.adet).padStart(4);
         
         // Para birimine göre fiyat ve sembol
-        const paraBirimi = kalem.paraBirimi || 'TRY';
-        const birimFiyat = kalem.orijinalBirimFiyati || kalem.birimFiyati;
+        const paraBirimi = kalem.paraBirimi;
+        const birimFiyat = kalem.orijinalBirimFiyati;
         const kalemToplam = kalem.adet * birimFiyat;
         
         const symbol = paraBirimi === 'USD' ? '$' : paraBirimi === 'EUR' ? '€' : 'TL';
@@ -171,6 +180,42 @@ export function haftalikTahsilatFisiOlustur(
       const tryToplamStr = `Urunler (TRY): ${formatCurrency(toplamlarByPB.TRY, 'TRY')}`;
       fis += ' '.repeat(Math.max(0, W - tryToplamStr.length)) + tryToplamStr + '\n';
     }
+    
+    fis += line(W, '-') + '\n';
+    const satisToplamStr = `Satislar Toplami: ${formatCurrency(toplamSatis, 'TRY')}`;
+    fis += ' '.repeat(Math.max(0, W - satisToplamStr.length)) + satisToplamStr + '\n';
+    fis += '\n';
+  }
+
+  // 4.5. BU HAFTA İADELER
+  const toplamIade = buHaftaIadeler.reduce((sum, i) => sum + i.tutar, 0);
+  
+  if (buHaftaIadeler.length > 0) {
+    fis += 'Bu Hafta Iadeler:\n';
+    fis += line(W, '-') + '\n';
+    
+    buHaftaIadeler.forEach(iade => {
+      const tarihStr = new Date(iade.tarih).toLocaleDateString('tr-TR');
+      const iadeTutarStr = `-${formatCurrency(iade.tutar, 'TRY')}`;
+      const aciklama = iade.aciklama.substring(0, 20);
+      
+      fis += `${tarihStr}\n`;
+      fis += `  ${aciklama}`;
+      fis += ' '.repeat(Math.max(1, W - aciklama.length - iadeTutarStr.length - 2));
+      fis += iadeTutarStr + '\n';
+    });
+    
+    fis += line(W, '-') + '\n';
+    const iadeToplamStr = `Iadeler Toplami: -${formatCurrency(toplamIade, 'TRY')}`;
+    fis += ' '.repeat(Math.max(0, W - iadeToplamStr.length)) + iadeToplamStr + '\n';
+    fis += '\n';
+  }
+
+  // Net satış (satışlar - iadeler)
+  const netSatis = toplamSatis - toplamIade;
+  if (toplamIade > 0) {
+    const netSatisStr = `Net Satis: ${formatCurrency(netSatis, 'TRY')}`;
+    fis += ' '.repeat(Math.max(0, W - netSatisStr.length)) + netSatisStr + '\n';
     fis += '\n';
   }
   

@@ -190,6 +190,8 @@ export function TopluTahsilatFisiModal({ musteriIds, open, onOpenChange }: Toplu
               tarih: s.tarih,
               satisNo: s.satisNo,
               tutar: yeniToplam,
+              paraBirimi: 'TRY', // Toplu tahsilat fişi için TRY olarak ayarla
+              orijinalTutar: yeniToplam, // TL cinsinden aynı tutar
               kalemler: guncelKalemler
             };
           })
@@ -232,6 +234,7 @@ export function TopluTahsilatFisiModal({ musteriIds, open, onOpenChange }: Toplu
           baslangicBakiyesi,
           buHaftaOdemeler,
           buHaftaSatislar,
+          [], // İadeler - Toplu tahsilat fişinde iade gösterilmez
           guncelBakiye
         );
 
