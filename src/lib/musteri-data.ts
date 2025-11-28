@@ -1,6 +1,8 @@
 import { Musteri, HesapHareketi } from "@/types/musteri";
 import { paraBirimiTLyeCevir, getGuncelKurlar, getKur, formatCurrency } from "./kur-hesaplama";
-import { getSatislar, deleteSatisBySatisNo } from "./satis-data";
+import { getSatislar, deleteSatisBySatisNo, getSatisBySatisNo, saveSatis } from "./satis-data";
+import { getUrunler } from "./stok-data";
+import { stokHareketKaydet } from "./stok-hareket";
 
 export const MUSTERI_KEY = 'kuyumcu_musteriler';
 export const HAREKET_KEY = 'kuyumcu_hesap_hareketleri';
@@ -110,6 +112,110 @@ export function deleteHareket(hareketId: string, musteriId: string): void {
       const satisNo = satisNoMatch[1];
       deleteSatisBySatisNo(satisNo);
       console.log('🗑️ Satış tamamen silindi:', satisNo);
+    }
+  }
+  
+  // Eğer bu bir İADE hareketi ise, stoğu düş ve satışı geri yükle
+  if (silinecekHareket.islemTuru === 'iade') {
+    // İade açıklamasından satış numarasını çıkar
+    // Format: "İade - SATS-0001 - Ürün Adı (x3), Başka Ürün (x2)"
+    const satisNoMatch = silinecekHareket.aciklama.match(/İade - (SATS-\d+|REZ-\d+)/);
+    
+    if (satisNoMatch) {
+      const satisNo = satisNoMatch[1];
+      const satis = getSatisBySatisNo(satisNo);
+      
+      if (satis) {
+        // Ürün ve adetleri parse et: "Ürün Adı (x3)" formatından
+        const urunRegex = /([^,]+?)\s*\(x(\d+)\)/g;
+        let match;
+        const iadeEdilenler: { urunAdi: string; adet: number }[] = [];
+        
+        while ((match = urunRegex.exec(silinecekHareket.aciklama)) !== null) {
+          iadeEdilenler.push({
+            urunAdi: match[1].trim(),
+            adet: parseInt(match[2])
+          });
+        }
+        
+        console.log('🔄 İade iptal ediliyor:', { satisNo, iadeEdilenler });
+        
+        // ✅ STOK DÜŞÜRME - İade edilen ürünleri stoktan çıkar
+        let urunler = getUrunler();
+        
+        iadeEdilenler.forEach(iade => {
+          // Satış kaleminden urunId bul
+          const satisKalem = satis.kalemler.find(k => k.urunAdi === iade.urunAdi);
+          if (!satisKalem) return;
+          
+          const urunIndex = urunler.findIndex(u => u.id === satisKalem.urunId);
+          
+          if (urunIndex !== -1) {
+            const oncekiMiktar = urunler[urunIndex].stokMiktari;
+            const yeniMiktar = Math.max(0, oncekiMiktar - iade.adet);
+            
+            // Stok hareketi kaydet (çıkış olarak)
+            stokHareketKaydet(
+              satisKalem.urunId,
+              'cikis',
+              iade.adet,
+              `İade İptali - ${satisNo}`,
+              oncekiMiktar,
+              yeniMiktar
+            );
+            
+            // Hafızada güncelle
+            urunler[urunIndex] = {
+              ...urunler[urunIndex],
+              stokMiktari: yeniMiktar,
+              guncellemeTarihi: new Date().toISOString()
+            };
+            
+            console.log(`📦 Stok düşürüldü (iade iptal): ${urunler[urunIndex].ad} -${iade.adet} (${oncekiMiktar} → ${yeniMiktar})`);
+          }
+        });
+        
+        // Tüm ürünleri tek seferde kaydet
+        localStorage.setItem('kuyumcu_stok_urunler', JSON.stringify(urunler));
+        
+        // ✅ SATIŞ GERİ YÜKLEME - Kalemlerdeki adetleri artır
+        const guncelKalemler = satis.kalemler.map(kalem => {
+          const iadeKalem = iadeEdilenler.find(i => i.urunAdi === kalem.urunAdi);
+          if (iadeKalem) {
+            const yeniAdet = kalem.adet + iadeKalem.adet;
+            const birimFiyat = kalem.adet > 0 ? kalem.toplamTutar / kalem.adet : kalem.birimFiyati;
+            const birimKDV = kalem.adet > 0 ? kalem.kdvTutari / kalem.adet : 0;
+            const birimIndirim = kalem.adet > 0 ? kalem.indirimTL / kalem.adet : 0;
+            
+            return {
+              ...kalem,
+              adet: yeniAdet,
+              toplamTutar: yeniAdet * birimFiyat,
+              kdvTutari: yeniAdet * birimKDV,
+              indirimTL: yeniAdet * birimIndirim
+            };
+          }
+          return kalem;
+        });
+        
+        // Satış toplamlarını yeniden hesapla
+        const yeniAraToplam = guncelKalemler.reduce((sum, k) => sum + k.toplamTutar, 0);
+        const yeniToplamKDV = guncelKalemler.reduce((sum, k) => sum + k.kdvTutari, 0);
+        const yeniGenelToplam = satis.kdvDahil 
+          ? yeniAraToplam + yeniToplamKDV - satis.genelIndirimTL
+          : yeniAraToplam - satis.genelIndirimTL;
+        
+        const guncelSatis = {
+          ...satis,
+          kalemler: guncelKalemler,
+          araToplam: yeniAraToplam,
+          toplamKDV: yeniToplamKDV,
+          genelToplam: yeniGenelToplam
+        };
+        
+        saveSatis(guncelSatis);
+        console.log('📝 Satış geri yüklendi (iade iptal):', satisNo);
+      }
     }
   }
   
