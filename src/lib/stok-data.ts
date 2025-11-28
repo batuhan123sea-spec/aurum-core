@@ -3,14 +3,6 @@ import { Urun } from '@/types/stok';
 const STORAGE_KEY = 'kuyumcu_stok_urunler';
 const MIGRATION_KEY = 'kuyumcu_urunler_migration_v1';
 
-// 🗑️ Otomatik veri temizleme (bir kerelik)
-const URUN_CLEANUP_VERSION = 'urun_cleanup_v1';
-if (!localStorage.getItem(URUN_CLEANUP_VERSION)) {
-  localStorage.removeItem(STORAGE_KEY);
-  localStorage.setItem(URUN_CLEANUP_VERSION, 'done');
-  console.log('🗑️ Ürün verileri sıfırlandı');
-}
-
 // EAN-13 kontrol hanesi hesaplama
 function calculateEAN13CheckDigit(code: string): string {
   const digits = code.split('').map(Number);

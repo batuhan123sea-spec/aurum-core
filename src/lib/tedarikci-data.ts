@@ -3,15 +3,6 @@ import { Tedarikci, TedarikciAlim } from '@/types/tedarikci';
 const TEDARIKCI_KEY = 'kuyumcu_tedarikciler';
 const ALIM_KEY = 'kuyumcu_tedarikci_alimlar';
 
-// 🗑️ Otomatik veri temizleme (bir kerelik)
-const CLEANUP_VERSION = 'tedarikci_cleanup_v1';
-if (!localStorage.getItem(CLEANUP_VERSION)) {
-  localStorage.removeItem(TEDARIKCI_KEY);
-  localStorage.removeItem(ALIM_KEY);
-  localStorage.setItem(CLEANUP_VERSION, 'done');
-  console.log('🗑️ Tedarikçi verileri sıfırlandı');
-}
-
 export const getTedarikciler = (): Tedarikci[] => {
   const stored = localStorage.getItem(TEDARIKCI_KEY);
   if (!stored) {
