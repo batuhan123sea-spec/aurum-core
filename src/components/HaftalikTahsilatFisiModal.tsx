@@ -58,7 +58,7 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
       return {
         baslangicBakiyesi: 0,
         buHaftaOdemeler: [],
-        buHaftaSatislar: [],
+        buHaftaSatisDetaylari: [],
         guncelBakiye: 0,
         satisToplamGuncel: 0,
         iadeToplamGuncel: 0
@@ -96,36 +96,6 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
         odemeTuru: h.odemeTuru
       }));
 
-    // ✅ Fiş için satış detaylarını al - Satis kaydı zaten iade sonrası güncellenmiş
-    const tumSatislar = getSatislar();
-    const buHaftaSatislar = tumSatislar
-      .filter(s => {
-        const tarih = new Date(s.tarih);
-        return s.musteriId === musteri.id && 
-               s.durum === 'tamamlandi' &&
-               tarih >= baslangic && 
-               tarih <= bitis;
-      })
-      .map(s => {
-        // Kalemler zaten güncel adetleri içeriyor (iadeler YeniIadeModal'da düşürülmüş)
-        const guncelKalemler = s.kalemler.map(kalem => ({
-          ...kalem,
-          // Güncel kur ile hesapla
-          toplamTutar: (kalem.orijinalBirimFiyati || 0) * kalem.adet * getKur(kalem.paraBirimi || 'TRY'),
-          paraBirimi: kalem.paraBirimi,
-          orijinalBirimFiyati: kalem.orijinalBirimFiyati
-        }));
-
-        const yeniToplam = guncelKalemler.reduce((sum, k) => sum + k.toplamTutar, 0);
-        
-        return {
-          tarih: s.tarih,
-          satisNo: s.satisNo,
-          tutar: yeniToplam,
-          kalemler: guncelKalemler
-        };
-      });
-
     // ✅ GÜNCEL KUR İLE HESAPLAMA: HesapHareketi'nden satış ve iade toplamlarını al
     // Bu hafta yapılan satış hareketlerini al (islemTuru='satis')
     const buHaftaSatisHareketleri = tumHareketler
@@ -148,6 +118,29 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
       })
       .reduce((sum, h) => sum + (h.tutar * getKur(h.paraBirimi)), 0);
 
+    // ✅ Fiş için satış detaylarını HesapHareketi'nden hesapla (defterdeki gibi)
+    const tumSatislar = getSatislar();
+    const buHaftaSatisDetaylari = buHaftaSatisHareketleri.map(h => {
+      // Satış numarasını açıklamadan çıkar
+      const satisNoMatch = h.aciklama.match(/(SATS-\d+|REZ-\d+)/);
+      const satisNo = satisNoMatch ? satisNoMatch[1] : 'SATIS';
+      
+      // Güncel kur ile TL tutarını hesapla (defterdeki gibi)
+      const tutarTL = h.tutar * getKur(h.paraBirimi);
+      
+      // Ürün detayları için Satis kaydına bak (sadece gösterim amaçlı)
+      const satis = tumSatislar.find(s => h.aciklama.includes(s.satisNo));
+      
+      return {
+        tarih: h.tarih,
+        satisNo,
+        tutar: tutarTL, // ✅ HesapHareketi'nden
+        paraBirimi: h.paraBirimi,
+        orijinalTutar: h.tutar,
+        kalemler: satis?.kalemler || [] // Sadece ürün isim/adet için
+      };
+    });
+
     // Güncel bakiyeyi hesapla - HesapHareketi'nden gelen güncel kur ile hesaplanmış tutarları kullan
     const toplamOdeme = buHaftaOdemeler.reduce((sum, o) => sum + o.tutar, 0);
     const netSatis = satisToplamByHareket - iadeToplamByHareket;
@@ -156,7 +149,7 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
     return {
       baslangicBakiyesi,
       buHaftaOdemeler,
-      buHaftaSatislar,
+      buHaftaSatisDetaylari,
       guncelBakiye,
       satisToplamGuncel: satisToplamByHareket,
       iadeToplamGuncel: iadeToplamByHareket
@@ -179,7 +172,7 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
       bitisTarihi,
       hesaplamalar.baslangicBakiyesi,
       hesaplamalar.buHaftaOdemeler,
-      hesaplamalar.buHaftaSatislar,
+      hesaplamalar.buHaftaSatisDetaylari,
       hesaplamalar.guncelBakiye
     );
 
@@ -282,9 +275,9 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
                   +{formatCurrency(hesaplamalar.satisToplamGuncel - hesaplamalar.iadeToplamGuncel, 'TRY')}
                 </span>
               </div>
-              {hesaplamalar.buHaftaSatislar.length > 0 && (
+              {hesaplamalar.buHaftaSatisDetaylari.length > 0 && (
                 <div className="text-xs text-muted-foreground pl-4">
-                  {hesaplamalar.buHaftaSatislar.map((satis, idx) => (
+                  {hesaplamalar.buHaftaSatisDetaylari.map((satis, idx) => (
                     <div key={idx} className="flex justify-between">
                       <span>{new Date(satis.tarih).toLocaleDateString('tr-TR')} - {satis.satisNo}</span>
                       <span>+{formatCurrency(satis.tutar, 'TRY')}</span>
