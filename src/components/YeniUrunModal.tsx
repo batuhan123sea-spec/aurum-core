@@ -135,34 +135,27 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
   };
 
   const onSubmit = (data: UrunFormValues) => {
-    // Tedarikçi validasyonu
-    if (tedarikcilerList.length === 0) {
-      toast({
-        title: "Hata",
-        description: "En az bir tedarikçi eklemelisiniz",
-        variant: "destructive"
-      });
-      return;
-    }
+    // Tedarikçi validasyonu (sadece tedarikçi eklendiyse)
+    if (tedarikcilerList.length > 0) {
+      const invalidTedarikci = tedarikcilerList.find(t => !t.tedarikciId);
+      if (invalidTedarikci) {
+        toast({
+          title: "Hata",
+          description: "Tüm tedarikçileri seçmelisiniz",
+          variant: "destructive"
+        });
+        return;
+      }
 
-    const invalidTedarikci = tedarikcilerList.find(t => !t.tedarikciId);
-    if (invalidTedarikci) {
-      toast({
-        title: "Hata",
-        description: "Tüm tedarikçileri seçmelisiniz",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const varsayilanCount = tedarikcilerList.filter(t => t.varsayilan).length;
-    if (varsayilanCount !== 1) {
-      toast({
-        title: "Hata",
-        description: "Sadece bir tedarikçi varsayılan olarak işaretlenmelidir",
-        variant: "destructive"
-      });
-      return;
+      const varsayilanCount = tedarikcilerList.filter(t => t.varsayilan).length;
+      if (varsayilanCount !== 1) {
+        toast({
+          title: "Hata",
+          description: "Sadece bir tedarikçi varsayılan olarak işaretlenmelidir",
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     // Tedarikçi detaylarını hazırla - üstteki fiyatı kullan
@@ -179,8 +172,10 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
       };
     });
 
-    // İlk tedarikçinin fiyatını genel alış fiyatı olarak kullan
-    const varsayilanTedarikci = tedarikcilerData.find(t => t.varsayilan) || tedarikcilerData[0];
+    // İlk tedarikçinin fiyatını genel alış fiyatı olarak kullan (tedarikçi yoksa formdan al)
+    const varsayilanTedarikci = tedarikcilerData.length > 0 
+      ? (tedarikcilerData.find(t => t.varsayilan) || tedarikcilerData[0])
+      : { alisFiyati: data.alisFiyati, paraBirimi: data.paraBirimi };
 
     if (editMode && initialData) {
       const guncelUrun: Urun = {
@@ -231,28 +226,30 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
 
       saveUrun(yeniUrun);
       
-      // OTOMATİK TEDARİKÇİ ALIM KAYDI OLUŞTUR
-      tedarikcilerData.forEach(tedarikci => {
-        const alimKaydi: TedarikciAlim = {
-          id: Date.now().toString() + Math.random().toString(),
-          tedarikciId: tedarikci.tedarikciId,
-          tarih: new Date().toISOString(),
-          faturaNo: `ALM-${Date.now().toString().slice(-6)}`,
-          urunler: [{
-            urunId: yeniUrun.id,
-            urunAdi: yeniUrun.ad,
-            miktar: data.stokMiktari,
-            birimFiyat: tedarikci.alisFiyati,
-            paraBirimi: tedarikci.paraBirimi,
-            toplamTutar: data.stokMiktari * tedarikci.alisFiyati
-          }],
-          genelToplam: data.stokMiktari * tedarikci.alisFiyati,
-          odemeDurumu: 'odendi',
-          aciklama: 'Yeni ürün girişi'
-        };
-        
-        saveTedarikciAlim(alimKaydi);
-      });
+      // OTOMATİK TEDARİKÇİ ALIM KAYDI OLUŞTUR (sadece tedarikçi varsa)
+      if (tedarikcilerData.length > 0) {
+        tedarikcilerData.forEach(tedarikci => {
+          const alimKaydi: TedarikciAlim = {
+            id: Date.now().toString() + Math.random().toString(),
+            tedarikciId: tedarikci.tedarikciId,
+            tarih: new Date().toISOString(),
+            faturaNo: `ALM-${Date.now().toString().slice(-6)}`,
+            urunler: [{
+              urunId: yeniUrun.id,
+              urunAdi: yeniUrun.ad,
+              miktar: data.stokMiktari,
+              birimFiyat: tedarikci.alisFiyati,
+              paraBirimi: tedarikci.paraBirimi,
+              toplamTutar: data.stokMiktari * tedarikci.alisFiyati
+            }],
+            genelToplam: data.stokMiktari * tedarikci.alisFiyati,
+            odemeDurumu: 'odendi',
+            aciklama: 'Yeni ürün girişi'
+          };
+          
+          saveTedarikciAlim(alimKaydi);
+        });
+      }
       
       toast({
         title: "Başarılı!",
@@ -465,7 +462,7 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
 
             {/* Tedarikçiler Bölümü */}
             <div className="space-y-3 pt-2">
-              <FormLabel>Tedarikçiler *</FormLabel>
+              <FormLabel>Tedarikçiler (Opsiyonel)</FormLabel>
               {tedarikcilerList.map((ted, idx) => (
                 <Card key={idx} className="p-3">
                   <div className="flex items-start gap-2">
