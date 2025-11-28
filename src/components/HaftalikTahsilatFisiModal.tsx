@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Printer, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { Musteri } from "@/types/musteri";
-import { formatCurrency } from "@/lib/kur-hesaplama";
+import { formatCurrency, getKur } from "@/lib/kur-hesaplama";
 import { formatLocalDate } from "@/lib/utils";
 import { getSatislar } from "@/lib/satis-data";
 import { getHareketlerByMusteriId } from "@/lib/musteri-data";
@@ -114,7 +114,7 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
       }
     });
 
-    // Bu hafta yapılan satışları al ve iade adetlerini düş
+    // ✅ Fiş için satış detaylarını al (görüntüleme amaçlı - orijinal para birimi ile)
     const tumSatislar = getSatislar();
     const buHaftaSatislar = tumSatislar
       .filter(s => {
@@ -163,10 +163,32 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
       })
       .filter(s => s.kalemler.length > 0); // Boş satışları çıkar
 
-    // Güncel bakiyeyi hesapla
+    // ✅ GÜNCEL KUR İLE HESAPLAMA: HesapHareketi'nden satış ve iade toplamlarını al
+    // Bu hafta yapılan satış hareketlerini al (islemTuru='satis')
+    const buHaftaSatisHareketleri = tumHareketler
+      .filter(h => {
+        const tarih = new Date(h.tarih);
+        return h.islemTuru === 'satis' && tarih >= baslangic && tarih <= bitis;
+      });
+
+    // HesapHareketi'nden güncel kur ile satış toplamını hesapla
+    const satisToplamByHareket = buHaftaSatisHareketleri.reduce((sum, h) => {
+      const guncelKur = getKur(h.paraBirimi);
+      return sum + (h.tutar * guncelKur);
+    }, 0);
+
+    // Bu hafta iadelerin TL karşılığı (güncel kur ile)
+    const iadeToplamByHareket = tumHareketler
+      .filter(h => {
+        const tarih = new Date(h.tarih);
+        return h.islemTuru === 'iade' && tarih >= baslangic && tarih <= bitis;
+      })
+      .reduce((sum, h) => sum + (h.tutar * getKur(h.paraBirimi)), 0);
+
+    // Güncel bakiyeyi hesapla - HesapHareketi'nden gelen güncel kur ile hesaplanmış tutarları kullan
     const toplamOdeme = buHaftaOdemeler.reduce((sum, o) => sum + o.tutar, 0);
-    const toplamSatis = buHaftaSatislar.reduce((sum, s) => sum + s.tutar, 0);
-    const guncelBakiye = baslangicBakiyesi - toplamOdeme + toplamSatis;
+    const netSatis = satisToplamByHareket - iadeToplamByHareket;
+    const guncelBakiye = baslangicBakiyesi - toplamOdeme + netSatis;
 
     return {
       baslangicBakiyesi,
