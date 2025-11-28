@@ -59,7 +59,9 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
         baslangicBakiyesi: 0,
         buHaftaOdemeler: [],
         buHaftaSatislar: [],
-        guncelBakiye: 0
+        guncelBakiye: 0,
+        satisToplamGuncel: 0,
+        iadeToplamGuncel: 0
       };
     }
 
@@ -194,7 +196,9 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
       baslangicBakiyesi,
       buHaftaOdemeler,
       buHaftaSatislar,
-      guncelBakiye
+      guncelBakiye,
+      satisToplamGuncel: satisToplamByHareket,
+      iadeToplamGuncel: iadeToplamByHareket
     };
   }, [musteri.id, baslangicTarihi, bitisTarihi]);
 
@@ -314,7 +318,7 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">Bu Hafta Satışlar:</span>
                 <span className="text-destructive font-semibold">
-                  +{formatCurrency(hesaplamalar.buHaftaSatislar.reduce((sum, s) => sum + s.tutar, 0), 'TRY')}
+                  +{formatCurrency(hesaplamalar.satisToplamGuncel - hesaplamalar.iadeToplamGuncel, 'TRY')}
                 </span>
               </div>
               {hesaplamalar.buHaftaSatislar.length > 0 && (
