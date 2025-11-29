@@ -490,7 +490,7 @@ const MusteriDefterGorunumu = ({
                           {gun.kalemler.length > 0 && gun.satisToplamFromHareket !== undefined && (
                             <div>
                               <span className="text-muted-foreground">Satışlar: </span>
-                              <span className="font-medium text-green-600">
+                              <span className="font-medium">
                                 +{formatCurrency(gun.satisToplamFromHareket, 'TRY')}
                               </span>
                             </div>
@@ -498,7 +498,7 @@ const MusteriDefterGorunumu = ({
                           {gun.odemeler.length > 0 && (
                             <div>
                               <span className="text-muted-foreground">Ödemeler: </span>
-                              <span className="font-medium text-red-600">
+                              <span className="font-medium text-green-600">
                                 -{formatCurrency(gun.odemeler.reduce((sum, o) => {
                                   const kur = getKur(o.paraBirimi);
                                   return sum + (o.tutar * kur);
@@ -509,7 +509,7 @@ const MusteriDefterGorunumu = ({
                           {gun.iadeler.length > 0 && (
                             <div>
                               <span className="text-muted-foreground">İadeler: </span>
-                              <span className="font-medium text-blue-600">
+                              <span className="font-medium text-slate-600">
                                 -{formatCurrency(gun.iadeler.reduce((sum, i) => {
                                   const kur = getKur(i.paraBirimi);
                                   return sum + (i.tutar * kur);
