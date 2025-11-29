@@ -33,6 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
+import { getUrunLotlari } from "@/lib/stok-lot-data";
 
 export default function StokUrunler() {
   const navigate = useNavigate();
@@ -275,7 +276,6 @@ export default function StokUrunler() {
                           </TableRow>
                         ) : (
                           filtrelenmisUrunler.map((urun) => {
-                            const { getUrunLotlari } = require('@/lib/stok-lot-data');
                             const urunLotlari = getUrunLotlari(urun.id);
                             const karFarkTL = urun.satisFiyati - urun.alisFiyati;
                             const karMarjiYuzde = urun.alisFiyati > 0 

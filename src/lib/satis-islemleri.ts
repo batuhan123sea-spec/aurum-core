@@ -5,6 +5,7 @@ import { getUrunler, saveUrun } from './stok-data';
 import { getMusteriler, saveHareket, musteriBalanceGuncelle, musteriDovizBorclariniHesapla } from './musteri-data';
 import { getKur } from './kur-hesaplama';
 import { toast } from '@/hooks/use-toast';
+import { stokDus, stokDusFromLot, calculateUrunToplamStok } from './stok-lot-data';
 
 export function hesapliSatisYap(
   musteriId: string,
@@ -49,7 +50,6 @@ export function hesapliSatisYap(
     };
     
     // ✅ LOT BAZLI STOK DÜŞME - FIFO
-    const { stokDus, calculateUrunToplamStok } = require('./stok-lot-data');
     let urunler = getUrunler();
     
     kalemler.forEach(kalem => {
@@ -58,12 +58,21 @@ export function hesapliSatisYap(
       if (urunIndex !== -1) {
         const oncekiMiktar = urunler[urunIndex].stokMiktari;
         
-        // FIFO ile stok düş
-        const kullanilanLotlar = stokDus(kalem.urunId, kalem.adet);
-        const yeniMiktar = calculateUrunToplamStok(kalem.urunId);
+        // 🆕 Manuel lot seçimi varsa, o lot'tan düş
+        if (kalem.lotId) {
+          const basarili = stokDusFromLot(kalem.lotId, kalem.adet);
+          if (!basarili) {
+            console.error(`❌ Lot'tan stok düşülemedi: ${kalem.lotId}`);
+            return;
+          }
+          console.log(`📦 Satış - ${satis.satisNo}: ${kalem.urunAdi} için ${kalem.adet} adet manuel lottan düşüldü (${kalem.lotId})`);
+        } else {
+          // FIFO ile stok düş (eski sistem)
+          const kullanilanLotlar = stokDus(kalem.urunId, kalem.adet);
+          console.log(`📦 Satış - ${satis.satisNo}: ${kalem.urunAdi} için ${kalem.adet} adet FIFO ile düşüldü`, kullanilanLotlar);
+        }
         
-        // Kullanılan lotları konsola yazdır
-        console.log(`📦 Satış - ${satis.satisNo}: ${kalem.urunAdi} için ${kalem.adet} adet FIFO ile düşüldü`, kullanilanLotlar);
+        const yeniMiktar = calculateUrunToplamStok(kalem.urunId);
         
         stokHareketKaydet(
           kalem.urunId,
@@ -262,7 +271,6 @@ export function hizliSatisYap(
   saveSatis(satis);
   
   // ✅ LOT BAZLI STOK DÜŞME - FIFO
-  const { stokDus, calculateUrunToplamStok } = require('./stok-lot-data');
   let urunler = getUrunler();
   
   kalemler.forEach(kalem => {
@@ -271,11 +279,21 @@ export function hizliSatisYap(
     if (urunIndex !== -1) {
       const oncekiMiktar = urunler[urunIndex].stokMiktari;
       
-      // FIFO ile stok düş
-      const kullanilanLotlar = stokDus(kalem.urunId, kalem.adet);
-      const yeniMiktar = calculateUrunToplamStok(kalem.urunId);
+      // 🆕 Manuel lot seçimi varsa, o lot'tan düş
+      if (kalem.lotId) {
+        const basarili = stokDusFromLot(kalem.lotId, kalem.adet);
+        if (!basarili) {
+          console.error(`❌ Lot'tan stok düşülemedi: ${kalem.lotId}`);
+          return;
+        }
+        console.log(`📦 Hızlı Satış: ${kalem.urunAdi} için ${kalem.adet} adet manuel lottan düşüldü (${kalem.lotId})`);
+      } else {
+        // FIFO ile stok düş (eski sistem)
+        const kullanilanLotlar = stokDus(kalem.urunId, kalem.adet);
+        console.log(`📦 Hızlı Satış: ${kalem.urunAdi} için ${kalem.adet} adet FIFO ile düşüldü`, kullanilanLotlar);
+      }
       
-      console.log(`📦 Hızlı Satış: ${kalem.urunAdi} için ${kalem.adet} adet FIFO ile düşüldü`, kullanilanLotlar);
+      const yeniMiktar = calculateUrunToplamStok(kalem.urunId);
       
       stokHareketKaydet(
         kalem.urunId,
