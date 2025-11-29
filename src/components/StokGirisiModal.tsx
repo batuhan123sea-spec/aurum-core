@@ -31,6 +31,7 @@ import { getUrunler, saveUrun } from "@/lib/stok-data";
 import { getTedarikciler, saveTedarikciAlim } from "@/lib/tedarikci-data";
 import { TedarikciAlim } from "@/types/tedarikci";
 import { stokHareketKaydet } from "@/lib/stok-hareket";
+import { saveStokLot, generateLotNo, calculateUrunToplamStok } from "@/lib/stok-lot-data";
 import { useToast } from "@/hooks/use-toast";
 
 const stokGirisiSchema = z.object({
@@ -95,8 +96,6 @@ export const StokGirisiModal = ({ open, onOpenChange, onSuccess }: StokGirisiMod
     }
 
     // 🆕 LOT BAZLI STOK SİSTEMİ
-    const { saveStokLot, generateLotNo, calculateUrunToplamStok } = require('@/lib/stok-lot-data');
-    
     const tedarikci = data.tedarikciId ? allTedarikciler.find(t => t.id === data.tedarikciId) : null;
     
     // Yeni lot oluştur
