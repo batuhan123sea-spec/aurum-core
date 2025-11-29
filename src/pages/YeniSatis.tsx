@@ -634,7 +634,9 @@ export default function YeniSatis() {
                                       {lot.batchNo}
                                     </Badge>
                                     <span className="text-xs text-muted-foreground">
-                                      {lot.tedarikciAdi}
+                                      {lot.tedarikciAdi === 'Başlangıç Stoku' 
+                                        ? (urun.tedarikciler?.[0]?.tedarikciAdi || 'Tedarikçi Belirtilmemiş')
+                                        : lot.tedarikciAdi}
                                     </span>
                                   </div>
                                 </TableCell>
