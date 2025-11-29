@@ -181,7 +181,7 @@ export function haftalikTahsilatFisiOlustur(
   const toplamSatis = buHaftaSatislar.reduce((sum, s) => sum + s.tutar, 0);
   
   if (buHaftaSatislar.length > 0) {
-    fis += 'Bu Hafta Alinan Urunler:\n';
+    fis += 'Alinan Urunler:\n';
     fis += line(W, '-') + '\n';
     fis += 'Urun           Adet   Fiyat    Toplam\n';
     fis += line(W, '-') + '\n';
@@ -230,57 +230,29 @@ export function haftalikTahsilatFisiOlustur(
   const toplamIade = buHaftaIadeler.reduce((sum, i) => sum + i.tutar, 0);
   
   if (buHaftaIadeler.length > 0) {
-    fis += 'Bu Hafta Iadeler:\n';
-    fis += line(W, '-') + '\n';
-    
     buHaftaIadeler.forEach(iade => {
       const tarihStr = new Date(iade.tarih).toLocaleDateString('tr-TR');
       const iadeTutarStr = `-${formatCurrency(iade.tutar, 'TRY')}`;
-      const aciklama = iade.aciklama.substring(0, 20);
+      const aciklamaIlk = iade.aciklama.substring(0, 30);
       
-      fis += `${tarihStr}\n`;
-      fis += `  ${aciklama}`;
-      fis += ' '.repeat(Math.max(1, W - aciklama.length - iadeTutarStr.length - 2));
+      fis += `  ${tarihStr} - ${aciklamaIlk}`;
+      fis += ' '.repeat(Math.max(1, W - tarihStr.length - aciklamaIlk.length - iadeTutarStr.length - 5));
       fis += iadeTutarStr + '\n';
     });
-    
-    fis += line(W, '-') + '\n';
-    const iadeToplamStr = `Iadeler Toplami: -${formatCurrency(toplamIade, 'TRY')}`;
-    fis += ' '.repeat(Math.max(0, W - iadeToplamStr.length)) + iadeToplamStr + '\n';
     fis += '\n';
   }
 
-  // Net satış (satışlar - iadeler)
-  const netSatis = toplamSatis - toplamIade;
-  if (toplamIade > 0) {
-    const netSatisStr = `Net Satis: ${formatCurrency(netSatis, 'TRY')}`;
-    fis += ' '.repeat(Math.max(0, W - netSatisStr.length)) + netSatisStr + '\n';
-    fis += '\n';
-  }
   
   // 5. BU HAFTA ÖDEMELER
   if (buHaftaOdemeler.length > 0) {
-    fis += 'Bu Hafta Yapilan Odemeler:\n';
-    fis += line(W, '-') + '\n';
-    
-    buHaftaOdemeler.forEach(odeme => {
-      const odemeTuru = odeme.odemeTuru === 'kredi-karti' ? 'Kredi Karti' :
-                        odeme.odemeTuru === 'eft' ? 'EFT' :
-                        odeme.odemeTuru === 'havale' ? 'Havale' : 'Nakit';
-      const odemeTutarStr = formatCurrency(odeme.tutar, 'TRY');
-      const odemeSatir = `- ${odemeTuru}:` + ' '.repeat(Math.max(1, W - odemeTuru.length - odemeTutarStr.length - 4)) + odemeTutarStr;
-      fis += odemeSatir + '\n';
-    });
-    
-    fis += line(W, '-') + '\n';
-    const odemelerToplamStr = `Odemeler Toplami: ${formatCurrency(toplamOdeme, 'TRY')}`;
-    fis += ' '.repeat(Math.max(0, W - odemelerToplamStr.length)) + odemelerToplamStr + '\n';
+    const odemeStr = `Yapilan Odemeler: -${formatCurrency(toplamOdeme, 'TRY')}`;
+    fis += ' '.repeat(Math.max(0, W - odemeStr.length)) + odemeStr + '\n';
     fis += '\n';
   }
   
-  // 6. TOPLAM BAKİYE
+  // 6. ŞİMDİKİ BAKİYE
   fis += line(W, '=') + '\n';
-  const bakiyeStr = `TOPLAM BAKIYE: ${formatCurrency(guncelBakiye, 'TRY')}`;
+  const bakiyeStr = `SIMDIKI BAKIYE: ${formatCurrency(guncelBakiye, 'TRY')}`;
   fis += center(bakiyeStr, W) + '\n';
   fis += line(W, '=') + '\n';
   fis += '\n';
