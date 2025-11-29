@@ -1,4 +1,5 @@
 import { Urun } from '@/types/stok';
+import { migrateUrunlerToLots } from './stok-lot-data';
 
 const STORAGE_KEY = 'kuyumcu_stok_urunler';
 const MIGRATION_KEY = 'kuyumcu_urunler_migration_v1';
@@ -133,7 +134,6 @@ export const getUrunler = (): Urun[] => {
   migrateBarcodes();
   
   // Lot migration - ilk yükleme
-  const { migrateUrunlerToLots } = require('./stok-lot-data');
   migrateUrunlerToLots();
   
   const stored = localStorage.getItem(STORAGE_KEY);
