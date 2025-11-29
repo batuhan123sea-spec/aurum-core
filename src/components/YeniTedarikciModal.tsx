@@ -25,10 +25,10 @@ import { useToast } from "@/hooks/use-toast";
 
 const tedarikciSchema = z.object({
   firmaAdi: z.string().min(2, "Firma adı en az 2 karakter olmalı").max(100),
-  yetkiliKisi: z.string().min(2, "Yetkili kişi adı en az 2 karakter olmalı").max(100),
+  yetkiliKisi: z.string().max(100).optional().or(z.literal("")),
   telefon: z.string().min(10, "Geçerli bir telefon numarası girin").max(20),
   email: z.string().email("Geçerli bir email adresi girin").optional().or(z.literal("")),
-  adres: z.string().min(5, "Adres en az 5 karakter olmalı").max(250),
+  adres: z.string().max(250).optional().or(z.literal("")),
   vergiNo: z.string().max(20).optional(),
   notlar: z.string().max(500).optional(),
   durum: z.boolean(),
@@ -64,10 +64,10 @@ export const YeniTedarikciModal = ({ open, onOpenChange, onSuccess }: YeniTedari
       id: Date.now().toString(),
       kod: generateTedarikciKodu(),
       firmaAdi: data.firmaAdi,
-      yetkiliKisi: data.yetkiliKisi,
+      yetkiliKisi: data.yetkiliKisi || undefined,
       telefon: data.telefon,
       email: data.email || undefined,
-      adres: data.adres,
+      adres: data.adres || undefined,
       vergiNo: data.vergiNo || undefined,
       notlar: data.notlar || undefined,
       durum: data.durum ? 'aktif' as const : 'pasif' as const,
@@ -119,7 +119,7 @@ export const YeniTedarikciModal = ({ open, onOpenChange, onSuccess }: YeniTedari
                 name="yetkiliKisi"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Yetkili Kişi *</FormLabel>
+                    <FormLabel>Yetkili Kişi</FormLabel>
                     <FormControl>
                       <Input placeholder="Yetkili kişi adı" {...field} />
                     </FormControl>
@@ -164,7 +164,7 @@ export const YeniTedarikciModal = ({ open, onOpenChange, onSuccess }: YeniTedari
               name="adres"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Adres *</FormLabel>
+                  <FormLabel>Adres</FormLabel>
                   <FormControl>
                     <Textarea placeholder="Tam adres..." {...field} />
                   </FormControl>
