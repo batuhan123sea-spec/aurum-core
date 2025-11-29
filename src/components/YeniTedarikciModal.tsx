@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 const tedarikciSchema = z.object({
   firmaAdi: z.string().min(2, "Firma adı en az 2 karakter olmalı").max(100),
   yetkiliKisi: z.string().max(100).optional().or(z.literal("")),
-  telefon: z.string().min(10, "Geçerli bir telefon numarası girin").max(20),
+  telefon: z.string().max(20).optional().or(z.literal("")),
   email: z.string().email("Geçerli bir email adresi girin").optional().or(z.literal("")),
   adres: z.string().max(250).optional().or(z.literal("")),
   vergiNo: z.string().max(20).optional(),
@@ -65,7 +65,7 @@ export const YeniTedarikciModal = ({ open, onOpenChange, onSuccess }: YeniTedari
       kod: generateTedarikciKodu(),
       firmaAdi: data.firmaAdi,
       yetkiliKisi: data.yetkiliKisi || undefined,
-      telefon: data.telefon,
+      telefon: data.telefon || undefined,
       email: data.email || undefined,
       adres: data.adres || undefined,
       vergiNo: data.vergiNo || undefined,
@@ -135,7 +135,7 @@ export const YeniTedarikciModal = ({ open, onOpenChange, onSuccess }: YeniTedari
                 name="telefon"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Telefon *</FormLabel>
+                    <FormLabel>Telefon</FormLabel>
                     <FormControl>
                       <Input placeholder="0532 123 45 67" {...field} />
                     </FormControl>
