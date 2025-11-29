@@ -1,3 +1,17 @@
+// Stok Lotu - Her tedarikçi alımı ayrı lot olarak takip edilir
+export interface StokLot {
+  id: string;
+  urunId: string;                    // Ana ürün referansı
+  tedarikciId?: string;              // Tedarikçi referansı
+  tedarikciAdi?: string;             // Tedarikçi adı (hızlı erişim için)
+  alisFiyati: number;                // Bu lot'un alış fiyatı
+  paraBirimi: 'TRY' | 'USD' | 'EUR'; // Para birimi
+  stokMiktari: number;               // Bu lot'taki mevcut stok
+  alisTarihi: string;                // Alım tarihi (FIFO için)
+  batchNo: string;                   // Lot numarası (LOT-001, LOT-002...)
+  aciklama?: string;                 // İsteğe bağlı açıklama
+}
+
 // Çoklu tedarikçi için
 export interface UrunTedarikci {
   id: string;

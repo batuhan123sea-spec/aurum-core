@@ -84,16 +84,6 @@ export const StokGirisiModal = ({ open, onOpenChange, onSuccess }: StokGirisiMod
   }, [secilenUrunId]);
 
   const onSubmit = (data: StokGirisiFormValues) => {
-    console.log('📦 Stok Girişi Form Data:', {
-      urunId: data.urunId,
-      tedarikciId: data.tedarikciId,
-      tedarikciIdDolu: !!data.tedarikciId,
-      miktar: data.miktar,
-      alisFiyati: data.alisFiyati,
-      paraBirimi: data.paraBirimi,
-      aciklama: data.aciklama
-    });
-
     const urun = allUrunler.find(u => u.id === data.urunId);
     if (!urun) {
       toast({
@@ -104,92 +94,74 @@ export const StokGirisiModal = ({ open, onOpenChange, onSuccess }: StokGirisiMod
       return;
     }
 
+    // 🆕 LOT BAZLI STOK SİSTEMİ
+    const { saveStokLot, generateLotNo, calculateUrunToplamStok } = require('@/lib/stok-lot-data');
+    
+    const tedarikci = data.tedarikciId ? allTedarikciler.find(t => t.id === data.tedarikciId) : null;
+    
+    // Yeni lot oluştur
+    const yeniLot = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      urunId: urun.id,
+      tedarikciId: tedarikci?.id,
+      tedarikciAdi: tedarikci?.firmaAdi || 'Başlangıç Stoku',
+      alisFiyati: data.alisFiyati,
+      paraBirimi: data.paraBirimi,
+      stokMiktari: data.miktar,
+      alisTarihi: new Date().toISOString(),
+      batchNo: generateLotNo(urun.id),
+      aciklama: data.aciklama || 'Stok girişi'
+    };
+    
+    saveStokLot(yeniLot);
+    
     const oncekiMiktar = urun.stokMiktari;
-    const yeniMiktar = oncekiMiktar + data.miktar;
-    
-    // Stok hareketi kaydet
-    const aciklamaMetni = data.tedarikciId 
-      ? `Tedarikçi Alımı${data.aciklama ? ` - ${data.aciklama}` : ''}`
-      : `Stok Girişi${data.aciklama ? ` - ${data.aciklama}` : ''}`;
-    
+    const yeniToplamMiktar = calculateUrunToplamStok(urun.id);
+
+    // Stok hareketine kaydet
     stokHareketKaydet(
-      data.urunId,
+      urun.id,
       'giris',
       data.miktar,
-      aciklamaMetni,
+      `Stok girişi - ${yeniLot.batchNo} - ${tedarikci?.firmaAdi || 'Tedarikçisiz'}`,
       oncekiMiktar,
-      yeniMiktar
+      yeniToplamMiktar
     );
-    
-    // Stok miktarını güncelle
-    urun.stokMiktari = yeniMiktar;
-    
-    // Tedarikçi seçildiyse, ürünün tedarikçi listesine ekle/güncelle
-    if (data.tedarikciId && data.tedarikciId.trim().length > 0) {
-      const tedarikci = allTedarikciler.find(t => t.id === data.tedarikciId);
-      
-      if (!urun.tedarikciler) {
-        urun.tedarikciler = [];
-      }
-      
-      const mevcutTedarikciIndex = urun.tedarikciler.findIndex(
-        t => t.tedarikciId === data.tedarikciId
-      );
-      
-      if (mevcutTedarikciIndex >= 0) {
-        // Mevcut tedarikçi bilgisini güncelle
-        urun.tedarikciler[mevcutTedarikciIndex] = {
-          ...urun.tedarikciler[mevcutTedarikciIndex],
-          alisFiyati: data.alisFiyati,
-          paraBirimi: data.paraBirimi,
-          sonAlisTarihi: new Date().toISOString(),
-        };
-      } else {
-        // Yeni tedarikçi ekle
-        urun.tedarikciler.push({
-          id: Date.now().toString() + Math.random(),
-          tedarikciId: data.tedarikciId,
-          tedarikciAdi: tedarikci?.firmaAdi || 'Bilinmeyen Tedarikçi',
-          alisFiyati: data.alisFiyati,
-          paraBirimi: data.paraBirimi,
-          sonAlisTarihi: new Date().toISOString(),
-          varsayilan: urun.tedarikciler.length === 0,
-        });
-      }
-      
-      // Tedarikçi alım kaydı oluştur
-      const alimKaydi: TedarikciAlim = {
-        id: Date.now().toString(),
+
+    // Ürünün toplam stok miktarını güncelle
+    urun.stokMiktari = yeniToplamMiktar;
+    saveUrun(urun);
+
+    // 🆕 Tedarikçi alım kaydı oluştur (tedarikçi seçildiyse)
+    if (data.tedarikciId && data.tedarikciId.trim().length > 0 && tedarikci) {
+      const alim: TedarikciAlim = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
         tedarikciId: data.tedarikciId,
         tarih: new Date().toISOString(),
         faturaNo: `ALM-${Date.now().toString().slice(-6)}`,
         urunler: [{
-          urunId: data.urunId,
+          urunId: urun.id,
           urunAdi: urun.ad,
           miktar: data.miktar,
           birimFiyat: data.alisFiyati,
           paraBirimi: data.paraBirimi,
-          toplamTutar: data.alisFiyati * data.miktar
+          toplamTutar: data.miktar * data.alisFiyati
         }],
-        genelToplam: data.alisFiyati * data.miktar,
-        odemeDurumu: 'odendi',
+        genelToplam: data.miktar * data.alisFiyati,
+        odemeDurumu: 'beklemede',
         aciklama: data.aciklama || undefined
       };
       
-      console.log('✅ Tedarikçi Alım Kaydı Oluşturuluyor:', alimKaydi);
-      saveTedarikciAlim(alimKaydi);
-      console.log('💾 Kayıt sonrası localStorage:', localStorage.getItem('kuyumcu_tedarikci_alimlar'));
-    } else {
-      console.log('⚠️ Tedarikçi seçilmedi, alım kaydı oluşturulmayacak');
+      saveTedarikciAlim(alim);
+      
+      console.log('✅ Tedarikçi alım kaydı oluşturuldu:', alim);
     }
-    
-    saveUrun(urun);
-    
+
     toast({
-      title: "Başarılı!",
-      description: "Stok girişi tamamlandı.",
+      title: "Stok Eklendi",
+      description: `${urun.ad} için ${data.miktar} adet stok eklendi (${yeniLot.batchNo}).`
     });
-    
+
     form.reset();
     onOpenChange(false);
     onSuccess?.();

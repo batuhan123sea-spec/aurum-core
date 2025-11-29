@@ -132,6 +132,10 @@ export const getUrunler = (): Urun[] => {
   migrateTedarikcilerArray();
   migrateBarcodes();
   
+  // Lot migration - ilk yükleme
+  const { migrateUrunlerToLots } = require('./stok-lot-data');
+  migrateUrunlerToLots();
+  
   const stored = localStorage.getItem(STORAGE_KEY);
   if (!stored) {
     // ✅ MOCK DATA YÜKLEME - Boş array döndür
