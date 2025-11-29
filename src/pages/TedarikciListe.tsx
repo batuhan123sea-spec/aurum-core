@@ -13,19 +13,49 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Search, Plus, Eye, Edit, Trash2, Building2 } from "lucide-react";
-import { getTedarikciler, getTedarikciAlimlari } from "@/lib/tedarikci-data";
+import { getTedarikciler, getTedarikciAlimlari, deleteTedarikci } from "@/lib/tedarikci-data";
 import { YeniTedarikciModal } from "@/components/YeniTedarikciModal";
+import { TedarikciDuzenleModal } from "@/components/TedarikciDuzenleModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { Tedarikci } from "@/types/tedarikci";
 
 const ALFABE = ['A', 'B', 'C', 'Ç', 'D', 'E', 'F', 'G', 'H', 'İ', 'J', 'K', 'L', 'M', 'N', 'O', 'Ö', 'P', 'R', 'S', 'Ş', 'T', 'U', 'Ü', 'V', 'Y', 'Z'];
 
 export default function TedarikciListe() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [aramaQuery, setAramaQuery] = useState("");
   const [secilenHarf, setSecilenHarf] = useState<string | null>(null);
   const [yeniTedarikciModalOpen, setYeniTedarikciModalOpen] = useState(false);
+  const [duzenleModalOpen, setDuzenleModalOpen] = useState(false);
+  const [secilenTedarikci, setSecilenTedarikci] = useState<Tedarikci | null>(null);
+  const [silinecekTedarikci, setSilinecekTedarikci] = useState<Tedarikci | null>(null);
+  const [yenilemeKey, setYenilemeKey] = useState(0);
   
   const tedarikciler = getTedarikciler();
+
+  const handleSil = () => {
+    if (silinecekTedarikci) {
+      deleteTedarikci(silinecekTedarikci.id);
+      toast({
+        title: "Silindi",
+        description: `${silinecekTedarikci.firmaAdi} tedarikçisi silindi.`,
+      });
+      setSilinecekTedarikci(null);
+      setYenilemeKey(prev => prev + 1);
+    }
+  };
 
   // Filtreleme
   const filteredTedarikciler = tedarikciler.filter(t => {
@@ -177,10 +207,21 @@ export default function TedarikciListe() {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button size="icon" variant="ghost">
+                            <Button 
+                              size="icon" 
+                              variant="ghost"
+                              onClick={() => {
+                                setSecilenTedarikci(tedarikci);
+                                setDuzenleModalOpen(true);
+                              }}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button size="icon" variant="ghost">
+                            <Button 
+                              size="icon" 
+                              variant="ghost"
+                              onClick={() => setSilinecekTedarikci(tedarikci)}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -200,8 +241,37 @@ export default function TedarikciListe() {
         onOpenChange={setYeniTedarikciModalOpen}
         onSuccess={() => {
           setYeniTedarikciModalOpen(false);
+          setYenilemeKey(prev => prev + 1);
         }}
       />
+
+      <TedarikciDuzenleModal
+        open={duzenleModalOpen}
+        onOpenChange={setDuzenleModalOpen}
+        tedarikci={secilenTedarikci}
+        onSuccess={() => {
+          setDuzenleModalOpen(false);
+          setYenilemeKey(prev => prev + 1);
+        }}
+      />
+
+      <AlertDialog open={!!silinecekTedarikci} onOpenChange={(open) => !open && setSilinecekTedarikci(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tedarikçiyi Sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{silinecekTedarikci?.firmaAdi}" tedarikçisini silmek istediğinize emin misiniz? 
+              Bu işlem geri alınamaz ve ilişkili tüm alım kayıtları da silinecektir.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSil} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }

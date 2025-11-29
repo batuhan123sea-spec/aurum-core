@@ -78,3 +78,14 @@ export const deleteTedarikciAlim = (alimId: string): void => {
   localStorage.setItem(ALIM_KEY, JSON.stringify(alimlar));
   console.log('🗑️ Alım silindi:', alimId);
 };
+
+export const deleteTedarikci = (tedarikciId: string): void => {
+  const tedarikciler = getTedarikciler().filter(t => t.id !== tedarikciId);
+  localStorage.setItem(TEDARIKCI_KEY, JSON.stringify(tedarikciler));
+  
+  // İlişkili alımları da sil
+  const alimlar = getTedarikciAlimlar().filter(a => a.tedarikciId !== tedarikciId);
+  localStorage.setItem(ALIM_KEY, JSON.stringify(alimlar));
+  
+  console.log('🗑️ Tedarikçi ve ilişkili alımlar silindi:', tedarikciId);
+};
