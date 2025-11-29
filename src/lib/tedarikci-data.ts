@@ -62,3 +62,19 @@ export const saveTedarikciAlim = (alim: TedarikciAlim): void => {
 export const getTedarikciAlimlari = (tedarikciId: string): TedarikciAlim[] => {
   return getTedarikciAlimlar().filter(a => a.tedarikciId === tedarikciId);
 };
+
+export const updateTedarikciAlim = (alim: TedarikciAlim): void => {
+  const alimlar = getTedarikciAlimlar();
+  const index = alimlar.findIndex(a => a.id === alim.id);
+  if (index >= 0) {
+    alimlar[index] = alim;
+    localStorage.setItem(ALIM_KEY, JSON.stringify(alimlar));
+    console.log('✅ Alım güncellendi:', alim.id);
+  }
+};
+
+export const deleteTedarikciAlim = (alimId: string): void => {
+  const alimlar = getTedarikciAlimlar().filter(a => a.id !== alimId);
+  localStorage.setItem(ALIM_KEY, JSON.stringify(alimlar));
+  console.log('🗑️ Alım silindi:', alimId);
+};

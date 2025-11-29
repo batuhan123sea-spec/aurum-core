@@ -7,17 +7,35 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Pencil, Download, Printer } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ArrowLeft, Pencil, Download, Printer, Edit, Trash2 } from "lucide-react";
 import Barcode from 'react-barcode';
 import { YeniUrunModal } from "@/components/YeniUrunModal";
+import { AlimDuzenleModal } from "@/components/AlimDuzenleModal";
 import { getUrunler, saveUrun, generateBarkod } from "@/lib/stok-data";
-import { getTedarikciAlimlar } from "@/lib/tedarikci-data";
+import { getTedarikciAlimlar, deleteTedarikciAlim } from "@/lib/tedarikci-data";
 import { formatCurrency } from "@/lib/kur-hesaplama";
+import { stokHareketKaydet } from "@/lib/stok-hareket";
+import { toast } from "@/hooks/use-toast";
+import { TedarikciAlim } from "@/types/tedarikci";
 
 export default function UrunDetay() {
   const { urunId } = useParams<{ urunId: string }>();
   const navigate = useNavigate();
   const [duzenleModalAcik, setDuzenleModalAcik] = useState(false);
+  const [alimDuzenleModalAcik, setAlimDuzenleModalAcik] = useState(false);
+  const [secilenAlim, setSecilenAlim] = useState<TedarikciAlim | null>(null);
+  const [silinecekAlimId, setSilinecekAlimId] = useState<string | null>(null);
+  const [yenilemeKey, setYenilemeKey] = useState(0);
   
   const urun = getUrunler().find(u => u.id === urunId);
   
@@ -42,6 +60,50 @@ export default function UrunDetay() {
       urun: alim.urunler.find(u => u.urunId === urunId)
     }))
     .filter(alim => alim.urun);
+
+  const handleAlimDuzenle = (alim: TedarikciAlim) => {
+    setSecilenAlim(alim);
+    setAlimDuzenleModalAcik(true);
+  };
+
+  const handleAlimSil = () => {
+    if (!silinecekAlimId || !urunId) return;
+
+    const alim = tumAlimlar.find(a => a.id === silinecekAlimId);
+    if (!alim) return;
+
+    const urunItem = alim.urunler.find(u => u.urunId === urunId);
+    if (!urunItem) return;
+
+    // Stoktan düş
+    const urunler = getUrunler();
+    const simdikiUrun = urunler.find(u => u.id === urunId);
+    if (!simdikiUrun) return;
+
+    const yeniStok = simdikiUrun.stokMiktari - urunItem.miktar;
+    saveUrun({ ...simdikiUrun, stokMiktari: yeniStok });
+
+    // Stok hareketi kaydet
+    stokHareketKaydet(
+      urunId,
+      'cikis',
+      urunItem.miktar,
+      `Alım kaydı silindi - ${alim.faturaNo}`,
+      simdikiUrun.stokMiktari,
+      yeniStok
+    );
+
+    // Alımı sil
+    deleteTedarikciAlim(silinecekAlimId);
+
+    toast({
+      title: "Başarılı",
+      description: "Alım kaydı silindi ve stok güncellendi",
+    });
+
+    setSilinecekAlimId(null);
+    setYenilemeKey(prev => prev + 1);
+  };
 
   const stokDurumu = 
     urun.stokMiktari <= urun.kritikStokSeviyesi 
@@ -257,7 +319,7 @@ export default function UrunDetay() {
                         Tedarikçi ve alım kaydı bulunamadı
                       </p>
                     ) : (
-                      <Table>
+                      <Table key={yenilemeKey}>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Tedarikçi</TableHead>
@@ -265,6 +327,7 @@ export default function UrunDetay() {
                             <TableHead className="text-right">Miktar</TableHead>
                             <TableHead className="text-right">Birim Fiyat</TableHead>
                             <TableHead className="text-right">Toplam</TableHead>
+                            <TableHead className="text-right">İşlemler</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -292,6 +355,24 @@ export default function UrunDetay() {
                                 <TableCell className="text-right font-semibold">
                                   {alim.urun?.toplamTutar?.toFixed(2) || '0.00'} {alim.urun?.paraBirimi || 'TRY'}
                                 </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleAlimDuzenle(alim)}
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => setSilinecekAlimId(alim.id)}
+                                    >
+                                      <Trash2 className="w-4 h-4 text-destructive" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
                               </TableRow>
                             );
                           })}
@@ -316,6 +397,31 @@ export default function UrunDetay() {
           window.location.reload();
         }}
       />
+
+      {urunId && (
+        <AlimDuzenleModal
+          open={alimDuzenleModalAcik}
+          onOpenChange={setAlimDuzenleModalAcik}
+          alim={secilenAlim}
+          urunId={urunId}
+          onSuccess={() => setYenilemeKey(prev => prev + 1)}
+        />
+      )}
+
+      <AlertDialog open={!!silinecekAlimId} onOpenChange={(open) => !open && setSilinecekAlimId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alım Kaydını Sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu alım kaydını silmek istediğinize emin misiniz? Stok miktarı otomatik olarak azaltılacaktır. Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleAlimSil}>Sil</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
