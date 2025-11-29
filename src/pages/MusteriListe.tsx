@@ -278,10 +278,10 @@ const MusteriListe = () => {
                         {(musteri.borclar.USD > 0 || musteri.borclar.EUR > 0) && (
                           <div className="text-xs text-muted-foreground space-y-0.5">
                             {musteri.borclar.USD > 0 && (
-                              <p className="text-blue-600">USD: {formatCurrency(musteri.borclar.USD, 'USD')}</p>
+                              <p className="text-green-600">USD: {formatCurrency(musteri.borclar.USD, 'USD')}</p>
                             )}
                             {musteri.borclar.EUR > 0 && (
-                              <p className="text-green-600">EUR: {formatCurrency(musteri.borclar.EUR, 'EUR')}</p>
+                              <p className="text-blue-600">EUR: {formatCurrency(musteri.borclar.EUR, 'EUR')}</p>
                             )}
                           </div>
                         )}

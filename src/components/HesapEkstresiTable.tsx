@@ -34,9 +34,9 @@ const HesapEkstresiTable = ({ musteriId, filter = 'tum' }: HesapEkstresiTablePro
 
   const getParaBirimiBadge = (paraBirimi: string) => {
     const colors: Record<string, string> = {
-      TRY: 'bg-blue-100 text-blue-800',
+      TRY: 'bg-amber-100 text-amber-800',
       USD: 'bg-green-100 text-green-800',
-      EUR: 'bg-purple-100 text-purple-800',
+      EUR: 'bg-blue-100 text-blue-800',
     };
     
     return (
