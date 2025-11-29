@@ -89,6 +89,31 @@ export const stokDus = (
   return kullanilanLotlar;
 };
 
+// Belirli bir lot'tan stok düş (Manuel lot seçimi için)
+export const stokDusFromLot = (
+  lotId: string,
+  miktar: number
+): boolean => {
+  const lotlar = getStokLotlar();
+  const lot = lotlar.find(l => l.id === lotId);
+  
+  if (!lot) {
+    console.error(`❌ Lot bulunamadı: ${lotId}`);
+    return false;
+  }
+  
+  if (lot.stokMiktari < miktar) {
+    console.error(`❌ Yetersiz stok! Lot: ${lot.batchNo}, İstenilen: ${miktar}, Mevcut: ${lot.stokMiktari}`);
+    return false;
+  }
+  
+  lot.stokMiktari -= miktar;
+  saveStokLot(lot);
+  
+  console.log(`🔹 LOT düştü (manuel): ${lot.batchNo} - ${miktar} adet (Kalan: ${lot.stokMiktari})`);
+  return true;
+};
+
 // Lot sil
 export const deleteStokLot = (lotId: string): void => {
   const lotlar = getStokLotlar().filter(l => l.id !== lotId);

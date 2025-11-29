@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { bigParaKurCek } from "@/lib/kur-api";
 import { kurlarıKaydet } from "@/lib/kur-hesaplama";
 import { tumMusteriBorclariniGuncelle } from "@/lib/musteri-data";
+import { getUrunLotlari } from "@/lib/stok-lot-data";
 
 export default function YeniSatis() {
   const { toast } = useToast();
@@ -121,15 +122,28 @@ export default function YeniSatis() {
     }
   }, [sepet.map(k => k.id).join(',')]);
 
-  // Barkod ile ürün ekle
+  // Barkod ile ürün ekle - Otomatik ilk lotu seç
   const barkodIleUrunEkle = (barkod: string) => {
     const urun = urunler.find(u => u.barkod === barkod);
     if (urun) {
-      sepeteEkle(urun);
+      // İlk kullanılabilir lotu seç (FIFO)
+      const lotlar = getUrunLotlari(urun.id);
+      const ilkLot = lotlar.find(l => l.stokMiktari > 0);
+      
+      if (!ilkLot) {
+        toast({
+          title: "Stokta Yok",
+          description: `${urun.ad} stokta bulunmuyor.`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      sepeteEkle(urun, ilkLot);
       setBarkodInput("");
       toast({
         title: "Ürün Eklendi",
-        description: `${urun.ad} sepete eklendi.`,
+        description: `${urun.ad} sepete eklendi (${ilkLot.tedarikciAdi}).`,
       });
     } else {
       toast({
@@ -140,37 +154,37 @@ export default function YeniSatis() {
     }
   };
 
-  // Sepete ürün ekle
-  const sepeteEkle = (urun: Urun) => {
-    const mevcutKalem = sepet.find(k => k.urunId === urun.id);
+  // Sepete ürün ekle - LOT parametresi ile
+  const sepeteEkle = (urun: Urun, seciliLot?: any) => {
+    const mevcutKalem = sepet.find(k => k.urunId === urun.id && k.lotId === seciliLot?.id);
     
     // STOK KONTROLÜ
     if (mevcutKalem) {
       // Sepette zaten var, 1 adet daha ekleyebilir miyiz?
-      if (mevcutKalem.adet >= urun.stokMiktari) {
+      const mevcutLotStok = seciliLot?.stokMiktari || urun.stokMiktari;
+      if (mevcutKalem.adet >= mevcutLotStok) {
         toast({
           title: "Yetersiz Stok",
-          description: `${urun.ad} için stokta sadece ${urun.stokMiktari} adet var. Sepetinizde zaten ${mevcutKalem.adet} adet bulunuyor.`,
+          description: `${urun.ad} için bu lottan sadece ${mevcutLotStok} adet var. Sepetinizde zaten ${mevcutKalem.adet} adet bulunuyor.`,
           variant: "destructive"
         });
         return;
       }
     } else {
       // Yeni ürün eklenecek, stok var mı?
-      if (urun.stokMiktari === 0) {
+      if (!seciliLot || seciliLot.stokMiktari === 0) {
         toast({
           title: "Stokta Yok",
-          description: `${urun.ad} stokta bulunmuyor.`,
+          description: `${urun.ad} bu lottan stokta bulunmuyor.`,
           variant: "destructive"
         });
         return;
       }
     }
     
-    // 🆕 LOT BAZLI SİSTEM - İlk lot bilgilerini al (FIFO)
-    const { getUrunLotlari } = require('@/lib/stok-lot-data');
-    const lotlar = getUrunLotlari(urun.id);
-    const ilkLot = lotlar.find(l => l.stokMiktari > 0); // İlk kullanılabilir lot
+    // 🆕 LOT BAZLI SİSTEM - Seçili lot bilgilerini al
+    const lotAlisFiyati = seciliLot ? seciliLot.alisFiyati : urun.alisFiyati;
+    const lotParaBirimi = seciliLot ? seciliLot.paraBirimi : urun.alisFiyatiParaBirimi;
     
     // Satış fiyatının para birimini belirle (satisFiyatiParaBirimi varsa onu kullan, yoksa alisFiyatiParaBirimi)
     const urunParaBirimi = urun.satisFiyatiParaBirimi || urun.alisFiyatiParaBirimi;
@@ -181,18 +195,16 @@ export default function YeniSatis() {
       urunParaBirimi
     );
     
-    // Alış fiyatını TL'ye çevir - LOT'tan al (varsa), yoksa ürünün genel alış fiyatı
-    const lotAlisFiyati = ilkLot ? ilkLot.alisFiyati : urun.alisFiyati;
-    const lotParaBirimi = ilkLot ? ilkLot.paraBirimi : urun.alisFiyatiParaBirimi;
+    // Alış fiyatını TL'ye çevir - LOT'tan al
     const alisFiyatiTL = paraBirimiTLyeCevir(
       lotAlisFiyati,
       lotParaBirimi
     );
     
     if (mevcutKalem) {
-      // Mevcut ürünün adedini artır
+      // Mevcut ürünün adedini artır (aynı lot)
       setSepet(sepet.map(k => 
-        k.urunId === urun.id 
+        k.urunId === urun.id && k.lotId === seciliLot?.id
           ? { ...k, adet: k.adet + 1, toplamTutar: hesaplaKalemToplam(k.adet + 1, k.birimFiyati, k.kdvOrani, k.indirimTL, k.indirimYuzde) }
           : k
       ));
@@ -214,7 +226,7 @@ export default function YeniSatis() {
         indirimYuzde: 0,
         toplamTutar: birimFiyatiTL,
         // 🆕 LOT bilgileri
-        lotId: ilkLot?.id,
+        lotId: seciliLot?.id,
         lotAlisFiyati: lotAlisFiyati,
         lotParaBirimi: lotParaBirimi
       };
@@ -576,41 +588,89 @@ export default function YeniSatis() {
                         <TableHead></TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
-                      {filteredUrunler.map(urun => (
-                        <TableRow key={urun.id}>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{urun.ad}</p>
-                              <p className="text-xs text-muted-foreground">{urun.kod}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={urun.stokMiktari <= urun.kritikStokSeviyesi ? "destructive" : "default"}>
-                              {urun.stokMiktari} {urun.birim}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-semibold">
-                            {formatCurrency(urun.satisFiyati, urun.alisFiyatiParaBirimi)}
-                          </TableCell>
-                          <TableCell>
-                            {(() => {
-                              const sepettekiMiktar = sepet.find(k => k.urunId === urun.id)?.adet || 0;
-                              const stokDoldu = sepettekiMiktar >= urun.stokMiktari;
-                              return (
-                                <Button
-                                  size="sm"
-                                  onClick={() => sepeteEkle(urun)}
-                                  disabled={stokDoldu}
-                                  variant={stokDoldu ? "ghost" : "default"}
-                                >
-                                  <Plus className="w-4 h-4" />
-                                </Button>
-                              );
-                            })()}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                     <TableBody>
+                      {filteredUrunler.map(urun => {
+                        const urunLotlari = getUrunLotlari(urun.id).filter(l => l.stokMiktari > 0);
+                        
+                        return (
+                          <>
+                            <TableRow key={urun.id} className="border-b-0">
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{urun.ad}</p>
+                                  <p className="text-xs text-muted-foreground">{urun.kod}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={urun.stokMiktari <= urun.kritikStokSeviyesi ? "destructive" : "default"}>
+                                  {urun.stokMiktari} {urun.birim}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right font-semibold">
+                                {formatCurrency(urun.satisFiyati, urun.alisFiyatiParaBirimi)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {urunLotlari.length > 0 ? (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {urunLotlari.length} lot
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="destructive" className="text-xs">
+                                    Stok Yok
+                                  </Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                            
+                            {/* 🆕 LOT SATIRLARI - Manuel Seçim */}
+                            {urunLotlari.map((lot) => (
+                              <TableRow 
+                                key={lot.id} 
+                                className="bg-muted/30 hover:bg-muted/50"
+                              >
+                                <TableCell className="pl-8">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-xs font-mono">
+                                      {lot.batchNo}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                      {lot.tedarikciAdi}
+                                    </span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="secondary" className="text-xs">
+                                    {lot.stokMiktari} adet
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <span className="text-xs font-medium">
+                                    {lot.alisFiyati.toFixed(2)} {lot.paraBirimi}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {(() => {
+                                    const sepettekiMiktar = sepet.find(k => k.urunId === urun.id && k.lotId === lot.id)?.adet || 0;
+                                    const stokDoldu = sepettekiMiktar >= lot.stokMiktari;
+                                    return (
+                                      <Button
+                                        size="sm"
+                                        onClick={() => sepeteEkle(urun, lot)}
+                                        disabled={stokDoldu}
+                                        variant={stokDoldu ? "ghost" : "default"}
+                                        className="h-7"
+                                      >
+                                        <Plus className="w-3 h-3 mr-1" />
+                                        Ekle
+                                      </Button>
+                                    );
+                                  })()}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}
@@ -658,6 +718,16 @@ export default function YeniSatis() {
                                 formatCurrency(kalem.birimFiyati)
                               )}
                             </p>
+                            {/* 🆕 LOT BİLGİSİ - Sepette göster */}
+                            {kalem.lotId && (
+                              <p className="text-xs text-muted-foreground italic">
+                                {(() => {
+                                  const lotlar = getUrunLotlari(kalem.urunId);
+                                  const lot = lotlar.find(l => l.id === kalem.lotId);
+                                  return lot ? `(${lot.tedarikciAdi} - ${lot.alisFiyati.toFixed(2)} ${lot.paraBirimi})` : '';
+                                })()}
+                              </p>
+                            )}
                           </div>
                           <Button
                             size="icon"
