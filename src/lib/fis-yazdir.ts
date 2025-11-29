@@ -101,14 +101,11 @@ export function haftalikTahsilatFisiOlustur(
   const firma = ayarlar.firma;
   const fisAyarlari = ayarlar.fis;
   
-  // Hesaplamalar - Para birimine göre grupla
+  // ✅ Hesaplamalar - HesapHareketi'nden gelen gerçek tutarları kullan
   const toplamlarByPB: Record<string, number> = { TRY: 0, USD: 0, EUR: 0 };
   buHaftaSatislar.forEach(satis => {
-    satis.kalemler.forEach(kalem => {
-      const pb = kalem.paraBirimi;
-      const birimFiyat = kalem.orijinalBirimFiyati;
-      toplamlarByPB[pb] += kalem.adet * birimFiyat;
-    });
+    // ✅ Her satış için orijinalTutar zaten HesapHareketi'nden gelen gerçek tutar (indirim/KDV dahil)
+    toplamlarByPB[satis.paraBirimi] += satis.orijinalTutar;
   });
   
   const toplamOdeme = buHaftaOdemeler.reduce((sum, o) => sum + o.tutar, 0);
@@ -148,14 +145,14 @@ export function haftalikTahsilatFisiOlustur(
     fis += line(W, '-') + '\n';
     
     buHaftaSatislar.forEach(satis => {
-      satis.kalemler.forEach(kalem => {
+      satis.kalemler.forEach((kalem: any) => {
         const urunAdi = kalem.urunAdi.substring(0, 13).padEnd(13);
         const adet = String(kalem.adet).padStart(4);
         
-        // Para birimine göre fiyat ve sembol
+        // ✅ Gerçek fiyatları kullan (indirim/KDV dahil)
         const paraBirimi = kalem.paraBirimi;
-        const birimFiyat = kalem.orijinalBirimFiyati;
-        const kalemToplam = kalem.adet * birimFiyat;
+        const birimFiyat = kalem.orijinalBirimFiyati; // ✅ Modal'dan gelen gerçek fiyat
+        const kalemToplam = kalem.toplamTutar; // ✅ Gerçek toplam
         
         const symbol = paraBirimi === 'USD' ? '$' : paraBirimi === 'EUR' ? '€' : 'TL';
         const fiyat = birimFiyat.toFixed(0).padStart(7);
