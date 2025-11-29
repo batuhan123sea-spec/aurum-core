@@ -134,8 +134,37 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
       // Güncel kur ile TL tutarını hesapla (defterdeki gibi)
       const tutarTL = h.tutar * getKur(h.paraBirimi);
       
-      // Ürün detayları için Satis kaydına bak (sadece gösterim amaçlı)
+      // Ürün detayları için Satis kaydına bak
       const satis = tumSatislar.find(s => h.aciklama.includes(s.satisNo));
+      
+      // ✅ Gerçek fiyatları hesapla (indirim + KDV dahil)
+      const gercekFiyatliKalemler = satis?.kalemler.map(kalem => {
+        // Sadece bu para birimindeki kalemleri al
+        if (kalem.paraBirimi !== h.paraBirimi) return null;
+        
+        let gercekBirimFiyat = kalem.orijinalBirimFiyati;
+        
+        // İndirim uygula
+        if (kalem.indirimYuzde > 0) {
+          gercekBirimFiyat = gercekBirimFiyat * (1 - kalem.indirimYuzde / 100);
+        } else if (kalem.indirimTL > 0) {
+          const indirimOrani = kalem.indirimTL / (kalem.birimFiyati * kalem.adet);
+          gercekBirimFiyat = gercekBirimFiyat * (1 - indirimOrani);
+        }
+        
+        // KDV dahil satışsa KDV'yi ekle
+        if (satis.kdvDahil) {
+          gercekBirimFiyat = gercekBirimFiyat * (1 + kalem.kdvOrani / 100);
+        }
+        
+        return {
+          urunAdi: kalem.urunAdi,
+          adet: kalem.adet,
+          orijinalBirimFiyati: gercekBirimFiyat, // ✅ Gerçek fiyat
+          paraBirimi: kalem.paraBirimi,
+          toplamTutar: gercekBirimFiyat * kalem.adet
+        };
+      }).filter(Boolean) || [];
       
       return {
         tarih: h.tarih,
@@ -143,7 +172,7 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
         tutar: tutarTL, // ✅ HesapHareketi'nden
         paraBirimi: h.paraBirimi,
         orijinalTutar: h.tutar,
-        kalemler: satis?.kalemler || [] // Sadece ürün isim/adet için
+        kalemler: gercekFiyatliKalemler // ✅ Gerçek fiyatlarla
       };
     });
 
