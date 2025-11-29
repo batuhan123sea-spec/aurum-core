@@ -22,7 +22,7 @@ export function tahsilatFisiOlustur(
 ): string {
   const ayarlar = getAyarlar();
   const firma = ayarlar.firma;
-  const fisAyarlari = ayarlar.fis;
+  const fisAyarlari = ayarlar.fis.tahsilat;
   
   const tarih = new Date(odeme.tarih);
   const formatTarih = tarih.toLocaleDateString('tr-TR');
@@ -38,34 +38,76 @@ export function tahsilatFisiOlustur(
   const baslik = center(fisAyarlari.baslik || 'TAHSİLAT FİŞİ', 31);
   const firmaAdi = center(firma.firmaAdi || 'Firma Adı', 31);
   const altBilgi = center(fisAyarlari.altBilgi || 'Teşekkür Ederiz!', 31);
-  const telefon = firma.telefon ? center(`📞 ${firma.telefon}`, 31) : '';
+  const telefon = (fisAyarlari.telefonGoster && firma.telefon) ? center(`📞 ${firma.telefon}`, 31) : '';
   const email = firma.email ? center(firma.email, 31) : '';
   const reklamAlani = fisAyarlari.reklamAlani ? `\n${fisAyarlari.reklamAlani}\n` : '';
   
-  return `
+  let fis = `
 ╔═══════════════════════════════╗
 ║${baslik}║
 ║${firmaAdi}║
 ╠═══════════════════════════════╣
 ║       TAHSİLAT FİŞİ          ║
 ║  Tarih: ${formatTarih} ${formatSaat}  ║
-╠═══════════════════════════════╣
+╠═══════════════════════════════╣`;
+
+  if (fisAyarlari.musteriGoster) {
+    fis += `
 ║ Müşteri: ${pad(musteri.adSoyad)} ║
-║ Telefon: ${pad(musteri.telefon)} ║
-${musteri.email ? `║ E-posta: ${pad(musteri.email)} ║` : ''}
-╠═══════════════════════════════╣
+║ Telefon: ${pad(musteri.telefon)} ║`;
+    if (musteri.email) {
+      fis += `
+║ E-posta: ${pad(musteri.email)} ║`;
+    }
+    fis += `
+╠═══════════════════════════════╣`;
+  }
+
+  fis += `
 ║ ÖNCEKİ BORÇ:  ${padRight(formatCurrency(oncekiBorc, 'TRY'))} ║
-║ TAHSİLAT:     ${padRight(formatCurrency(odeme.tlKarsiligi, 'TRY'))} ║
-${odeme.paraBirimi !== 'TRY' ? `║ (${formatCurrency(odeme.tutar, odeme.paraBirimi)} x ${odeme.kur.toFixed(2)})${' '.repeat(Math.max(0, 30 - (`(${formatCurrency(odeme.tutar, odeme.paraBirimi)} x ${odeme.kur.toFixed(2)})`.length)))} ║` : ''}
+║ TAHSİLAT:     ${padRight(formatCurrency(odeme.tlKarsiligi, 'TRY'))} ║`;
+
+  if (odeme.paraBirimi !== 'TRY') {
+    fis += `
+║ (${formatCurrency(odeme.tutar, odeme.paraBirimi)} x ${odeme.kur.toFixed(2)})${' '.repeat(Math.max(0, 30 - (`(${formatCurrency(odeme.tutar, odeme.paraBirimi)} x ${odeme.kur.toFixed(2)})`.length)))} ║`;
+  }
+
+  fis += `
 ╠═══════════════════════════════╣
 ║ YENİ BAKİYE:  ${padRight(formatCurrency(odeme.bakiye, 'TRY'))} ║
+╠═══════════════════════════════╣`;
+
+  if (fisAyarlari.odemeTuruGoster) {
+    fis += `
+║ Ödeme: ${pad(odemeTuruText, 23)} ║`;
+  }
+
+  fis += `
+║ Para Birimi: ${pad(odeme.paraBirimi, 18)} ║`;
+
+  if (odeme.aciklama) {
+    fis += `
+║ Not: ${pad(odeme.aciklama, 26)} ║`;
+  }
+
+  fis += `
 ╠═══════════════════════════════╣
-║ Ödeme: ${pad(odemeTuruText, 23)} ║
-║ Para Birimi: ${pad(odeme.paraBirimi, 18)} ║
-${odeme.aciklama ? `║ Not: ${pad(odeme.aciklama, 26)} ║` : ''}
-╠═══════════════════════════════╣
-║${altBilgi}║
-${telefon ? `║${telefon}║\n` : ''}${email ? `║${email}║\n` : ''}╚═══════════════════════════════╝${reklamAlani}`.trim();
+║${altBilgi}║`;
+
+  if (telefon) {
+    fis += `
+║${telefon}║`;
+  }
+
+  if (email) {
+    fis += `
+║${email}║`;
+  }
+
+  fis += `
+╚═══════════════════════════════╝${reklamAlani}`;
+
+  return fis.trim();
 }
 
 export function haftalikTahsilatFisiOlustur(
@@ -255,7 +297,7 @@ export function haftalikTahsilatFisiOlustur(
 export function rezervFisiOlustur(rezerv: any): string {
   const ayarlar = getAyarlar();
   const firma = ayarlar.firma;
-  const fisAyarlari = ayarlar.fis;
+  const fisAyarlari = ayarlar.fis.rezerv;
   
   const W = 40;
   let fis = '';
@@ -271,14 +313,17 @@ export function rezervFisiOlustur(rezerv: any): string {
   fis += '\n';
   
   // Rezerv bilgileri
-  fis += `REZERV FISI - ${rezerv.satisNo}\n`;
-  fis += `Tarih: ${new Date(rezerv.tarih).toLocaleString('tr-TR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })}\n`;
+  fis += `${fisAyarlari.baslik || 'REZERV FISI'} - ${rezerv.satisNo}\n`;
+  
+  if (fisAyarlari.tarihGoster) {
+    fis += `Tarih: ${new Date(rezerv.tarih).toLocaleString('tr-TR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })}\n`;
+  }
   fis += '\n';
   
   fis += line(W, '-') + '\n';
@@ -302,18 +347,24 @@ export function rezervFisiOlustur(rezerv: any): string {
   fis += '\n';
   
   // Genel toplam (TL cinsinden)
-  fis += center(`GENEL TOPLAM: ${rezerv.genelToplam.toLocaleString('tr-TR', {minimumFractionDigits: 2})} TL`, W) + '\n';
-  fis += '\n';
+  if (fisAyarlari.toplamGoster) {
+    fis += center(`GENEL TOPLAM: ${rezerv.genelToplam.toLocaleString('tr-TR', {minimumFractionDigits: 2})} TL`, W) + '\n';
+    fis += '\n';
+  }
   
   // Mali değeri yoktur notu
-  fis += line(W, '=') + '\n';
-  fis += center('Bu fis bilgi amaclidir,', W) + '\n';
-  fis += center('mali degeri yoktur.', W) + '\n';
-  fis += line(W, '=') + '\n';
+  if (fisAyarlari.maliDegeriYokNotGoster) {
+    fis += line(W, '=') + '\n';
+    fis += center('Bu fis bilgi amaclidir,', W) + '\n';
+    fis += center('mali degeri yoktur.', W) + '\n';
+    fis += line(W, '=') + '\n';
+  }
   
   // Alt bilgi
-  fis += center(fisAyarlari.altBilgi || 'Tesekkur Ederiz!', W) + '\n';
-  if (firma.telefon) {
+  if (fisAyarlari.altBilgi) {
+    fis += center(fisAyarlari.altBilgi, W) + '\n';
+  }
+  if (firma.telefon && fisAyarlari.tarihGoster) {
     fis += center(`Tel: ${firma.telefon}`, W) + '\n';
   }
   fis += line(W, '=') + '\n';

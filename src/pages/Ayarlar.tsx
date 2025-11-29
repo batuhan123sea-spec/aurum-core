@@ -82,7 +82,7 @@ const stokSchema = z.object({
   otomatikBarkod: z.boolean()
 });
 
-const fisSchema = z.object({
+const tahsilatFisSchema = z.object({
   baslik: z.string()
     .trim()
     .min(1, "Fiş başlığı gereklidir")
@@ -96,14 +96,38 @@ const fisSchema = z.object({
     .trim()
     .max(200, "Reklam alanı 200 karakterden uzun olamaz")
     .optional()
-    .or(z.literal(""))
+    .or(z.literal("")),
+  musteriGoster: z.boolean(),
+  odemeTuruGoster: z.boolean(),
+  telefonGoster: z.boolean()
+});
+
+const rezervFisSchema = z.object({
+  baslik: z.string()
+    .trim()
+    .min(1, "Fiş başlığı gereklidir")
+    .max(100, "Fiş başlığı 100 karakterden uzun olamaz"),
+  altBilgi: z.string()
+    .trim()
+    .max(200, "Alt bilgi 200 karakterden uzun olamaz")
+    .optional()
+    .or(z.literal("")),
+  reklamAlani: z.string()
+    .trim()
+    .max(200, "Reklam alanı 200 karakterden uzun olamaz")
+    .optional()
+    .or(z.literal("")),
+  tarihGoster: z.boolean(),
+  toplamGoster: z.boolean(),
+  maliDegeriYokNotGoster: z.boolean()
 });
 
 type FirmaFormData = z.infer<typeof firmaSchema>;
 type ParaBirimiFormData = z.infer<typeof paraBirimiSchema>;
 type KdvFormData = z.infer<typeof kdvSchema>;
 type StokFormData = z.infer<typeof stokSchema>;
-type FisFormData = z.infer<typeof fisSchema>;
+type TahsilatFisFormData = z.infer<typeof tahsilatFisSchema>;
+type RezervFisFormData = z.infer<typeof rezervFisSchema>;
 
 interface UserProfile {
   id: string;
@@ -171,13 +195,29 @@ export default function Ayarlar() {
     }
   });
 
-  // Fiş Form
-  const fisForm = useForm<FisFormData>({
-    resolver: zodResolver(fisSchema),
+  // Fiş Form - Tahsilat
+  const tahsilatFisForm = useForm<TahsilatFisFormData>({
+    resolver: zodResolver(tahsilatFisSchema),
     defaultValues: {
-      baslik: ayarlar.fis.baslik,
-      altBilgi: ayarlar.fis.altBilgi,
-      reklamAlani: ayarlar.fis.reklamAlani
+      baslik: ayarlar.fis.tahsilat?.baslik || 'TAHSİLAT FİŞİ',
+      altBilgi: ayarlar.fis.tahsilat?.altBilgi || '',
+      reklamAlani: ayarlar.fis.tahsilat?.reklamAlani || '',
+      musteriGoster: ayarlar.fis.tahsilat?.musteriGoster ?? true,
+      odemeTuruGoster: ayarlar.fis.tahsilat?.odemeTuruGoster ?? true,
+      telefonGoster: ayarlar.fis.tahsilat?.telefonGoster ?? true
+    }
+  });
+
+  // Fiş Form - Rezerv
+  const rezervFisForm = useForm<RezervFisFormData>({
+    resolver: zodResolver(rezervFisSchema),
+    defaultValues: {
+      baslik: ayarlar.fis.rezerv?.baslik || 'REZERV FİŞİ',
+      altBilgi: ayarlar.fis.rezerv?.altBilgi || '',
+      reklamAlani: ayarlar.fis.rezerv?.reklamAlani || '',
+      tarihGoster: ayarlar.fis.rezerv?.tarihGoster ?? true,
+      toplamGoster: ayarlar.fis.rezerv?.toplamGoster ?? true,
+      maliDegeriYokNotGoster: ayarlar.fis.rezerv?.maliDegeriYokNotGoster ?? true
     }
   });
 
@@ -259,17 +299,41 @@ export default function Ayarlar() {
     }
   };
 
-  const onFisSubmit = async (data: FisFormData) => {
+  const onTahsilatFisSubmit = async (data: TahsilatFisFormData) => {
     setSaving(true);
     try {
       const guncelAyarlar = getAyarlar();
-      guncelAyarlar.fis = {
+      guncelAyarlar.fis.tahsilat = {
         baslik: data.baslik,
         altBilgi: data.altBilgi || '',
-        reklamAlani: data.reklamAlani || ''
+        reklamAlani: data.reklamAlani || '',
+        musteriGoster: data.musteriGoster,
+        odemeTuruGoster: data.odemeTuruGoster,
+        telefonGoster: data.telefonGoster
       };
       saveAyarlar(guncelAyarlar);
-      toast.success("Fiş ayarları kaydedildi");
+      toast.success("Tahsilat fişi ayarları kaydedildi");
+    } catch (error) {
+      toast.error("Kaydetme sırasında hata oluştu");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onRezervFisSubmit = async (data: RezervFisFormData) => {
+    setSaving(true);
+    try {
+      const guncelAyarlar = getAyarlar();
+      guncelAyarlar.fis.rezerv = {
+        baslik: data.baslik,
+        altBilgi: data.altBilgi || '',
+        reklamAlani: data.reklamAlani || '',
+        tarihGoster: data.tarihGoster,
+        toplamGoster: data.toplamGoster,
+        maliDegeriYokNotGoster: data.maliDegeriYokNotGoster
+      };
+      saveAyarlar(guncelAyarlar);
+      toast.success("Rezervasyon fişi ayarları kaydedildi");
     } catch (error) {
       toast.error("Kaydetme sırasında hata oluştu");
     } finally {
@@ -1026,117 +1090,290 @@ export default function Ayarlar() {
                   Fiş Şablonu Ayarları
                 </CardTitle>
                 <CardDescription>
-                  Satış fişi görünümünü özelleştirin
+                  Tahsilat ve rezervasyon fişlerini özelleştirin
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Form {...fisForm}>
-                  <form onSubmit={fisForm.handleSubmit(onFisSubmit)} className="space-y-6">
-                    <FormField
-                      control={fisForm.control}
-                      name="baslik"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Fiş Başlığı *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="KUYUMCU İŞLETMESİ" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                <Tabs defaultValue="tahsilat" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="tahsilat">Tahsilat Fişi</TabsTrigger>
+                    <TabsTrigger value="rezerv">Rezervasyon Fişi</TabsTrigger>
+                  </TabsList>
 
-                    <FormField
-                      control={fisForm.control}
-                      name="altBilgi"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Alt Bilgi</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Teşekkür ederiz."
-                              className="min-h-[80px]"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={fisForm.control}
-                      name="reklamAlani"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Reklam Alanı</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Kaliteli hizmet için teşekkürler!"
-                              className="min-h-[80px]"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="bg-muted/50 p-4 rounded-lg">
-                      <h4 className="font-medium mb-2">Fiş Önizlemesi</h4>
-                      <div className="bg-white p-4 rounded border text-sm font-mono">
-                        <div className="text-center font-bold mb-2">
-                          {fisForm.watch("baslik") || "KUYUMCU İŞLETMESİ"}
-                        </div>
-                        <div className="text-center text-xs mb-4">
-                          {ayarlar.firma.adres && (
-                            <div>{ayarlar.firma.adres}</div>
+                  {/* TAHSİLAT FİŞİ */}
+                  <TabsContent value="tahsilat">
+                    <Form {...tahsilatFisForm}>
+                      <form onSubmit={tahsilatFisForm.handleSubmit(onTahsilatFisSubmit)} className="space-y-6 mt-4">
+                        <FormField
+                          control={tahsilatFisForm.control}
+                          name="baslik"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Fiş Başlığı *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="TAHSİLAT FİŞİ" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
                           )}
-                          {ayarlar.firma.telefon && (
-                            <div>Tel: {ayarlar.firma.telefon}</div>
-                          )}
-                        </div>
-                        <div className="border-t border-dashed border-gray-400 my-2"></div>
-                        <div className="text-xs">
-                          <div>Tarih: {new Date().toLocaleString('tr-TR')}</div>
-                          <div>Fiş No: SATS-0001</div>
-                        </div>
-                        <div className="border-t border-dashed border-gray-400 my-2"></div>
-                        <div className="text-xs">
-                          <div>1x Örnek Ürün............100,00 TL</div>
-                        </div>
-                        <div className="border-t border-dashed border-gray-400 my-2"></div>
-                        <div className="text-xs font-bold">
-                          <div>TOPLAM: 100,00 TL</div>
-                        </div>
-                        {fisForm.watch("altBilgi") && (
-                          <>
-                            <div className="border-t border-dashed border-gray-400 my-2"></div>
-                            <div className="text-center text-xs">
-                              {fisForm.watch("altBilgi")}
-                            </div>
-                          </>
-                        )}
-                        {fisForm.watch("reklamAlani") && (
-                          <div className="text-center text-xs mt-2">
-                            {fisForm.watch("reklamAlani")}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                        />
 
-                    <div className="flex justify-end">
-                      <Button type="submit" disabled={saving}>
-                        {saving ? (
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Save className="mr-2 h-4 w-4" />
-                        )}
-                        Kaydet
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
+                        <FormField
+                          control={tahsilatFisForm.control}
+                          name="altBilgi"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Alt Bilgi</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Teşekkür ederiz."
+                                  className="min-h-[80px]"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={tahsilatFisForm.control}
+                          name="reklamAlani"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Reklam Alanı</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Kaliteli hizmet için teşekkürler!"
+                                  className="min-h-[80px]"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <Separator />
+
+                        <div className="space-y-4">
+                          <h4 className="font-medium">Görünüm Seçenekleri</h4>
+                          
+                          <FormField
+                            control={tahsilatFisForm.control}
+                            name="musteriGoster"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-base">Müşteri Bilgisi</FormLabel>
+                                  <p className="text-sm text-muted-foreground">
+                                    Müşteri adı ve telefon bilgisi gösterilsin
+                                  </p>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={tahsilatFisForm.control}
+                            name="odemeTuruGoster"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-base">Ödeme Türü</FormLabel>
+                                  <p className="text-sm text-muted-foreground">
+                                    Ödeme türü (Nakit/Kredi Kartı/vb.) gösterilsin
+                                  </p>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={tahsilatFisForm.control}
+                            name="telefonGoster"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-base">Telefon Numarası</FormLabel>
+                                  <p className="text-sm text-muted-foreground">
+                                    Firma telefon numarası gösterilsin
+                                  </p>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="flex justify-end">
+                          <Button type="submit" disabled={saving}>
+                            {saving ? (
+                              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Save className="mr-2 h-4 w-4" />
+                            )}
+                            Kaydet
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </TabsContent>
+
+                  {/* REZERVASYON FİŞİ */}
+                  <TabsContent value="rezerv">
+                    <Form {...rezervFisForm}>
+                      <form onSubmit={rezervFisForm.handleSubmit(onRezervFisSubmit)} className="space-y-6 mt-4">
+                        <FormField
+                          control={rezervFisForm.control}
+                          name="baslik"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Fiş Başlığı *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="REZERV FİŞİ" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={rezervFisForm.control}
+                          name="altBilgi"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Alt Bilgi</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Teşekkür ederiz."
+                                  className="min-h-[80px]"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={rezervFisForm.control}
+                          name="reklamAlani"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Reklam Alanı</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Kaliteli hizmet için teşekkürler!"
+                                  className="min-h-[80px]"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <Separator />
+
+                        <div className="space-y-4">
+                          <h4 className="font-medium">Görünüm Seçenekleri</h4>
+                          
+                          <FormField
+                            control={rezervFisForm.control}
+                            name="tarihGoster"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-base">Tarih/Saat</FormLabel>
+                                  <p className="text-sm text-muted-foreground">
+                                    Rezervasyon tarihi ve saati gösterilsin
+                                  </p>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={rezervFisForm.control}
+                            name="toplamGoster"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-base">Genel Toplam</FormLabel>
+                                  <p className="text-sm text-muted-foreground">
+                                    Toplam tutar gösterilsin
+                                  </p>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={rezervFisForm.control}
+                            name="maliDegeriYokNotGoster"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-base">"Mali Değeri Yoktur" Notu</FormLabel>
+                                  <p className="text-sm text-muted-foreground">
+                                    Bilgilendirme notu gösterilsin
+                                  </p>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="flex justify-end">
+                          <Button type="submit" disabled={saving}>
+                            {saving ? (
+                              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Save className="mr-2 h-4 w-4" />
+                            )}
+                            Kaydet
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </TabsContent>
