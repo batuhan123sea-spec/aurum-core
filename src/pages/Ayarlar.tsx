@@ -27,7 +27,6 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { simulasyonCalistir } from "@/lib/simulasyon";
 
 // Validation schemas
 const firmaSchema = z.object({
@@ -498,25 +497,6 @@ export default function Ayarlar() {
     setTimeout(() => {
       window.location.reload();
     }, 1500);
-  };
-
-  const handleSimulasyonCalistir = () => {
-    try {
-      simulasyonCalistir();
-      toast.success("✅ Simülasyon Tamamlandı", {
-        description: "Ahmet Yılmaz müşterisi ve Çift ürünü için haftalık satış kayıtları oluşturuldu."
-      });
-      
-      // Sayfayı yenile
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-    } catch (error) {
-      console.error('Simülasyon hatası:', error);
-      toast.error("❌ Hata", {
-        description: "Simülasyon çalıştırılırken bir hata oluştu."
-      });
-    }
   };
 
   return (
@@ -1351,38 +1331,6 @@ export default function Ayarlar() {
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Tüm Satış ve Rapor Verilerini Temizle
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Test Simülasyonu */}
-        <Card className="border-primary/50">
-          <CardHeader>
-            <CardTitle className="text-primary flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Test Simülasyonu
-            </CardTitle>
-            <CardDescription>
-              Sistemi test etmek için örnek veri oluşturun
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Bilgi</AlertTitle>
-              <AlertDescription>
-                Bu işlem "Ahmet Yılmaz" adlı müşteri ve "Çift" adlı ürün için son 7 gün içinde 5-7 satış kaydı oluşturur. 
-                Stok ve borç hesaplamaları otomatik yapılır.
-              </AlertDescription>
-            </Alert>
-
-            <Button 
-              variant="default" 
-              onClick={handleSimulasyonCalistir}
-              className="w-full"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              🧪 Simülasyon Çalıştır
             </Button>
           </CardContent>
         </Card>
