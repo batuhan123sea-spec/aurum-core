@@ -180,7 +180,7 @@ export function haftalikTahsilatFisiOlustur(
   
   if (buHaftaSatislar.length > 0) {
     fis += 'Alinan Urunler:\n';
-    fis += 'Urun           Adet   Fiyat    Toplam\n';
+    fis += 'Urun           Adet   Fiyat\n';
     
     buHaftaSatislar.forEach(satis => {
       satis.kalemler.forEach((kalem: any) => {
@@ -189,51 +189,28 @@ export function haftalikTahsilatFisiOlustur(
         
         const paraBirimi = kalem.paraBirimi;
         const birimFiyat = kalem.orijinalBirimFiyati;
-        const kalemToplam = kalem.toplamTutar;
         
-        const symbol = paraBirimi === 'USD' ? '$' : paraBirimi === 'EUR' ? '€' : 'TL';
-        const fiyat = birimFiyat.toFixed(0).padStart(7);
-        const toplam = `${kalemToplam.toFixed(0)} ${symbol}`.padStart(10);
-        
-        fis += ` ${urunAdi} ${adet} ${fiyat} ${toplam}\n`;
+        const symbol = paraBirimi === 'USD' ? '$' : paraBirimi === 'EUR' ? '€' : '₺';
+        const fiyat = `${birimFiyat.toFixed(0)} ${symbol}`.padStart(10);
+        fis += ` ${urunAdi} ${adet} ${fiyat}\n`;
       });
     });
     
-    fis += '\n';
     
-    // Her para birimi için ayrı toplam satırı
-    if (toplamlarByPB.USD > 0) {
-      const usdToplamStr = `Urunler (USD): ${toplamlarByPB.USD.toFixed(0)} $`;
-      fis += ' '.repeat(Math.max(0, W - usdToplamStr.length)) + usdToplamStr + '\n';
-    }
-    if (toplamlarByPB.EUR > 0) {
-      const eurToplamStr = `Urunler (EUR): ${toplamlarByPB.EUR.toFixed(0)} €`;
-      fis += ' '.repeat(Math.max(0, W - eurToplamStr.length)) + eurToplamStr + '\n';
-    }
-    if (toplamlarByPB.TRY > 0) {
-      const tryToplamStr = `Urunler (TRY): ${formatCurrency(toplamlarByPB.TRY, 'TRY')}`;
-      fis += ' '.repeat(Math.max(0, W - tryToplamStr.length)) + tryToplamStr + '\n';
+    // İadeler - ürünlerin hemen altında, orijinal para biriminde
+    if (buHaftaIadeler.length > 0) {
+      buHaftaIadeler.forEach(iade => {
+        // Açıklamadan ürün adını çıkar (örn: "İade - SATS-0001 - Istim Makine" → "Istim Makine")
+        const parts = iade.aciklama.split(' - ');
+        const urunAdi = parts.length >= 3 ? parts.slice(2).join(' - ').substring(0, 10) : 'Iade';
+        
+        // Orijinal para biriminde göster
+        const symbol = iade.paraBirimi === 'USD' ? '$' : iade.paraBirimi === 'EUR' ? '€' : '₺';
+        const iadeStr = ` ${urunAdi.padEnd(10)} (iade)    -${Math.abs(iade.orijinalTutar).toFixed(0)} ${symbol}`;
+        fis += iadeStr + '\n';
+      });
     }
     
-    fis += '\n';
-    const satisToplamStr = `Satislar Toplami: ${formatCurrency(toplamSatis, 'TRY')}`;
-    fis += ' '.repeat(Math.max(0, W - satisToplamStr.length)) + satisToplamStr + '\n';
-    fis += '\n';
-  }
-
-  // 4.5. BU HAFTA İADELER
-  const toplamIade = buHaftaIadeler.reduce((sum, i) => sum + i.tutar, 0);
-  
-  if (buHaftaIadeler.length > 0) {
-    buHaftaIadeler.forEach(iade => {
-      const tarihStr = new Date(iade.tarih).toLocaleDateString('tr-TR');
-      const iadeTutarStr = `-${formatCurrency(iade.tutar, 'TRY')}`;
-      const aciklamaIlk = iade.aciklama.substring(0, 30);
-      
-      fis += `  ${tarihStr} - ${aciklamaIlk}`;
-      fis += ' '.repeat(Math.max(1, W - tarihStr.length - aciklamaIlk.length - iadeTutarStr.length - 5));
-      fis += iadeTutarStr + '\n';
-    });
     fis += '\n';
   }
 
@@ -245,9 +222,9 @@ export function haftalikTahsilatFisiOlustur(
     fis += '\n';
   }
   
-  // 6. ŞİMDİKİ BAKİYE
+  // 6. GÜNCEL BAKİYE
   fis += line(W, '=') + '\n';
-  const bakiyeStr = `SIMDIKI BAKIYE: ${formatCurrency(guncelBakiye, 'TRY')}`;
+  const bakiyeStr = `GUNCEL BAKIYE: ${formatCurrency(guncelBakiye, 'TRY')}`;
   fis += center(bakiyeStr, W) + '\n';
   fis += line(W, '=') + '\n';
   fis += '\n';
