@@ -149,16 +149,16 @@ const MusteriDetay = () => {
                   <div className="text-sm font-medium text-muted-foreground">Borç Detayları</div>
                   
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-1 p-3 bg-muted/50 rounded-lg">
+                    <div className="space-y-1 p-3 bg-amber-500/10 rounded-lg">
                       <p className="text-xs text-muted-foreground">TRY Borç</p>
-                      <p className="text-lg font-bold">
+                      <p className="text-lg font-bold text-amber-600">
                         {formatCurrency(musteri.borclar.TRY, 'TRY')}
                       </p>
                     </div>
                     
-                    <div className="space-y-1 p-3 bg-blue-500/10 rounded-lg">
+                    <div className="space-y-1 p-3 bg-green-500/10 rounded-lg">
                       <p className="text-xs text-muted-foreground">USD Borç</p>
-                      <p className="text-lg font-bold text-blue-600">
+                      <p className="text-lg font-bold text-green-600">
                         {formatCurrency(musteri.borclar.USD, 'USD')}
                       </p>
                       {musteri.borclar.USD > 0 && (
@@ -168,9 +168,9 @@ const MusteriDetay = () => {
                       )}
                     </div>
                     
-                    <div className="space-y-1 p-3 bg-green-500/10 rounded-lg">
+                    <div className="space-y-1 p-3 bg-blue-500/10 rounded-lg">
                       <p className="text-xs text-muted-foreground">EUR Borç</p>
-                      <p className="text-lg font-bold text-green-600">
+                      <p className="text-lg font-bold text-blue-600">
                         {formatCurrency(musteri.borclar.EUR, 'EUR')}
                       </p>
                       {musteri.borclar.EUR > 0 && (

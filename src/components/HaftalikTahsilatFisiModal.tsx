@@ -341,7 +341,7 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
               {hesaplamalar.buHaftaIadeDetaylari.length > 0 && (
                 <div className="text-xs text-muted-foreground pl-4">
                   {hesaplamalar.buHaftaIadeDetaylari.map((iade, idx) => (
-                    <div key={idx} className="flex justify-between text-blue-600">
+                    <div key={idx} className="flex justify-between text-slate-600">
                       <span>{new Date(iade.tarih).toLocaleDateString('tr-TR')} - İade</span>
                       <span>-{formatCurrency(iade.tutar, 'TRY')}</span>
                     </div>

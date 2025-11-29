@@ -654,16 +654,16 @@ const MusteriDefterGorunumu = ({
 
                           {/* İadeler */}
                           {gun.iadeler.map((iade, idx) => (
-                            <TableRow key={`iade-${gun.tarih.getTime()}-${iade.id}-${idx}`} className="bg-blue-50/50 dark:bg-blue-950/20">
+                            <TableRow key={`iade-${gun.tarih.getTime()}-${iade.id}-${idx}`} className="bg-slate-50/50 dark:bg-slate-950/20">
                               <TableCell className="text-xs py-1">
-                                <Badge variant="outline" className="text-blue-600 border-blue-600">
+                                <Badge variant="outline" className="text-slate-600 border-slate-600">
                                   🔄 İade
                                 </Badge>
                               </TableCell>
                               <TableCell colSpan={4} className="text-xs py-1">
                                 {iade.aciklama}
                               </TableCell>
-                              <TableCell className="text-xs text-right font-semibold py-1 text-blue-600 dark:text-blue-400">
+                              <TableCell className="text-xs text-right font-semibold py-1 text-slate-600 dark:text-slate-400">
                                 -{formatCurrency(iade.tutar, iade.paraBirimi)}
                               </TableCell>
                               <TableCell className="text-xs text-right py-1">
@@ -720,7 +720,7 @@ const MusteriDefterGorunumu = ({
                             <span className="flex items-center gap-1 text-xs font-medium">
                               <span>🔄</span> Haftalık İadeler:
                             </span>
-                            <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400">
                               -{formatCurrency(gun.haftalikIadeToplami || 0, 'TRY')}
                             </span>
                           </div>

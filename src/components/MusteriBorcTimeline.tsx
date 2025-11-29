@@ -22,7 +22,7 @@ const MusteriBorcTimeline = ({ musteriId }: MusteriBorcTimelineProps) => {
     switch(islemTuru) {
       case 'satis': return <ArrowUp className="w-5 h-5 text-red-500" />;
       case 'odeme': return <ArrowDown className="w-5 h-5 text-green-500" />;
-      case 'iade': return <RefreshCw className="w-5 h-5 text-blue-500" />;
+      case 'iade': return <RefreshCw className="w-5 h-5 text-slate-500" />;
     }
   };
   
@@ -30,7 +30,7 @@ const MusteriBorcTimeline = ({ musteriId }: MusteriBorcTimelineProps) => {
     switch(islemTuru) {
       case 'satis': return 'border-red-300 bg-red-50';
       case 'odeme': return 'border-green-300 bg-green-50';
-      case 'iade': return 'border-blue-300 bg-blue-50';
+      case 'iade': return 'border-slate-300 bg-slate-50';
     }
   };
 
