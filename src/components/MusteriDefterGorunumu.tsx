@@ -329,18 +329,18 @@ const MusteriDefterGorunumu = ({
           return sum + (h.tutar * kur);
         }, 0);
         
-        // Cumartesi ödemeleri
-        const cumartesiOdemeler = hareketler.filter(h => {
+        // ✅ Tüm haftalık ödemeleri hesapla (fiş ile tutarlı)
+        const haftalikOdemeler = hareketler.filter(h => {
           const hareketTarih = parseISO(h.tarih);
-          return h.islemTuru === 'odeme' && isSameDay(hareketTarih, tarih);
+          return h.islemTuru === 'odeme' && hareketTarih >= haftaBaslangic && hareketTarih <= haftaBitis;
         });
         
-        gun.tahsilEdilen = cumartesiOdemeler.reduce((sum, h) => {
+        gun.tahsilEdilen = haftalikOdemeler.reduce((sum, h) => {
           const kur = getKur(h.paraBirimi);
           return sum + (h.tutar * kur);
         }, 0);
         
-        // Kalan borç = Haftalık satışlar - Ödemeler - İadeler
+        // ✅ Kalan borç = Haftalık satışlar - Tüm haftalık ödemeler - İadeler
         gun.kalanBorc = gun.haftalikToplam - gun.tahsilEdilen - haftalikIadeToplami;
       }
 
