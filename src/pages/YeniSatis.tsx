@@ -167,6 +167,11 @@ export default function YeniSatis() {
       }
     }
     
+    // 🆕 LOT BAZLI SİSTEM - İlk lot bilgilerini al (FIFO)
+    const { getUrunLotlari } = require('@/lib/stok-lot-data');
+    const lotlar = getUrunLotlari(urun.id);
+    const ilkLot = lotlar.find(l => l.stokMiktari > 0); // İlk kullanılabilir lot
+    
     // Satış fiyatının para birimini belirle (satisFiyatiParaBirimi varsa onu kullan, yoksa alisFiyatiParaBirimi)
     const urunParaBirimi = urun.satisFiyatiParaBirimi || urun.alisFiyatiParaBirimi;
     
@@ -176,10 +181,12 @@ export default function YeniSatis() {
       urunParaBirimi
     );
     
-    // Alış fiyatını TL'ye çevir
+    // Alış fiyatını TL'ye çevir - LOT'tan al (varsa), yoksa ürünün genel alış fiyatı
+    const lotAlisFiyati = ilkLot ? ilkLot.alisFiyati : urun.alisFiyati;
+    const lotParaBirimi = ilkLot ? ilkLot.paraBirimi : urun.alisFiyatiParaBirimi;
     const alisFiyatiTL = paraBirimiTLyeCevir(
-      urun.alisFiyati,
-      urun.alisFiyatiParaBirimi
+      lotAlisFiyati,
+      lotParaBirimi
     );
     
     if (mevcutKalem) {
@@ -205,7 +212,11 @@ export default function YeniSatis() {
         kdvTutari: 0,
         indirimTL: 0,
         indirimYuzde: 0,
-        toplamTutar: birimFiyatiTL
+        toplamTutar: birimFiyatiTL,
+        // 🆕 LOT bilgileri
+        lotId: ilkLot?.id,
+        lotAlisFiyati: lotAlisFiyati,
+        lotParaBirimi: lotParaBirimi
       };
       
       yeniKalem.toplamTutar = hesaplaKalemToplam(

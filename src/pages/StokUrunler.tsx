@@ -275,12 +275,15 @@ export default function StokUrunler() {
                           </TableRow>
                         ) : (
                           filtrelenmisUrunler.map((urun) => {
+                            const { getUrunLotlari } = require('@/lib/stok-lot-data');
+                            const urunLotlari = getUrunLotlari(urun.id);
                             const karFarkTL = urun.satisFiyati - urun.alisFiyati;
                             const karMarjiYuzde = urun.alisFiyati > 0 
                               ? ((karFarkTL / urun.alisFiyati) * 100)
                               : 0;
                             
                             return (
+                            <>
                             <TableRow 
                               key={urun.id}
                               className="hover:bg-muted/50 cursor-pointer"
@@ -343,6 +346,25 @@ export default function StokUrunler() {
                                 </div>
                               </TableCell>
                             </TableRow>
+                            {/* 🆕 LOT DETAYLARI - Altında göster */}
+                            {urunLotlari.length > 0 && urunLotlari.map(lot => (
+                              <TableRow key={lot.id} className="bg-muted/30 text-xs text-muted-foreground">
+                                <TableCell colSpan={3} className="pl-12">
+                                  <span className="font-mono">{lot.batchNo}</span> ({lot.tedarikciAdi})
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {lot.stokMiktari} adet
+                                </TableCell>
+                                <TableCell colSpan={2} className="text-right text-xs">
+                                  {format(new Date(lot.alisTarihi), 'dd MMM yyyy', { locale: tr })}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {lot.alisFiyati.toFixed(2)} {lot.paraBirimi}
+                                </TableCell>
+                                <TableCell colSpan={2}></TableCell>
+                              </TableRow>
+                            ))}
+                            </>
                             );
                           })
                         )}

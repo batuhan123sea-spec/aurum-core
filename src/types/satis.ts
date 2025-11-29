@@ -14,6 +14,9 @@ export interface SatisKalemi {
   indirimYuzde: number;
   toplamTutar: number;
   varyasyonId?: string;
+  lotId?: string;           // Hangi lot'tan satıldı
+  lotAlisFiyati?: number;   // O lot'un alış fiyatı (kar hesabı için)
+  lotParaBirimi?: 'TRY' | 'USD' | 'EUR'; // Lot'un para birimi
 }
 
 export interface Satis {
