@@ -73,13 +73,15 @@ export const StokGirisiModal = ({ open, onOpenChange, onSuccess }: StokGirisiMod
   // Ürün seçildiğinde alış fiyatı ve para birimini otomatik doldur
   useEffect(() => {
     if (secilenUrunId) {
-      const urun = allUrunler.find(u => u.id === secilenUrunId);
+      const urunler = getUrunler();
+      const urun = urunler.find(u => u.id === secilenUrunId);
       if (urun) {
         form.setValue("alisFiyati", urun.alisFiyati);
         form.setValue("paraBirimi", urun.alisFiyatiParaBirimi);
       }
     }
-  }, [secilenUrunId, allUrunler]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secilenUrunId]);
 
   const onSubmit = (data: StokGirisiFormValues) => {
     console.log('📦 Stok Girişi Form Data:', {
