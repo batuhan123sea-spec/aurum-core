@@ -169,12 +169,10 @@ export function haftalikTahsilatFisiOlustur(
   fis += '\n';
   
   // 3. GEÇEN HAFTA BORÇ
-  fis += line(W, '-') + '\n';
   const gecenHaftaBorcStr = `Gecen Haftadan Kalan Borc:`;
   const borcTutarStr = `${formatCurrency(baslangicBakiyesi, 'TRY')}`;
   const borcSatir = gecenHaftaBorcStr + ' '.repeat(Math.max(1, W - gecenHaftaBorcStr.length - borcTutarStr.length)) + borcTutarStr;
   fis += borcSatir + '\n';
-  fis += line(W, '-') + '\n';
   fis += '\n';
   
   // 4. BU HAFTA SATIŞLAR
@@ -182,19 +180,16 @@ export function haftalikTahsilatFisiOlustur(
   
   if (buHaftaSatislar.length > 0) {
     fis += 'Alinan Urunler:\n';
-    fis += line(W, '-') + '\n';
     fis += 'Urun           Adet   Fiyat    Toplam\n';
-    fis += line(W, '-') + '\n';
     
     buHaftaSatislar.forEach(satis => {
       satis.kalemler.forEach((kalem: any) => {
         const urunAdi = kalem.urunAdi.substring(0, 13).padEnd(13);
         const adet = String(kalem.adet).padStart(4);
         
-        // ✅ Gerçek fiyatları kullan (indirim/KDV dahil)
         const paraBirimi = kalem.paraBirimi;
-        const birimFiyat = kalem.orijinalBirimFiyati; // ✅ Modal'dan gelen gerçek fiyat
-        const kalemToplam = kalem.toplamTutar; // ✅ Gerçek toplam
+        const birimFiyat = kalem.orijinalBirimFiyati;
+        const kalemToplam = kalem.toplamTutar;
         
         const symbol = paraBirimi === 'USD' ? '$' : paraBirimi === 'EUR' ? '€' : 'TL';
         const fiyat = birimFiyat.toFixed(0).padStart(7);
@@ -204,7 +199,7 @@ export function haftalikTahsilatFisiOlustur(
       });
     });
     
-    fis += line(W, '-') + '\n';
+    fis += '\n';
     
     // Her para birimi için ayrı toplam satırı
     if (toplamlarByPB.USD > 0) {
@@ -220,7 +215,7 @@ export function haftalikTahsilatFisiOlustur(
       fis += ' '.repeat(Math.max(0, W - tryToplamStr.length)) + tryToplamStr + '\n';
     }
     
-    fis += line(W, '-') + '\n';
+    fis += '\n';
     const satisToplamStr = `Satislar Toplami: ${formatCurrency(toplamSatis, 'TRY')}`;
     fis += ' '.repeat(Math.max(0, W - satisToplamStr.length)) + satisToplamStr + '\n';
     fis += '\n';
