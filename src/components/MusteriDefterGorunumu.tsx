@@ -307,6 +307,7 @@ const MusteriDefterGorunumu = ({
         const haftaBaslangic = startOfWeek(tarih, { weekStartsOn: 1 });
         const haftaBitis = endOfWeek(tarih, { weekStartsOn: 1 });
         
+        // Haftalık satışlar
         const haftalikHareketler = hareketler.filter(h => {
           const hareketTarih = parseISO(h.tarih);
           return h.islemTuru === 'satis' && hareketTarih >= haftaBaslangic && hareketTarih <= haftaBitis;
@@ -317,6 +318,18 @@ const MusteriDefterGorunumu = ({
           return sum + (h.tutar * kur);
         }, 0);
         
+        // Haftalık iadeler
+        const haftalikIadeHareketleri = hareketler.filter(h => {
+          const hareketTarih = parseISO(h.tarih);
+          return h.islemTuru === 'iade' && hareketTarih >= haftaBaslangic && hareketTarih <= haftaBitis;
+        });
+        
+        const haftalikIadeToplami = haftalikIadeHareketleri.reduce((sum, h) => {
+          const kur = getKur(h.paraBirimi);
+          return sum + (h.tutar * kur);
+        }, 0);
+        
+        // Cumartesi ödemeleri
         const cumartesiOdemeler = hareketler.filter(h => {
           const hareketTarih = parseISO(h.tarih);
           return h.islemTuru === 'odeme' && isSameDay(hareketTarih, tarih);
@@ -326,7 +339,9 @@ const MusteriDefterGorunumu = ({
           const kur = getKur(h.paraBirimi);
           return sum + (h.tutar * kur);
         }, 0);
-        gun.kalanBorc = gun.haftalikToplam - gun.tahsilEdilen;
+        
+        // Kalan borç = Haftalık satışlar - Ödemeler - İadeler
+        gun.kalanBorc = gun.haftalikToplam - gun.tahsilEdilen - haftalikIadeToplami;
       }
 
       gunler.push(gun);
