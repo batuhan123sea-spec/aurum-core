@@ -643,11 +643,12 @@ export default function YeniSatis() {
                                     {lot.stokMiktari} adet
                                   </Badge>
                                 </TableCell>
-                                <TableCell className="text-right">
-                                  <span className="text-xs font-medium">
-                                    {lot.alisFiyati.toFixed(2)} {lot.paraBirimi}
-                                  </span>
-                                </TableCell>
+                      <TableCell className="text-right">
+                        <span className="text-[10px] text-muted-foreground mr-1">Alım:</span>
+                        <span className="text-xs font-medium">
+                          {lot.alisFiyati.toFixed(2)} {lot.paraBirimi}
+                        </span>
+                      </TableCell>
                                 <TableCell className="text-right">
                                   {(() => {
                                     const sepettekiMiktar = sepet.find(k => k.urunId === urun.id && k.lotId === lot.id)?.adet || 0;
