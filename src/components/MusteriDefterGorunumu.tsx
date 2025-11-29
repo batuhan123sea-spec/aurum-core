@@ -49,6 +49,7 @@ interface GunlukSatis {
   isCumartesi: boolean;
   isPazartesi: boolean;
   haftalikToplam?: number;
+  haftalikIadeToplami?: number; // YENİ - Haftalık iade toplamı
   tahsilEdilen?: number;
   kalanBorc?: number;
   acilisBakiyesi?: number;
@@ -328,6 +329,9 @@ const MusteriDefterGorunumu = ({
           const kur = getKur(h.paraBirimi);
           return sum + (h.tutar * kur);
         }, 0);
+        
+        // ✅ Haftalık iade toplamını gun objesine kaydet
+        gun.haftalikIadeToplami = haftalikIadeToplami;
         
         // ✅ Tüm haftalık ödemeleri hesapla (fiş ile tutarlı)
         const haftalikOdemeler = hareketler.filter(h => {
@@ -709,6 +713,18 @@ const MusteriDefterGorunumu = ({
                             {formatCurrency(gun.haftalikToplam || 0, 'TRY')}
                           </span>
                         </div>
+                        
+                        {/* YENİ - İade satırı (sadece iade varsa göster) */}
+                        {(gun.haftalikIadeToplami || 0) > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className="flex items-center gap-1 text-xs font-medium">
+                              <span>🔄</span> Haftalık İadeler:
+                            </span>
+                            <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                              -{formatCurrency(gun.haftalikIadeToplami || 0, 'TRY')}
+                            </span>
+                          </div>
+                        )}
                         
                         <div className="flex items-center justify-between">
                           <span className="flex items-center gap-1 text-xs font-medium">
