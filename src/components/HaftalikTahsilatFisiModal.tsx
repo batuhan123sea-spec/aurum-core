@@ -67,7 +67,10 @@ export function HaftalikTahsilatFisiModal({ musteri, open, onOpenChange }: Hafta
     }
 
     const baslangic = new Date(baslangicTarihi);
+    baslangic.setHours(0, 0, 0, 0); // Günün başı
+    
     const bitis = new Date(bitisTarihi);
+    bitis.setHours(23, 59, 59, 999); // Günün sonu
 
     // Tüm hareketleri al
     const tumHareketler = getHareketlerByMusteriId(musteri.id);
