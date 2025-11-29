@@ -32,7 +32,23 @@ const DEFAULT_AYARLAR: Ayarlar = {
   fis: {
     baslik: 'KUYUMCU İŞLETMESİ',
     altBilgi: 'Teşekkür ederiz.',
-    reklamAlani: 'Kaliteli hizmet için teşekkürler!'
+    reklamAlani: 'Kaliteli hizmet için teşekkürler!',
+    tahsilat: {
+      baslik: 'TAHSİLAT FİŞİ',
+      altBilgi: 'Teşekkür Ederiz!',
+      reklamAlani: '',
+      musteriGoster: true,
+      odemeTuruGoster: true,
+      telefonGoster: true
+    },
+    rezerv: {
+      baslik: 'REZERV FİŞİ',
+      altBilgi: 'Teşekkür Ederiz!',
+      reklamAlani: '',
+      tarihGoster: true,
+      toplamGoster: true,
+      maliDegeriYokNotGoster: true
+    }
   }
 };
 
@@ -42,7 +58,20 @@ export const getAyarlar = (): Ayarlar => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_AYARLAR));
     return DEFAULT_AYARLAR;
   }
-  return JSON.parse(stored);
+  
+  const ayarlar = JSON.parse(stored);
+  
+  // Migration: Eski ayarları yeni yapıya dönüştür
+  if (!ayarlar.fis.tahsilat || !ayarlar.fis.rezerv) {
+    ayarlar.fis = {
+      ...ayarlar.fis,
+      tahsilat: DEFAULT_AYARLAR.fis.tahsilat,
+      rezerv: DEFAULT_AYARLAR.fis.rezerv
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ayarlar));
+  }
+  
+  return ayarlar;
 };
 
 export const saveAyarlar = (ayarlar: Ayarlar): void => {
