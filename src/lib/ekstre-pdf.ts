@@ -143,7 +143,12 @@ export async function detayliEkstrePdfOlustur(
   doc.text('Devir', 45, currentY);
   doc.text(tr('Onceki Bakiye'), 85, currentY);
   doc.text(pdfParaFormat(mevcutBakiye), 195, currentY, { align: 'right' });
-  currentY += 5;
+  currentY += 3;
+  
+  // Devir satırından sonra ayırıcı çizgi
+  doc.setLineWidth(0.2);
+  doc.line(15, currentY, 195, currentY);
+  currentY += 4;
 
   // Hareketleri işle
   for (const hareket of donemIciHareketler) {
@@ -225,10 +230,15 @@ export async function detayliEkstrePdfOlustur(
           });
           
           doc.setFontSize(10);
-          currentY += 2;
+          currentY += 1;
         }
       }
     }
+    
+    // Her işlemden sonra ayırıcı çizgi ekle
+    doc.setLineWidth(0.2);
+    doc.line(15, currentY, 195, currentY);
+    currentY += 4;
 
     // Sayfa sonu kontrolü
     if (currentY > 260) {
