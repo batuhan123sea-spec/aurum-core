@@ -319,3 +319,140 @@ export function musteriDefterExcelAktar(
   // Excel dosyasını indir
   XLSX.writeFile(wb, dosyaAdi);
 }
+
+export function detayliEkstreExcelOlustur(
+  musteri: Musteri,
+  baslangicTarihi: Date,
+  bitisTarihi: Date
+): void {
+  const { getHareketlerByMusteriId } = require('./musteri-data');
+  const { getSatislar } = require('./satis-data');
+  const { getKur } = require('./kur-hesaplama');
+  
+  // Tüm hareketleri çek
+  const tumHareketler = getHareketlerByMusteriId(musteri.id);
+  const satislar = getSatislar().filter((s: Satis) => s.musteriId === musteri.id);
+  
+  // Dönem öncesi ve içi hareketleri ayır
+  const donemOncesiHareketler = tumHareketler.filter((h: any) => 
+    new Date(h.tarih) < baslangicTarihi
+  );
+  
+  const donemIciHareketler = tumHareketler.filter((h: any) => {
+    const t = new Date(h.tarih);
+    return t >= baslangicTarihi && t <= bitisTarihi;
+  }).sort((a: any, b: any) => new Date(a.tarih).getTime() - new Date(b.tarih).getTime());
+  
+  // Dönem başı bakiye hesapla
+  let donemBasiBakiye = 0;
+  donemOncesiHareketler.forEach((h: any) => {
+    const tlKarsiligi = h.tutar * getKur(h.paraBirimi);
+    if (h.islemTuru === 'satis') {
+      donemBasiBakiye += tlKarsiligi;
+    } else {
+      donemBasiBakiye -= tlKarsiligi;
+    }
+  });
+  
+  // Excel satırları
+  const rows: any[] = [];
+  
+  // Başlık bilgileri
+  rows.push(['SUPHİ TİCARET - KUŞÇU ALİ']);
+  rows.push(['KUYUMCU MAKİNALARI VE MALZEMELERİ']);
+  rows.push([]);
+  rows.push(['DETAYLI HESAP EKSTRESİ']);
+  rows.push([`Müşteri: ${musteri.adSoyad}`]);
+  rows.push([`Dönem: ${baslangicTarihi.toLocaleDateString('tr-TR')} - ${bitisTarihi.toLocaleDateString('tr-TR')}`]);
+  rows.push([`Düzenleme: ${new Date().toLocaleDateString('tr-TR')}`]);
+  rows.push([]);
+  rows.push(['TARİH', 'İŞLEM', 'AÇIKLAMA', 'TUTAR', 'BAKİYE']);
+  
+  // İşlemleri işle
+  let bakiye = donemBasiBakiye;
+  let toplamSatislar = 0;
+  let toplamOdemeler = 0;
+  let toplamIadeler = 0;
+  
+  donemIciHareketler.forEach((hareket: any) => {
+    const tarihStr = new Date(hareket.tarih).toLocaleDateString('tr-TR');
+    const tlKarsiligi = hareket.tutar * getKur(hareket.paraBirimi);
+    
+    let islemTipi = '';
+    let aciklama = '';
+    let tutarStr = '';
+    
+    if (hareket.islemTuru === 'satis') {
+      islemTipi = 'Satış Fatura';
+      const satis = satislar.find((s: Satis) => s.id === hareket.musteriId || s.satisNo === hareket.aciklama?.split(' - ')[0]);
+      aciklama = satis ? satis.satisNo : hareket.aciklama || 'Satış';
+      tutarStr = `+${formatCurrency(tlKarsiligi, 'TRY')}`;
+      bakiye += tlKarsiligi;
+      toplamSatislar += tlKarsiligi;
+      
+      // Ana satış satırı
+      rows.push([tarihStr, islemTipi, aciklama, tutarStr, formatCurrency(bakiye, 'TRY')]);
+      
+      // Ürün detayları (alt satırlar)
+      if (satis && satis.kalemler) {
+        satis.kalemler.forEach((kalem: any) => {
+          rows.push([
+            tarihStr,
+            aciklama,
+            `- ${kalem.urunAdi} x${kalem.adet}`,
+            '',
+            ''
+          ]);
+        });
+      }
+    } else if (hareket.islemTuru === 'odeme') {
+      islemTipi = hareket.odemeTuru === 'nakit' ? 'Nakit' : 
+                  hareket.odemeTuru === 'kredi-karti' ? 'Kredi Kartı' :
+                  hareket.odemeTuru === 'eft' ? 'EFT' : 'Havale';
+      aciklama = 'TAHSİLAT';
+      tutarStr = `-${formatCurrency(tlKarsiligi, 'TRY')}`;
+      bakiye -= tlKarsiligi;
+      toplamOdemeler += tlKarsiligi;
+      
+      rows.push([tarihStr, islemTipi, aciklama, tutarStr, formatCurrency(bakiye, 'TRY')]);
+    } else if (hareket.islemTuru === 'iade') {
+      islemTipi = 'İade';
+      aciklama = hareket.aciklama || 'İade İşlemi';
+      tutarStr = `-${formatCurrency(tlKarsiligi, 'TRY')}`;
+      bakiye -= tlKarsiligi;
+      toplamIadeler += tlKarsiligi;
+      
+      rows.push([tarihStr, islemTipi, aciklama, tutarStr, formatCurrency(bakiye, 'TRY')]);
+    }
+  });
+  
+  // Dönem özeti
+  rows.push([]);
+  rows.push(['', '', 'DÖNEM ÖZETİ', '', '']);
+  rows.push(['', '', 'Dönem Başı Bakiye', '', formatCurrency(donemBasiBakiye, 'TRY')]);
+  rows.push(['', '', 'Toplam Satışlar', '', `+${formatCurrency(toplamSatislar, 'TRY')}`]);
+  rows.push(['', '', 'Toplam Tahsilatlar', '', `-${formatCurrency(toplamOdemeler, 'TRY')}`]);
+  rows.push(['', '', 'Toplam İadeler', '', `-${formatCurrency(toplamIadeler, 'TRY')}`]);
+  rows.push(['', '', 'DÖNEM SONU BAKİYE', '', formatCurrency(bakiye, 'TRY')]);
+  
+  // Excel oluştur
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  
+  // Kolon genişlikleri
+  ws['!cols'] = [
+    { wch: 12 },  // Tarih
+    { wch: 15 },  // İşlem
+    { wch: 40 },  // Açıklama
+    { wch: 15 },  // Tutar
+    { wch: 15 },  // Bakiye
+  ];
+  
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Hesap Ekstresi');
+  
+  // Dosya adı
+  const tarih = new Date().toISOString().split('T')[0];
+  const dosyaAdi = `${musteri.adSoyad.replace(/\s+/g, '_')}_detayli_ekstre_${tarih}.xlsx`;
+  
+  XLSX.writeFile(wb, dosyaAdi);
+}
