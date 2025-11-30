@@ -7,7 +7,7 @@ import { CalendarIcon, FileDown, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Musteri } from "@/types/musteri";
-import { detayliEkstreExcelOlustur } from "@/lib/excel-export";
+import { detayliEkstrePdfOlustur } from "@/lib/ekstre-pdf";
 import { getHareketlerByMusteriId } from "@/lib/musteri-data";
 import { formatCurrency, getKur } from "@/lib/kur-hesaplama";
 import { useToast } from "@/hooks/use-toast";
@@ -124,20 +124,20 @@ export function DetayliEkstreModal({ musteri, open, onOpenChange }: DetayliEkstr
     };
   }, [musteri.id, baslangicTarihi, bitisTarihi]);
 
-  const handleExcelIndir = () => {
+  const handlePdfIndir = async () => {
     try {
       setIsGenerating(true);
-      detayliEkstreExcelOlustur(musteri, baslangicTarihi, bitisTarihi);
+      await detayliEkstrePdfOlustur(musteri, baslangicTarihi, bitisTarihi);
       toast({
         title: "Başarılı",
-        description: "Detaylı ekstre Excel olarak indirildi.",
+        description: "Detaylı ekstre PDF olarak indirildi.",
       });
       onOpenChange(false);
     } catch (error) {
-      console.error('Excel oluşturma hatası:', error);
+      console.error('PDF oluşturma hatası:', error);
       toast({
         title: "Hata",
-        description: "Excel oluşturulurken bir hata oluştu.",
+        description: "PDF oluşturulurken bir hata oluştu.",
         variant: "destructive",
       });
     } finally {
@@ -287,7 +287,7 @@ export function DetayliEkstreModal({ musteri, open, onOpenChange }: DetayliEkstr
               İptal
             </Button>
             <Button 
-              onClick={handleExcelIndir} 
+              onClick={handlePdfIndir} 
               disabled={isGenerating || onizlemeVerileri.islemSayisi === 0}
               className="gap-2"
             >
@@ -299,7 +299,7 @@ export function DetayliEkstreModal({ musteri, open, onOpenChange }: DetayliEkstr
               ) : (
                 <>
                   <FileDown className="w-4 h-4" />
-                  Excel İndir
+                  PDF İndir
                 </>
               )}
             </Button>
