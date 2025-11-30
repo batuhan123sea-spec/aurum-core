@@ -254,14 +254,14 @@ const MusteriDetay = () => {
                     <Receipt className="w-4 h-4" />
                     Haftalık Tahsilat Fişi
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full gap-2"
-                    onClick={() => setDetayliEkstreModalOpen(true)}
-                  >
-                    <FileText className="w-4 h-4" />
-                    Detaylı Ekstre (PDF)
-                  </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full gap-2"
+                  onClick={() => setDetayliEkstreModalOpen(true)}
+                >
+                  <FileText className="w-4 h-4" />
+                  Detaylı Ekstre (Excel)
+                </Button>
                 </div>
               </CardContent>
             </Card>
