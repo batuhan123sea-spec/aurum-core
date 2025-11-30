@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { Musteri, HesapHareketi } from '@/types/musteri';
 import { Satis } from '@/types/satis';
 import { getHareketlerByMusteriId, musteriDovizBorclariniHesapla } from './musteri-data';
@@ -7,15 +6,6 @@ import { getSatislar } from './satis-data';
 import { formatCurrency, getKur } from './kur-hesaplama';
 import { getAyarlar } from './ayarlar-data';
 
-interface ProductRow {
-  stokKodu: string;
-  tanim: string;
-  miktar: string;
-  fiyat: number;
-  kur: string;
-  netFiyat: number;
-  tutar: number;
-}
 
 export async function detayliEkstrePdfOlustur(
   musteri: Musteri,
@@ -156,60 +146,40 @@ export async function detayliEkstrePdfOlustur(
         const satis = satislar.find(s => s.satisNo === satisNo);
         
         if (satis && satis.kalemler.length > 0) {
-          const urunRows: ProductRow[] = satis.kalemler.map(kalem => ({
-            stokKodu: kalem.barkod || '-',
-            tanim: kalem.urunAdi.length > 30 ? kalem.urunAdi.substring(0, 27) + '...' : kalem.urunAdi,
-            miktar: `${kalem.adet} ADET`,
-            fiyat: kalem.orijinalBirimFiyati,
-            kur: kalem.paraBirimi === 'TRY' ? 'TL' : kalem.paraBirimi === 'USD' ? 'USD' : 'EUR',
-            netFiyat: kalem.orijinalBirimFiyati * (1 - kalem.indirimYuzde / 100),
-            tutar: kalem.toplamTutar
-          }));
-
-          autoTable(doc, {
-            startY: currentY,
-            head: [[
-              { content: 'STOK', styles: { fontStyle: 'bold', fontSize: 8 } },
-              { content: 'TANIM', styles: { fontStyle: 'bold', fontSize: 8 } },
-              { content: 'MİKTAR', styles: { fontStyle: 'bold', fontSize: 8 } },
-              { content: 'FİYAT', styles: { fontStyle: 'bold', fontSize: 8 } },
-              { content: 'KUR', styles: { fontStyle: 'bold', fontSize: 8 } },
-              { content: 'NET FİYAT', styles: { fontStyle: 'bold', fontSize: 8 } },
-              { content: 'TUTAR', styles: { fontStyle: 'bold', fontSize: 8 } }
-            ]],
-            body: urunRows.map(row => [
-              row.stokKodu,
-              row.tanim,
-              row.miktar,
-              row.fiyat.toFixed(2),
-              row.kur,
-              row.netFiyat.toFixed(2),
-              row.tutar.toFixed(2)
-            ]),
-            margin: { left: 15, right: 15 },
-            theme: 'grid',
-            styles: { fontSize: 8, cellPadding: 2 },
-            headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0] },
-            columnStyles: {
-              0: { cellWidth: 20 },
-              1: { cellWidth: 50 },
-              2: { cellWidth: 20 },
-              3: { cellWidth: 20 },
-              4: { cellWidth: 15 },
-              5: { cellWidth: 25 },
-              6: { cellWidth: 25 }
+          currentY += 2;
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'normal');
+          
+          // Ürünleri alt alta yaz
+          satis.kalemler.forEach(kalem => {
+            const stokKodu = kalem.barkod || '-';
+            const urunAdi = kalem.urunAdi;
+            const miktar = `${kalem.adet} Adet`;
+            const fiyat = `${kalem.orijinalBirimFiyati.toFixed(2)} ${kalem.paraBirimi}`;
+            const netFiyat = (kalem.orijinalBirimFiyati * (1 - kalem.indirimYuzde / 100)).toFixed(2);
+            const tutar = `${kalem.toplamTutar.toFixed(2)} TL`;
+            
+            // Ürün satırı
+            doc.text(`   ${stokKodu} - ${urunAdi}`, 20, currentY);
+            currentY += 4;
+            doc.text(`   ${miktar} x ${fiyat} = ${netFiyat} ${kalem.paraBirimi}  →  ${tutar}`, 20, currentY);
+            currentY += 5;
+            
+            // Sayfa sonu kontrolü
+            if (currentY > 250) {
+              doc.addPage();
+              currentY = 20;
             }
           });
 
-          currentY = (doc as any).lastAutoTable.finalY + 4;
+          currentY += 2;
 
           // Fiş toplamları
           doc.setFontSize(9);
           doc.setFont('helvetica', 'normal');
           
-          const fisToplamY = currentY;
-          doc.text('Fiş Toplamı:', 135, fisToplamY);
-          doc.text(formatCurrency(satis.araToplam, 'TRY'), 195, fisToplamY, { align: 'right' });
+          doc.text('Fiş Toplamı:', 135, currentY);
+          doc.text(formatCurrency(satis.araToplam, 'TRY'), 195, currentY, { align: 'right' });
           
           currentY += 5;
           doc.text('KDV Toplamı:', 135, currentY);
