@@ -8,13 +8,14 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Edit, DollarSign, Receipt } from "lucide-react";
+import { ArrowLeft, Edit, DollarSign, Receipt, FileText } from "lucide-react";
 import { getMusteriById, musteriBalanceGuncelle } from "@/lib/musteri-data";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, getGuncelKurlar } from "@/lib/kur-hesaplama";
 import HesapEkstresiTable from "@/components/HesapEkstresiTable";
 import OdemeAlModal from "@/components/OdemeAlModal";
 import { HaftalikTahsilatFisiModal } from "@/components/HaftalikTahsilatFisiModal";
+import { DetayliEkstreModal } from "@/components/DetayliEkstreModal";
 import { SatisGecmisiTable } from "@/components/SatisGecmisiTable";
 import MusteriBorcTimeline from "@/components/MusteriBorcTimeline";
 import MusteriDefterGorunumu from "@/components/MusteriDefterGorunumu";
@@ -25,6 +26,7 @@ const MusteriDetay = () => {
   const [musteri, setMusteri] = useState(getMusteriById(musteriId || ""));
   const [odemeModalOpen, setOdemeModalOpen] = useState(false);
   const [tahsilatFisiModalOpen, setTahsilatFisiModalOpen] = useState(false);
+  const [detayliEkstreModalOpen, setDetayliEkstreModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("tum");
   const [yenilemeKey, setYenilemeKey] = useState(0);
   const { toast } = useToast();
@@ -252,6 +254,14 @@ const MusteriDetay = () => {
                     <Receipt className="w-4 h-4" />
                     Haftalık Tahsilat Fişi
                   </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full gap-2"
+                    onClick={() => setDetayliEkstreModalOpen(true)}
+                  >
+                    <FileText className="w-4 h-4" />
+                    Detaylı Ekstre (PDF)
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -299,6 +309,12 @@ const MusteriDetay = () => {
         musteri={musteri}
         open={tahsilatFisiModalOpen}
         onOpenChange={setTahsilatFisiModalOpen}
+      />
+
+      <DetayliEkstreModal
+        musteri={musteri}
+        open={detayliEkstreModalOpen}
+        onOpenChange={setDetayliEkstreModalOpen}
       />
     </Layout>
   );
