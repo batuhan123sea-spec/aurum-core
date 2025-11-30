@@ -154,19 +154,20 @@ export function haftalikTahsilatFisiOlustur(
   
   // 1. BAŞLIK - Kalın çizgi + Firma bilgileri (SABİT)
   fis += boldLine(W) + '\n';
-  fis += center('[LOGO]', W) + '\n';
-  fis += boldLine(W) + '\n';
   fis += center('<b>SUPHI TICARET - KUSCU ALI</b>', W) + '\n';
   fis += center('KUYUMCU MAKINALARI VE MALZEMELERI', W) + '\n';
   fis += center('TOPTAN PERAKENDE YENI VE 2.EL ALINIR', W) + '\n';
   fis += center('SATILIR', W) + '\n';
   fis += boldLine(W) + '\n';
+  fis += center('<b>TEKLIF FORMU</b>', W) + '\n';
+  fis += boldLine(W) + '\n';
   fis += '\n';
   
   // 2. MÜŞTERİ + TARİH (Tarih: yazısı YOK)
   const bugun = new Date().toLocaleDateString('tr-TR');
-  const musteriStr = `Sayin ${musteri.adSoyad}`;
-  const musteriLine = musteriStr.padEnd(W - bugun.length) + bugun;
+  const musteriStr = `Sayin <b class="large">${musteri.adSoyad.toUpperCase()}</b>`;
+  const musteriStrLen = getTextLength(musteriStr);
+  const musteriLine = musteriStr + ' '.repeat(W - musteriStrLen - bugun.length) + bugun;
   fis += musteriLine + '\n';
   fis += '\n';
   
@@ -223,6 +224,7 @@ export function haftalikTahsilatFisiOlustur(
   });
   
   fis += line(W, '=') + '\n';
+  fis += center('Mali degeri yoktur.', W) + '\n';
   fis += '\n';
   
   // 5. GÜNCEL KALAN BAKİYE (EN KALIN + BÜYÜK + kalın çizgi)
@@ -366,9 +368,6 @@ export function fisYazdir(fisIcerigi: string): void {
         </style>
       </head>
       <body onload="window.print(); window.close();">
-        <div class="logo">
-          <img src="/logo-suphi.png" alt="Logo" />
-        </div>
 ${fisIcerigi}
       </body>
     </html>
