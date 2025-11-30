@@ -1,14 +1,24 @@
 import { Musteri, HesapHareketi } from "@/types/musteri";
-import { formatCurrency } from "./kur-hesaplama";
+import { formatCurrency, paraBirimiTLyeCevir } from "./kur-hesaplama";
 import { getAyarlar } from "./ayarlar-data";
 
+// HTML tag'lerini hariç tutarak gerçek metin uzunluğunu hesapla
+function getTextLength(text: string): number {
+  return text.replace(/<[^>]*>/g, '').length;
+}
+
 function center(text: string, genislik: number): string {
-  const padding = Math.max(0, Math.floor((genislik - text.length) / 2));
+  const textLen = getTextLength(text);
+  const padding = Math.max(0, Math.floor((genislik - textLen) / 2));
   return ' '.repeat(padding) + text;
 }
 
 function line(genislik: number, char: string = '-'): string {
   return char.repeat(genislik);
+}
+
+function boldLine(width: number): string {
+  return '━'.repeat(width);
 }
 
 function align(text: string, genislik: number = 32): string {
@@ -139,101 +149,96 @@ export function haftalikTahsilatFisiOlustur(
   }>,
   guncelBakiye: number
 ): string {
-  const ayarlar = getAyarlar();
-  const firma = ayarlar.firma;
-  const fisAyarlari = ayarlar.fis;
-  
-  // ✅ Hesaplamalar - HesapHareketi'nden gelen gerçek tutarları kullan
-  const toplamlarByPB: Record<string, number> = { TRY: 0, USD: 0, EUR: 0 };
-  buHaftaSatislar.forEach(satis => {
-    // ✅ Her satış için orijinalTutar zaten HesapHareketi'nden gelen gerçek tutar (indirim/KDV dahil)
-    toplamlarByPB[satis.paraBirimi] += satis.orijinalTutar;
-  });
-  
-  const toplamOdeme = buHaftaOdemeler.reduce((sum, o) => sum + o.tutar, 0);
-  
-  const W = 40; // Termal yazıcı genişliği
+  const W = 40; // Sabit genişlik - 40 karakter
   let fis = '\n';
   
-  // 1. BAŞLIK
+  // 1. BAŞLIK - Kalın çizgi + Firma bilgileri (SABİT)
+  fis += boldLine(W) + '\n';
+  fis += center('[LOGO]', W) + '\n';
+  fis += boldLine(W) + '\n';
+  fis += center('<b>SUPHI TICARET - KUSCU ALI</b>', W) + '\n';
+  fis += center('KUYUMCU MAKINALARI VE MALZEMELERI', W) + '\n';
+  fis += center('TOPTAN PERAKENDE YENI VE 2.EL ALINIR', W) + '\n';
+  fis += center('SATILIR', W) + '\n';
+  fis += boldLine(W) + '\n';
+  fis += '\n';
+  
+  // 2. MÜŞTERİ + TARİH (Tarih: yazısı YOK)
+  const bugun = new Date().toLocaleDateString('tr-TR');
+  const musteriStr = `Sayin ${musteri.adSoyad}`;
+  const musteriLine = musteriStr.padEnd(W - bugun.length) + bugun;
+  fis += musteriLine + '\n';
+  fis += '\n';
+  
+  // 3. ÖNCEKİ BAKİYE + TARİHLİ ÖDEMELER + KALAN BAKİYE
+  const oncekiLabel = 'Onceki Bakiye:';
+  const oncekiTutar = formatCurrency(baslangicBakiyesi, 'TRY');
+  fis += oncekiLabel + ' '.repeat(W - oncekiLabel.length - oncekiTutar.length) + oncekiTutar + '\n';
+  
+  // Tarihli Ödemeler
+  buHaftaOdemeler.forEach(odeme => {
+    const tarih = new Date(odeme.tarih).toLocaleDateString('tr-TR');
+    const yontem = odeme.odemeTuru === 'kredi-karti' ? 'Kredi Karti' :
+                   odeme.odemeTuru === 'eft' ? 'EFT' :
+                   odeme.odemeTuru === 'havale' ? 'Havale' : 'Nakit';
+    const label = `${tarih} - Odeme (${yontem})`;
+    const tutar = `-${formatCurrency(odeme.tutar, 'TRY')}`;
+    fis += label + ' '.repeat(W - label.length - tutar.length) + tutar + '\n';
+  });
+  
+  // Çizgi + Kalan Bakiye (KALIN)
+  const toplamOdeme = buHaftaOdemeler.reduce((sum, o) => sum + o.tutar, 0);
+  const kalanBakiye = baslangicBakiyesi - toplamOdeme;
+  fis += ' '.repeat(W - 10) + '----------\n';
+  const kalanLabel = '<b>Kalan Bakiye:</b>';
+  const kalanTutar = `<b>${formatCurrency(kalanBakiye, 'TRY')}</b>`;
+  const kalanLabelLen = getTextLength(kalanLabel);
+  const kalanTutarLen = getTextLength(kalanTutar);
+  fis += kalanLabel + ' '.repeat(W - kalanLabelLen - kalanTutarLen) + kalanTutar + '\n';
+  fis += '\n';
+  
+  // 4. ÜRÜN TABLOSU (ÜRÜN | ADET | FİYAT - TL'ye çevrilmiş)
   fis += line(W, '=') + '\n';
-  fis += center(firma.firmaAdi || 'FIRMA ADI', W) + '\n';
-  if (fisAyarlari.reklamAlani) {
-    fis += center(`(${fisAyarlari.reklamAlani})`, W) + '\n';
-  }
+  fis += 'URUN'.padEnd(18) + 'ADET'.padStart(6) + 'FIYAT'.padStart(16) + '\n';
   fis += line(W, '=') + '\n';
-  fis += '\n';
   
-  // 2. MÜŞTERİ
-  fis += `Sayin ${musteri.adSoyad}\n`;
-  fis += '\n';
-  
-  // 3. GEÇEN HAFTA BORÇ
-  const gecenHaftaBorcStr = `Gecen Haftadan Kalan Borc:`;
-  const borcTutarStr = `${formatCurrency(baslangicBakiyesi, 'TRY')}`;
-  const borcSatir = gecenHaftaBorcStr + ' '.repeat(Math.max(1, W - gecenHaftaBorcStr.length - borcTutarStr.length)) + borcTutarStr;
-  fis += borcSatir + '\n';
-  fis += '\n';
-  
-  // 4. BU HAFTA SATIŞLAR
-  const toplamSatis = buHaftaSatislar.reduce((sum, s) => sum + s.tutar, 0);
-  
-  if (buHaftaSatislar.length > 0) {
-    fis += 'Alinan Urunler:\n';
-    fis += 'Urun           Adet   Fiyat\n';
-    
-    buHaftaSatislar.forEach(satis => {
-      satis.kalemler.forEach((kalem: any) => {
-        const urunAdi = kalem.urunAdi.substring(0, 13).padEnd(13);
-        const adet = String(kalem.adet).padStart(4);
-        
-        const paraBirimi = kalem.paraBirimi;
-        const birimFiyat = kalem.orijinalBirimFiyati;
-        
-        const symbol = paraBirimi === 'USD' ? '$' : paraBirimi === 'EUR' ? '€' : '₺';
-        const fiyat = `${birimFiyat.toFixed(0)} ${symbol}`.padStart(10);
-        fis += ` ${urunAdi} ${adet} ${fiyat}\n`;
-      });
+  buHaftaSatislar.forEach(satis => {
+    satis.kalemler.forEach((kalem: any) => {
+      const urunAdi = kalem.urunAdi.substring(0, 18).padEnd(18);
+      const adet = String(kalem.adet).padStart(6);
+      const birimFiyatTL = paraBirimiTLyeCevir(kalem.orijinalBirimFiyati, kalem.paraBirimi as 'TRY' | 'USD' | 'EUR');
+      const fiyat = formatCurrency(birimFiyatTL, 'TRY').padStart(16);
+      fis += urunAdi + adet + fiyat + '\n';
     });
-    
-    
-    // İadeler - ürünlerin hemen altında, orijinal para biriminde
-    if (buHaftaIadeler.length > 0) {
-      buHaftaIadeler.forEach(iade => {
-        // Açıklamadan ürün adını çıkar (örn: "İade - SATS-0001 - Istim Makine" → "Istim Makine")
-        const parts = iade.aciklama.split(' - ');
-        const urunAdi = parts.length >= 3 ? parts.slice(2).join(' - ').substring(0, 10) : 'Iade';
-        
-        // Orijinal para biriminde göster
-        const symbol = iade.paraBirimi === 'USD' ? '$' : iade.paraBirimi === 'EUR' ? '€' : '₺';
-        const iadeStr = ` ${urunAdi.padEnd(10)} (iade)    -${Math.abs(iade.orijinalTutar).toFixed(0)} ${symbol}`;
-        fis += iadeStr + '\n';
-      });
-    }
-    
-    fis += '\n';
-  }
-
+  });
   
-  // 5. BU HAFTA ÖDEMELER
-  if (buHaftaOdemeler.length > 0) {
-    const odemeStr = `Yapilan Odemeler: -${formatCurrency(toplamOdeme, 'TRY')}`;
-    fis += ' '.repeat(Math.max(0, W - odemeStr.length)) + odemeStr + '\n';
-    fis += '\n';
-  }
+  // İadeler (negatif, TL'ye çevrilmiş)
+  buHaftaIadeler.forEach(iade => {
+    const parts = iade.aciklama.split(' - ');
+    const urunAdi = (parts.length >= 3 ? parts.slice(2).join(' - ').substring(0, 14) + ' (i)' : 'Iade').padEnd(18);
+    const adet = '1'.padStart(6);
+    const iadeTutarTL = paraBirimiTLyeCevir(Math.abs(iade.orijinalTutar), iade.paraBirimi as 'TRY' | 'USD' | 'EUR');
+    const fiyat = `-${formatCurrency(iadeTutarTL, 'TRY')}`.padStart(16);
+    fis += urunAdi + adet + fiyat + '\n';
+  });
   
-  // 6. GÜNCEL BAKİYE
-  fis += line(W, '=') + '\n';
-  const bakiyeStr = `GUNCEL BAKIYE: ${formatCurrency(guncelBakiye, 'TRY')}`;
-  fis += center(bakiyeStr, W) + '\n';
   fis += line(W, '=') + '\n';
   fis += '\n';
   
-  // 7. TEŞEKKÜR
-  fis += center('Bizi tercih ettiginiz icin', W) + '\n';
-  fis += center('tesekkur ederiz.', W) + '\n';
+  // 5. GÜNCEL KALAN BAKİYE (EN KALIN + BÜYÜK + kalın çizgi)
+  fis += boldLine(W) + '\n';
+  const bakiyeText = `GUNCEL KALAN BAKIYE: ${formatCurrency(guncelBakiye, 'TRY')}`;
+  fis += center(`<b class="large">${bakiyeText}</b>`, W) + '\n';
+  fis += boldLine(W) + '\n';
   fis += '\n';
-  fis += line(W, '=') + '\n';
+  
+  // 6. ALT BİLGİ (SABİT - merkeze hizalı)
+  fis += center('Tel: 0322 363 04 75 - 0543 809 44 00', W) + '\n';
+  fis += center('535 377 77 70', W) + '\n';
+  fis += center('Tepebag Mah. Cakmak Cad. Hilal Han', W) + '\n';
+  fis += center('Is Merkezi Kat:1 No:117 Seyhan/ADANA', W) + '\n';
+  fis += center('@suphiticaretkuyumcumalzemeleri', W) + '\n';
+  fis += boldLine(W) + '\n';
   
   return fis;
 }
@@ -338,6 +343,22 @@ export function fisYazdir(fisIcerigi: string): void {
             white-space: pre;
             margin: 0;
             padding: 10px;
+            line-height: 1.2;
+          }
+          b { 
+            font-weight: bold; 
+          }
+          b.large { 
+            font-weight: 900; 
+            font-size: 14px;
+          }
+          .logo {
+            text-align: center;
+            margin-bottom: 5px;
+          }
+          .logo img {
+            width: 50px;
+            height: auto;
           }
           @media print {
             body { padding: 0; }
@@ -345,6 +366,9 @@ export function fisYazdir(fisIcerigi: string): void {
         </style>
       </head>
       <body onload="window.print(); window.close();">
+        <div class="logo">
+          <img src="/logo-suphi.png" alt="Logo" />
+        </div>
 ${fisIcerigi}
       </body>
     </html>
