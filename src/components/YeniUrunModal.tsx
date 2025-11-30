@@ -32,6 +32,7 @@ import { Card } from "@/components/ui/card";
 import { KATEGORILER, Urun } from "@/types/stok";
 import { saveUrun, generateUrunKodu, generateBarkod } from "@/lib/stok-data";
 import { getTedarikciler, saveTedarikciAlim } from "@/lib/tedarikci-data";
+import { saveStokLot, generateLotNo } from "@/lib/stok-lot-data";
 import { TedarikciAlim } from "@/types/tedarikci";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, X } from "lucide-react";
@@ -225,6 +226,25 @@ export const YeniUrunModal = ({ open, onOpenChange, onSuccess, editMode = false,
       };
 
       saveUrun(yeniUrun);
+      
+      // 🆕 LOT KAYDI OLUŞTUR (stok miktarı varsa)
+      if (data.stokMiktari > 0) {
+        const yeniLot = {
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          urunId: yeniUrun.id,
+          tedarikciId: 'tedarikciId' in varsayilanTedarikci ? varsayilanTedarikci.tedarikciId : undefined,
+          tedarikciAdi: 'tedarikciAdi' in varsayilanTedarikci ? varsayilanTedarikci.tedarikciAdi : 'Başlangıç Stoku',
+          alisFiyati: varsayilanTedarikci.alisFiyati,
+          paraBirimi: varsayilanTedarikci.paraBirimi,
+          stokMiktari: data.stokMiktari,
+          alisTarihi: new Date().toISOString(),
+          batchNo: generateLotNo(yeniUrun.id),
+          aciklama: 'Yeni ürün girişi - başlangıç stoku'
+        };
+        
+        saveStokLot(yeniLot);
+        console.log('✅ Yeni ürün için lot kaydı oluşturuldu:', yeniLot.batchNo);
+      }
       
       // OTOMATİK TEDARİKÇİ ALIM KAYDI OLUŞTUR (sadece tedarikçi varsa)
       if (tedarikcilerData.length > 0) {

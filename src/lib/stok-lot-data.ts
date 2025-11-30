@@ -166,3 +166,44 @@ export const migrateUrunlerToLots = (): void => {
     console.error('❌ Lot migration hatası:', error);
   }
 };
+
+// Lotsuz ürünleri kontrol et ve eksik lotları oluştur
+export const fixMissingLots = (): void => {
+  const urunlerStr = localStorage.getItem('kuyumcu_stok_urunler');
+  if (!urunlerStr) return;
+  
+  try {
+    const urunler = JSON.parse(urunlerStr);
+    let fixCount = 0;
+    
+    urunler.forEach((urun: any) => {
+      const lotlar = getUrunLotlari(urun.id);
+      
+      // Ürün stoku var ama lot yok - lot oluştur
+      if (urun.stokMiktari > 0 && lotlar.length === 0) {
+        const yeniLot = {
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          urunId: urun.id,
+          tedarikciId: urun.tedarikciler?.[0]?.tedarikciId,
+          tedarikciAdi: urun.tedarikciler?.[0]?.tedarikciAdi || 'Başlangıç Stoku',
+          alisFiyati: urun.alisFiyati || 0,
+          paraBirimi: urun.alisFiyatiParaBirimi || 'TRY',
+          stokMiktari: urun.stokMiktari,
+          alisTarihi: urun.olusturmaTarihi || new Date().toISOString(),
+          batchNo: generateLotNo(urun.id),
+          aciklama: 'Eksik lot - otomatik oluşturuldu'
+        };
+        
+        saveStokLot(yeniLot);
+        fixCount++;
+        console.log(`✅ Eksik lot oluşturuldu: ${urun.ad} - ${urun.stokMiktari} adet (${yeniLot.batchNo})`);
+      }
+    });
+    
+    if (fixCount > 0) {
+      console.log(`✅ Toplam ${fixCount} eksik lot düzeltildi`);
+    }
+  } catch (error) {
+    console.error('❌ Lot düzeltme hatası:', error);
+  }
+};
