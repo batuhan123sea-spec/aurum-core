@@ -8,8 +8,13 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Edit, DollarSign, Receipt, FileText } from "lucide-react";
-import { getMusteriById, musteriBalanceGuncelle } from "@/lib/musteri-data";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ArrowLeft, Edit, DollarSign, Receipt, FileText, Settings2 } from "lucide-react";
+import { getMusteriById, musteriBalanceGuncelle, updateMusteri } from "@/lib/musteri-data";
+import { ManuelKur } from "@/types/musteri";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, getGuncelKurlar } from "@/lib/kur-hesaplama";
 import HesapEkstresiTable from "@/components/HesapEkstresiTable";
@@ -98,14 +103,117 @@ const MusteriDetay = () => {
           {/* Sol Panel - Müşteri Bilgileri */}
           <div className="lg:col-span-1">
             <Card className="sticky top-6">
-              <CardHeader className="text-center">
+              <CardHeader className="text-center relative">
+                {/* Manuel Kur Butonu - Sağ Üst Köşe */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute top-3 right-3"
+                      title="Manuel Kur Ayarla"
+                    >
+                      <Settings2 className={`w-4 h-4 ${musteri.manuelKur?.aktif ? 'text-amber-600' : 'text-muted-foreground'}`} />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72" align="end">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium">💱 Manuel Kur</h4>
+                        {musteri.manuelKur?.aktif && (
+                          <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs">Aktif</Badge>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">USD Kuru (₺)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder={guncelKurlar.usd.toFixed(2)}
+                            defaultValue={musteri.manuelKur?.USD || ''}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              const yeniManuelKur: ManuelKur = {
+                                ...musteri.manuelKur,
+                                USD: val || undefined,
+                                aktif: musteri.manuelKur?.aktif || false
+                              };
+                              updateMusteri({ ...musteri, manuelKur: yeniManuelKur });
+                              setMusteri({ ...musteri, manuelKur: yeniManuelKur });
+                            }}
+                          />
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">EUR Kuru (₺)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder={guncelKurlar.eur.toFixed(2)}
+                            defaultValue={musteri.manuelKur?.EUR || ''}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              const yeniManuelKur: ManuelKur = {
+                                ...musteri.manuelKur,
+                                EUR: val || undefined,
+                                aktif: musteri.manuelKur?.aktif || false
+                              };
+                              updateMusteri({ ...musteri, manuelKur: yeniManuelKur });
+                              setMusteri({ ...musteri, manuelKur: yeniManuelKur });
+                            }}
+                          />
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="manuelKurAktif"
+                            checked={musteri.manuelKur?.aktif || false}
+                            onCheckedChange={(checked) => {
+                              const yeniManuelKur: ManuelKur = {
+                                ...musteri.manuelKur,
+                                aktif: !!checked
+                              };
+                              updateMusteri({ ...musteri, manuelKur: yeniManuelKur });
+                              setMusteri({ ...musteri, manuelKur: yeniManuelKur });
+                              toast({
+                                title: checked ? "Manuel Kur Aktif" : "Manuel Kur Pasif",
+                                description: checked 
+                                  ? "Bu müşteri için manuel kur kullanılacak."
+                                  : "Sistem kurları kullanılacak."
+                              });
+                            }}
+                          />
+                          <Label htmlFor="manuelKurAktif" className="text-sm cursor-pointer">
+                            Bu müşteri için aktif
+                          </Label>
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs text-muted-foreground pt-2 border-t">
+                        Sistem kurları: USD {guncelKurlar.usd.toFixed(2)} ₺ | EUR {guncelKurlar.eur.toFixed(2)} ₺
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
                 <Avatar className="w-20 h-20 mx-auto mb-3">
                   <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
                 </Avatar>
                 <CardTitle>{musteri.adSoyad}</CardTitle>
-                <Badge variant={musteri.konum === "ic" ? "default" : "secondary"}>
-                  {musteri.konum === "ic" ? "İş Hanı İçi" : "Dışarı"}
-                </Badge>
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <Badge variant={musteri.konum === "ic" ? "default" : "secondary"}>
+                    {musteri.konum === "ic" ? "İş Hanı İçi" : "Dışarı"}
+                  </Badge>
+                  {musteri.manuelKur?.aktif && (
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs">
+                      💱 Manuel Kur
+                    </Badge>
+                  )}
+                </div>
               </CardHeader>
 
           <CardContent className="space-y-4">

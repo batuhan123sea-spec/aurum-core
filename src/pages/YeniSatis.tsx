@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import {
   Table,
@@ -50,6 +51,11 @@ export default function YeniSatis() {
   const [indirimInputs, setIndirimInputs] = useState<Record<string, string>>({});
   const [genelIndirimInputTL, setGenelIndirimInputTL] = useState<string>("");
   const [genelIndirimInputYuzde, setGenelIndirimInputYuzde] = useState<string>("");
+  
+  // Manuel kur state'leri (bu satış için)
+  const [satisManuelKurUSD, setSatisManuelKurUSD] = useState<string>("");
+  const [satisManuelKurEUR, setSatisManuelKurEUR] = useState<string>("");
+  const [satisManuelKurAktif, setSatisManuelKurAktif] = useState(false);
   
   const kurlar = getGuncelKurlar();
   const urunler = getUrunler();
@@ -361,6 +367,9 @@ export default function YeniSatis() {
     setIndirimInputs({});
     setGenelIndirimInputTL("");
     setGenelIndirimInputYuzde("");
+    setSatisManuelKurUSD("");
+    setSatisManuelKurEUR("");
+    setSatisManuelKurAktif(false);
   };
 
   // Fiyat hesaplamaları
@@ -430,6 +439,13 @@ export default function YeniSatis() {
         return;
       }
       
+      // Manuel kur varsa hazırla
+      const manuelKur = satisManuelKurAktif ? {
+        USD: parseFloat(satisManuelKurUSD) || undefined,
+        EUR: parseFloat(satisManuelKurEUR) || undefined,
+        aktif: true
+      } : (seciliMusteriData?.manuelKur?.aktif ? seciliMusteriData.manuelKur : undefined);
+      
       hesapliSatisYap(
         seciliMusteri,
         sepet,
@@ -438,7 +454,8 @@ export default function YeniSatis() {
         genelToplamIndirim,
         genelIndirimYuzde,
         genelToplam,
-        kdvDahil
+        kdvDahil,
+        manuelKur
       );
     } else if (satisTuru === 'rezerv') {
       rezervYap(
@@ -505,7 +522,8 @@ export default function YeniSatis() {
         {/* Üst Bar - Döviz Kurları + Manuel Kur */}
         <Card>
           <CardContent className="py-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              {/* Sistem Kurları */}
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
                   <DollarSign className="w-5 h-5 text-green-600" />
@@ -518,19 +536,59 @@ export default function YeniSatis() {
                   <span className="text-lg font-bold text-blue-600">{kurlar.eur.toFixed(2)}</span>
                 </div>
               </div>
-              <div className="text-sm text-muted-foreground">
-                {new Date().toLocaleString('tr-TR', { 
-                  day: '2-digit', 
-                  month: 'long', 
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
+              
+              {/* Manuel Kur Girişi */}
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="satisManuelKur"
+                    checked={satisManuelKurAktif}
+                    onCheckedChange={(checked) => {
+                      setSatisManuelKurAktif(!!checked);
+                      if (!checked) {
+                        setSatisManuelKurUSD("");
+                        setSatisManuelKurEUR("");
+                      }
+                    }}
+                  />
+                  <Label htmlFor="satisManuelKur" className="text-sm font-medium cursor-pointer whitespace-nowrap">
+                    💱 Bu Satışta Manuel Kur
+                  </Label>
+                </div>
+                
+                {satisManuelKurAktif && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                      <Label className="text-xs text-muted-foreground">USD:</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder={kurlar.usd.toFixed(2)}
+                        value={satisManuelKurUSD}
+                        onChange={(e) => setSatisManuelKurUSD(e.target.value)}
+                        className="w-20 h-8 text-sm"
+                      />
+                      <span className="text-xs text-muted-foreground">₺</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Label className="text-xs text-muted-foreground">EUR:</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder={kurlar.eur.toFixed(2)}
+                        value={satisManuelKurEUR}
+                        onChange={(e) => setSatisManuelKurEUR(e.target.value)}
+                        className="w-20 h-8 text-sm"
+                      />
+                      <span className="text-xs text-muted-foreground">₺</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             
-            {/* Manuel Kur - Müşteri seçiliyse ve aktifse göster */}
-            {seciliMusteriData?.manuelKur?.aktif && (
+            {/* Müşteri Manuel Kuru Bilgisi */}
+            {seciliMusteriData?.manuelKur?.aktif && !satisManuelKurAktif && (
               <div className="mt-3 pt-3 border-t border-dashed">
                 <div className="flex items-center gap-4 text-sm">
                   <Badge variant="secondary" className="bg-amber-100 text-amber-800">
@@ -540,6 +598,20 @@ export default function YeniSatis() {
                     USD: <span className="font-semibold text-green-600">{seciliMusteriData.manuelKur.USD?.toFixed(2) || kurlar.usd.toFixed(2)} ₺</span>
                     {' | '}
                     EUR: <span className="font-semibold text-blue-600">{seciliMusteriData.manuelKur.EUR?.toFixed(2) || kurlar.eur.toFixed(2)} ₺</span>
+                  </span>
+                </div>
+              </div>
+            )}
+            
+            {/* Satış Manuel Kur Aktifse Bilgi */}
+            {satisManuelKurAktif && (
+              <div className="mt-3 pt-3 border-t border-dashed">
+                <div className="flex items-center gap-2 text-sm text-amber-700">
+                  <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+                    ⚡ Satış Manuel Kuru Aktif
+                  </Badge>
+                  <span>
+                    Bu satışta kullanılacak kur: USD {satisManuelKurUSD || kurlar.usd.toFixed(2)} ₺ | EUR {satisManuelKurEUR || kurlar.eur.toFixed(2)} ₺
                   </span>
                 </div>
               </div>
