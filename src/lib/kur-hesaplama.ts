@@ -1,4 +1,4 @@
-import { ParaBirimi } from "@/types/musteri";
+import { ParaBirimi, Musteri } from "@/types/musteri";
 
 const KUR_STORAGE_KEY = 'kuyumcu_doviz_kurlari';
 
@@ -6,6 +6,23 @@ export interface DovizKurlari {
   usd: number;
   eur: number;
   guncellemeTarihi: string;
+}
+
+// Müşteri ID'si ile müşterinin kurunu al
+export function getMusteriKurById(musteriId: string, paraBirimi: ParaBirimi): number {
+  if (paraBirimi === 'TRY') return 1;
+  
+  // Lazy import to avoid circular dependency
+  const stored = localStorage.getItem('kuyumcu_musteriler');
+  if (!stored) return getKur(paraBirimi);
+  
+  try {
+    const musteriler = JSON.parse(stored) as Musteri[];
+    const musteri = musteriler.find(m => m.id === musteriId);
+    return getMusteriKur(musteri, paraBirimi);
+  } catch {
+    return getKur(paraBirimi);
+  }
 }
 
 // Header'dan kurları localStorage'a kaydet

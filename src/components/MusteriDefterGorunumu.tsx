@@ -14,9 +14,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { FileDown, Edit2, Trash2 } from "lucide-react";
 import { getSatislar } from "@/lib/satis-data";
 import { getHareketlerByMusteriId, getMusteriById, deleteHareket } from "@/lib/musteri-data";
-import { formatCurrency, getKur } from "@/lib/kur-hesaplama";
+import { formatCurrency, getMusteriKur } from "@/lib/kur-hesaplama";
 import { formatLocalDate } from "@/lib/utils";
 import { musteriDefterExcelAktar } from "@/lib/excel-export";
+import type { ParaBirimi } from "@/types/musteri";
 import { HareketDuzenleModal } from "@/components/HareketDuzenleModal";
 import { YeniHareketModal } from "@/components/YeniHareketModal";
 import { YeniIadeModal } from "@/components/YeniIadeModal";
@@ -104,6 +105,9 @@ const MusteriDefterGorunumu = ({
 
   useEffect(() => {
     setYukleniyor(true);
+    
+    // 🆕 Müşteri bazlı kur al (manuel kur aktifse onu kullan)
+    const getKur = (pb: ParaBirimi) => getMusteriKur(musteri, pb);
     
     const tumSatislar = getSatislar().filter(
       s => s.musteriId === musteriId && 
@@ -354,7 +358,7 @@ const MusteriDefterGorunumu = ({
     // Görüntüleme için ters çevir (en yeni üstte)
     setGunlukVeriler(gunler.reverse());
     setYukleniyor(false);
-  }, [musteriId, yenilemeKey]);
+  }, [musteriId, yenilemeKey, musteri]);
 
   const filtrelenmisVeriler = gunlukVeriler.filter(gun => {
     if (filtre === 'odeme') return gun.odemeler.length > 0;
@@ -500,7 +504,7 @@ const MusteriDefterGorunumu = ({
                               <span className="text-muted-foreground">Ödemeler: </span>
                               <span className="font-medium text-green-600">
                                 -{formatCurrency(gun.odemeler.reduce((sum, o) => {
-                                  const kur = getKur(o.paraBirimi);
+                                  const kur = getMusteriKur(musteri, o.paraBirimi);
                                   return sum + (o.tutar * kur);
                                 }, 0), 'TRY')}
                               </span>
@@ -511,7 +515,7 @@ const MusteriDefterGorunumu = ({
                               <span className="text-muted-foreground">İadeler: </span>
                               <span className="font-medium text-slate-600">
                                 -{formatCurrency(gun.iadeler.reduce((sum, i) => {
-                                  const kur = getKur(i.paraBirimi);
+                                  const kur = getMusteriKur(musteri, i.paraBirimi);
                                   return sum + (i.tutar * kur);
                                 }, 0), 'TRY')}
                               </span>
