@@ -330,7 +330,7 @@ export function SatisGecmisiTable({ musteriId }: SatisGecmisiTableProps) {
                         <TableHead className="text-center">Adet</TableHead>
                         <TableHead className="text-right">Birim Fiyat</TableHead>
                         <TableHead className="text-right">İndirim</TableHead>
-                        <TableHead className="text-center">KDV</TableHead>
+                        {satis.kdvDahil && <TableHead className="text-center">KDV</TableHead>}
                         <TableHead className="text-right">Toplam</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -355,9 +355,11 @@ export function SatisGecmisiTable({ musteriId }: SatisGecmisiTableProps) {
                               </span>
                             )}
                           </TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="outline">%{kalem.kdvOrani}</Badge>
-                          </TableCell>
+                          {satis.kdvDahil && (
+                            <TableCell className="text-center">
+                              <Badge variant="outline">%{kalem.kdvOrani}</Badge>
+                            </TableCell>
+                          )}
                           <TableCell className="text-right font-semibold">
                             {formatCurrency(kalem.toplamTutar, 'TRY')}
                           </TableCell>
@@ -372,10 +374,12 @@ export function SatisGecmisiTable({ musteriId }: SatisGecmisiTableProps) {
                         <span className="text-muted-foreground">Ara Toplam:</span>
                         <span className="font-semibold">{formatCurrency(satis.araToplam, 'TRY')}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Toplam KDV:</span>
-                        <span className="font-semibold">{formatCurrency(satis.toplamKDV, 'TRY')}</span>
-                      </div>
+                      {satis.kdvDahil && satis.toplamKDV > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Toplam KDV:</span>
+                          <span className="font-semibold">{formatCurrency(satis.toplamKDV, 'TRY')}</span>
+                        </div>
+                      )}
                       {satis.genelIndirimTL > 0 && (
                         <div className="flex justify-between text-sm text-green-600">
                           <span>Genel İndirim:</span>
