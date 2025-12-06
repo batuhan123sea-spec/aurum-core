@@ -102,6 +102,24 @@ export function formatCurrency(tutar: number, paraBirimi: ParaBirimi = 'TRY'): s
   return `${formatted} ${symbols[paraBirimi]}`;
 }
 
+// Müşteri bazlı kur al (manuel kur aktifse onu kullan, yoksa sistem kuru)
+export function getMusteriKur(musteri: { manuelKur?: { aktif: boolean; USD?: number; EUR?: number } } | null, paraBirimi: ParaBirimi): number {
+  if (paraBirimi === 'TRY') return 1;
+  
+  // Müşterinin aktif manuel kuru varsa onu kullan
+  if (musteri?.manuelKur?.aktif) {
+    if (paraBirimi === 'USD' && musteri.manuelKur.USD !== undefined) {
+      return musteri.manuelKur.USD;
+    }
+    if (paraBirimi === 'EUR' && musteri.manuelKur.EUR !== undefined) {
+      return musteri.manuelKur.EUR;
+    }
+  }
+  
+  // Yoksa sistem kurunu kullan
+  return getKur(paraBirimi);
+}
+
 // Kur yaşını dakika cinsinden hesapla
 export function getKurYasi(): number {
   const kurlar = getGuncelKurlar();
