@@ -7,10 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Plus, Search, Edit, Trash2, FileDown, Printer, DollarSign, Check, X } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Label } from "@/components/ui/label";
-import { updateMusteri } from "@/lib/musteri-data";
+import { Plus, Search, Edit, Trash2, FileDown, Printer } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getMusteriler, deleteMusteri, tumMusteriBorclariniGuncelle } from "@/lib/musteri-data";
 import { formatCurrency, getGuncelKurlar, getKurYasi, formatKurYasi } from "@/lib/kur-hesaplama";
@@ -300,20 +297,6 @@ const MusteriListe = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
-                        <ManuelKurPopover 
-                          musteri={musteri} 
-                          onSave={(manuelKur) => {
-                            const guncelMusteri = { ...musteri, manuelKur };
-                            updateMusteri(guncelMusteri);
-                            setMusteriler(getMusteriler());
-                            toast({
-                              title: manuelKur.aktif ? "Manuel Kur Aktif" : "Manuel Kur Pasif",
-                              description: manuelKur.aktif 
-                                ? `USD: ${manuelKur.USD?.toFixed(2) || '-'} ₺ | EUR: ${manuelKur.EUR?.toFixed(2) || '-'} ₺`
-                                : "Sistem kurları kullanılacak",
-                            });
-                          }} 
-                        />
                         <Button
                           variant="ghost"
                           size="icon"
@@ -364,102 +347,4 @@ const KurBilgiKarti = () => {
 };
 
 // Manuel Kur Popover komponenti
-const ManuelKurPopover = ({ 
-  musteri, 
-  onSave 
-}: { 
-  musteri: Musteri; 
-  onSave: (manuelKur: { aktif: boolean; USD?: number; EUR?: number }) => void;
-}) => {
-  const kurlar = getGuncelKurlar();
-  const [open, setOpen] = useState(false);
-  const [usdKur, setUsdKur] = useState<string>(musteri.manuelKur?.USD?.toString() || kurlar.usd.toString());
-  const [eurKur, setEurKur] = useState<string>(musteri.manuelKur?.EUR?.toString() || kurlar.eur.toString());
-  const [aktif, setAktif] = useState(musteri.manuelKur?.aktif || false);
-
-  const handleSave = () => {
-    onSave({
-      aktif,
-      USD: parseFloat(usdKur) || undefined,
-      EUR: parseFloat(eurKur) || undefined
-    });
-    setOpen(false);
-  };
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant={musteri.manuelKur?.aktif ? "default" : "ghost"}
-          size="icon"
-          className={musteri.manuelKur?.aktif ? "bg-amber-500 hover:bg-amber-600" : ""}
-          title={musteri.manuelKur?.aktif ? "Manuel kur aktif" : "Manuel kur ayarla"}
-        >
-          <DollarSign className="w-4 h-4" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-72 bg-background border z-50" align="end">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium text-sm">Manuel Kur Ayarla</h4>
-            <div className="flex items-center gap-2">
-              <Label htmlFor={`aktif-${musteri.id}`} className="text-xs">Aktif</Label>
-              <Checkbox 
-                id={`aktif-${musteri.id}`}
-                checked={aktif}
-                onCheckedChange={(checked) => setAktif(checked as boolean)}
-              />
-            </div>
-          </div>
-          
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">USD Kuru</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={usdKur}
-                  onChange={(e) => setUsdKur(e.target.value)}
-                  className="h-8"
-                  disabled={!aktif}
-                />
-                <span className="text-sm text-muted-foreground">₺</span>
-              </div>
-              <p className="text-[10px] text-muted-foreground">Sistem: {kurlar.usd.toFixed(2)} ₺</p>
-            </div>
-            
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">EUR Kuru</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={eurKur}
-                  onChange={(e) => setEurKur(e.target.value)}
-                  className="h-8"
-                  disabled={!aktif}
-                />
-                <span className="text-sm text-muted-foreground">₺</span>
-              </div>
-              <p className="text-[10px] text-muted-foreground">Sistem: {kurlar.eur.toFixed(2)} ₺</p>
-            </div>
-          </div>
-          
-          <div className="flex gap-2 pt-2">
-            <Button size="sm" variant="outline" className="flex-1" onClick={() => setOpen(false)}>
-              <X className="w-3 h-3 mr-1" />
-              İptal
-            </Button>
-            <Button size="sm" className="flex-1" onClick={handleSave}>
-              <Check className="w-3 h-3 mr-1" />
-              Kaydet
-            </Button>
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-};
-
 export default MusteriListe;

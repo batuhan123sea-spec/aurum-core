@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { Musteri, HesapHareketi, ParaBirimi, OdemeTuru } from "@/types/musteri";
-import { getKur, formatCurrency, paraBirimiTLyeCevir, getMusteriKur } from "@/lib/kur-hesaplama";
+import { getKur, formatCurrency, paraBirimiTLyeCevir } from "@/lib/kur-hesaplama";
 import { odemeIsle, musteriBalanceGuncelle, getMusteriById } from "@/lib/musteri-data";
 import { tahsilatFisiOlustur, fisYazdir } from "@/lib/fis-yazdir";
 import { getLocalDateTimeString } from "@/lib/utils";
@@ -54,17 +54,16 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
     }
   }, [open, musteri]);
 
-  // Hesap kuru (müşterinin manuel kuru varsa o, yoksa sistem)
-  const hesapKuru = musteri ? getMusteriKur(musteri, formData.odemeParaBirimi) : getKur(formData.odemeParaBirimi);
+  // Sistem kuru
   const sistemKuru = getKur(formData.odemeParaBirimi);
 
   useEffect(() => {
     const tutar = parseFloat(formData.odemeTutari) || 0;
     
-    // Anlık kur = tahsilat kuru aktifse tahsilat kuru, yoksa hesap kuru
+    // Anlık kur = tahsilat kuru aktifse tahsilat kuru, yoksa sistem kuru
     const tahsilatKuru = tahsilatKurAktif && tahsilatKurInput 
       ? parseFloat(tahsilatKurInput) 
-      : hesapKuru;
+      : sistemKuru;
     
     setAnlikKur(tahsilatKuru);
     
@@ -73,23 +72,23 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
     setTlKarsiligi(tlTutar);
     
     // Düşülecek borç hesaplama
-    // Formül: alınan tutar × (hesap kuru / tahsilat kuru)
+    // Formül: alınan tutar × (sistem kuru / tahsilat kuru)
     if (formData.odemeParaBirimi === 'TRY') {
       setDusulecekBorc(tutar);
     } else if (tahsilatKurAktif && tahsilatKurInput) {
       const parsedTahsilatKur = parseFloat(tahsilatKurInput);
       if (parsedTahsilatKur > 0) {
-        setDusulecekBorc(tutar * (hesapKuru / parsedTahsilatKur));
+        setDusulecekBorc(tutar * (sistemKuru / parsedTahsilatKur));
       } else {
         setDusulecekBorc(tutar);
       }
     } else {
       setDusulecekBorc(tutar);
     }
-  }, [formData.odemeTutari, formData.odemeParaBirimi, tahsilatKurAktif, tahsilatKurInput, hesapKuru]);
+  }, [formData.odemeTutari, formData.odemeParaBirimi, tahsilatKurAktif, tahsilatKurInput, sistemKuru]);
 
   // Yeni bakiye hesaplama - düşülecek borç üzerinden
-  const dusulecekTL = paraBirimiTLyeCevir(dusulecekBorc, formData.odemeParaBirimi, hesapKuru);
+  const dusulecekTL = paraBirimiTLyeCevir(dusulecekBorc, formData.odemeParaBirimi, sistemKuru);
   const yeniBakiye = musteri ? musteri.toplamBorcTL - dusulecekTL : 0;
 
   const handleKaydet = (yazdır: boolean = false) => {
@@ -134,7 +133,7 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
       paraBirimi: formData.odemeParaBirimi,
       tahsilatKurAktif,
       tahsilatKuru: tahsilatKurInput,
-      hesapKuru,
+      sistemKuru,
       oncekiBorc,
       musteriBorclar: {
         USD: musteri.borclar.USD,
@@ -348,8 +347,8 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
               <div className="p-2.5 bg-muted/50 rounded-lg border">
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Hesap Kuru:</span>
-                    <span className="font-semibold">{hesapKuru.toFixed(2)} ₺</span>
+                    <span className="text-muted-foreground">Sistem Kuru:</span>
+                    <span className="font-semibold">{sistemKuru.toFixed(2)} ₺</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">TL Karşılığı:</span>
@@ -372,8 +371,8 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
                       <span>{parseFloat(tahsilatKurInput).toFixed(2)} ₺</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Hesap Kuru:</span>
-                      <span>{hesapKuru.toFixed(2)} ₺</span>
+                      <span>Sistem Kuru:</span>
+                      <span>{sistemKuru.toFixed(2)} ₺</span>
                     </div>
                     <div className="border-t pt-1 flex justify-between font-semibold text-blue-600">
                       <span>Düşülecek Borç:</span>

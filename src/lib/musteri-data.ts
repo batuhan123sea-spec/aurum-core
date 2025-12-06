@@ -1,5 +1,5 @@
 import { Musteri, HesapHareketi, ParaBirimi } from "@/types/musteri";
-import { paraBirimiTLyeCevir, getGuncelKurlar, getKur, formatCurrency, getMusteriKur } from "./kur-hesaplama";
+import { paraBirimiTLyeCevir, getGuncelKurlar, getKur, formatCurrency } from "./kur-hesaplama";
 import { getSatislar, deleteSatisBySatisNo, getSatisBySatisNo, saveSatis } from "./satis-data";
 import { getUrunler } from "./stok-data";
 import { stokHareketKaydet } from "./stok-hareket";
@@ -332,14 +332,14 @@ export function odemeIsle(
     return { success: false, message: 'Müşteri bulunamadı', hareketler: [] };
   }
 
-  // 🆕 Müşteri bazlı kur al (manuel kur aktifse onu kullan)
-  const getKurForMusteri = (pb: ParaBirimi) => getMusteriKur(musteri, pb);
+  // Sistem kurunu kullan
+  const getKurForMusteri = (pb: ParaBirimi) => getKur(pb);
 
   // Mevcut borçları hesapla
   const mevcutBorclar = musteriDovizBorclariniHesapla(musteriId);
   console.log('📊 Mevcut borçlar:', mevcutBorclar);
 
-  // Fazla ödeme kontrolü - MÜŞTERİ KURU KULLAN
+  // Fazla ödeme kontrolü - SİSTEM KURU KULLAN
   const odemeTLKarsiligi = odemeTutari * getKurForMusteri(odemeParaBirimi);
   if (odemeTLKarsiligi > mevcutBorclar.toplamTL) {
     return {
@@ -359,8 +359,7 @@ export function odemeIsle(
   let kalanOdeme = odemeTutari;
   let bakiye = mevcutBorclar.toplamTL;
 
-  console.log('💱 Kullanılan kurlar (manuel kur aktif mi?):', {
-    manuelKurAktif: musteri.manuelKur?.aktif,
+  console.log('💱 Kullanılan kurlar:', {
     USD: getKurForMusteri('USD'),
     EUR: getKurForMusteri('EUR')
   });
@@ -376,7 +375,7 @@ export function odemeIsle(
       // Aynı para birimindeyse direkt düş
       dusulecekTutar = Math.min(kalanOdeme, mevcutBorclar[paraBirimi]);
     } else {
-      // Farklı para birimindeyse, önce kurla çevir - MÜŞTERİ KURU KULLAN
+      // Farklı para birimindeyse, önce kurla çevir - SİSTEM KURU KULLAN
       const odemeKuru = getKurForMusteri(odemeParaBirimi);
       const borcKuru = getKurForMusteri(paraBirimi);
       
@@ -390,7 +389,7 @@ export function odemeIsle(
     }
 
     if (dusulecekTutar > 0) {
-      // 🆕 MÜŞTERİ KURU KULLAN
+      // SİSTEM KURU KULLAN
       const kur = getKurForMusteri(paraBirimi);
       const tlKarsiligi = dusulecekTutar * kur;
       
@@ -479,9 +478,9 @@ export function musteriDovizBorclariniHesapla(musteriId: string): {
     EUR: Math.max(0, satislar.EUR - odemeler.EUR)
   };
   
-  // 🆕 MÜŞTERİ KURLARINI KULLAN (manuel kur aktifse onu kullan)
-  const usdKur = getMusteriKur(musteri, 'USD');
-  const eurKur = getMusteriKur(musteri, 'EUR');
+  // SİSTEM KURLARINI KULLAN
+  const usdKur = getKur('USD');
+  const eurKur = getKur('EUR');
   
   const toplamTL = 
     borclar.TRY + 
@@ -490,8 +489,7 @@ export function musteriDovizBorclariniHesapla(musteriId: string): {
   
   console.log('💱 Kullanılan kurlar:', {
     USD: usdKur,
-    EUR: eurKur,
-    manuelKurAktif: musteri?.manuelKur?.aktif
+    EUR: eurKur
   });
   
   console.log('✅ Hesaplama tamamlandı:', {
