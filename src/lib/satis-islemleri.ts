@@ -3,9 +3,10 @@ import { saveSatis, generateSatisNo, generateRezervNo } from './satis-data';
 import { stokHareketKaydet } from './stok-hareket';
 import { getUrunler, saveUrun } from './stok-data';
 import { getMusteriler, saveHareket, musteriBalanceGuncelle, musteriDovizBorclariniHesapla } from './musteri-data';
-import { getKur } from './kur-hesaplama';
+import { getKur, getMusteriKur } from './kur-hesaplama';
 import { toast } from '@/hooks/use-toast';
 import { stokDus, stokDusFromLot, calculateUrunToplamStok } from './stok-lot-data';
+import { ManuelKur } from '@/types/musteri';
 
 export function hesapliSatisYap(
   musteriId: string,
@@ -15,7 +16,8 @@ export function hesapliSatisYap(
   genelIndirimTL: number,
   genelIndirimYuzde: number,
   genelToplam: number,
-  kdvDahil: boolean
+  kdvDahil: boolean,
+  manuelKur?: ManuelKur
 ): void {
   console.log('🔵 Hesaplı satış başladı:', { musteriId, genelToplam });
   
@@ -159,7 +161,19 @@ export function hesapliSatisYap(
     Object.keys(paraBirimiGroups).forEach((pb) => {
       const paraBirimi = pb as 'TRY' | 'USD' | 'EUR';
       if (paraBirimiGroups[pb] > 0) {
-        const kur = paraBirimi === 'TRY' ? 1 : getKur(paraBirimi);
+        // Manuel kur varsa onu kullan, yoksa sistem kurunu kullan
+        let kur = 1;
+        if (paraBirimi !== 'TRY') {
+          if (manuelKur?.aktif) {
+            kur = paraBirimi === 'USD' 
+              ? (manuelKur.USD || getKur(paraBirimi))
+              : (manuelKur.EUR || getKur(paraBirimi));
+          } else {
+            kur = getMusteriKur(musteri, paraBirimi);
+          }
+        }
+        
+        console.log(`💱 Kur kullanımı: ${paraBirimi} = ${kur} (Manuel: ${manuelKur?.aktif ? 'Evet' : 'Hayır'})`);
         const tlKarsiligi = paraBirimiGroups[pb] * kur;
         
         // Yeni bakiyeyi hesapla
