@@ -8,22 +8,6 @@ export interface DovizKurlari {
   guncellemeTarihi: string;
 }
 
-// Müşteri ID'si ile müşterinin kurunu al
-export function getMusteriKurById(musteriId: string, paraBirimi: ParaBirimi): number {
-  if (paraBirimi === 'TRY') return 1;
-  
-  // Lazy import to avoid circular dependency
-  const stored = localStorage.getItem('kuyumcu_musteriler');
-  if (!stored) return getKur(paraBirimi);
-  
-  try {
-    const musteriler = JSON.parse(stored) as Musteri[];
-    const musteri = musteriler.find(m => m.id === musteriId);
-    return getMusteriKur(musteri, paraBirimi);
-  } catch {
-    return getKur(paraBirimi);
-  }
-}
 
 // Header'dan kurları localStorage'a kaydet
 export function kurlarıKaydet(usd: number, eur: number): void {
@@ -119,23 +103,6 @@ export function formatCurrency(tutar: number, paraBirimi: ParaBirimi = 'TRY'): s
   return `${formatted} ${symbols[paraBirimi]}`;
 }
 
-// Müşteri bazlı kur al (manuel kur aktifse onu kullan, yoksa sistem kuru)
-export function getMusteriKur(musteri: { manuelKur?: { aktif: boolean; USD?: number; EUR?: number } } | null, paraBirimi: ParaBirimi): number {
-  if (paraBirimi === 'TRY') return 1;
-  
-  // Müşterinin aktif manuel kuru varsa onu kullan
-  if (musteri?.manuelKur?.aktif) {
-    if (paraBirimi === 'USD' && musteri.manuelKur.USD !== undefined) {
-      return musteri.manuelKur.USD;
-    }
-    if (paraBirimi === 'EUR' && musteri.manuelKur.EUR !== undefined) {
-      return musteri.manuelKur.EUR;
-    }
-  }
-  
-  // Yoksa sistem kurunu kullan
-  return getKur(paraBirimi);
-}
 
 // Kur yaşını dakika cinsinden hesapla
 export function getKurYasi(): number {

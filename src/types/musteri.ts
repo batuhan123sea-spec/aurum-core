@@ -4,12 +4,6 @@ export type IslemTuru = 'satis' | 'odeme' | 'iade';
 export type OdemeTuru = 'nakit' | 'kredi-karti' | 'eft' | 'havale';
 export type MusteriDurumu = 'aktif' | 'pasif';
 
-export interface ManuelKur {
-  USD?: number;
-  EUR?: number;
-  aktif: boolean;
-}
-
 export interface Musteri {
   id: string;
   kod: string;
@@ -31,7 +25,6 @@ export interface Musteri {
   durumu: MusteriDurumu;
   olusturmaTarihi: string;
   sonIslemTarihi: string;
-  manuelKur?: ManuelKur;
 }
 
 export interface HesapHareketi {

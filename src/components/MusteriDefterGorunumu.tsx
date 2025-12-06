@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { FileDown, Edit2, Trash2 } from "lucide-react";
 import { getSatislar } from "@/lib/satis-data";
 import { getHareketlerByMusteriId, getMusteriById, deleteHareket } from "@/lib/musteri-data";
-import { formatCurrency, getMusteriKur } from "@/lib/kur-hesaplama";
+import { formatCurrency, getKur } from "@/lib/kur-hesaplama";
 import { formatLocalDate } from "@/lib/utils";
 import { musteriDefterExcelAktar } from "@/lib/excel-export";
 import type { ParaBirimi } from "@/types/musteri";
@@ -106,8 +106,8 @@ const MusteriDefterGorunumu = ({
   useEffect(() => {
     setYukleniyor(true);
     
-    // 🆕 Müşteri bazlı kur al (manuel kur aktifse onu kullan)
-    const getKur = (pb: ParaBirimi) => getMusteriKur(musteri, pb);
+    // Sistem kurunu kullan
+    const getKurForCalc = (pb: ParaBirimi) => getKur(pb);
     
     const tumSatislar = getSatislar().filter(
       s => s.musteriId === musteriId && 
@@ -504,7 +504,7 @@ const MusteriDefterGorunumu = ({
                               <span className="text-muted-foreground">Ödemeler: </span>
                               <span className="font-medium text-green-600">
                                 -{formatCurrency(gun.odemeler.reduce((sum, o) => {
-                                  const kur = getMusteriKur(musteri, o.paraBirimi);
+                                  const kur = getKur(o.paraBirimi);
                                   return sum + (o.tutar * kur);
                                 }, 0), 'TRY')}
                               </span>
@@ -515,7 +515,7 @@ const MusteriDefterGorunumu = ({
                               <span className="text-muted-foreground">İadeler: </span>
                               <span className="font-medium text-slate-600">
                                 -{formatCurrency(gun.iadeler.reduce((sum, i) => {
-                                  const kur = getMusteriKur(musteri, i.paraBirimi);
+                                  const kur = getKur(i.paraBirimi);
                                   return sum + (i.tutar * kur);
                                 }, 0), 'TRY')}
                               </span>
