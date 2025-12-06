@@ -5,10 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { Musteri, HesapHareketi, ParaBirimi, OdemeTuru } from "@/types/musteri";
-import { getKur, formatCurrency, paraBirimiTLyeCevir } from "@/lib/kur-hesaplama";
+import { getKur, formatCurrency, paraBirimiTLyeCevir, getMusteriKur } from "@/lib/kur-hesaplama";
 import { odemeIsle, musteriBalanceGuncelle, getMusteriById } from "@/lib/musteri-data";
 import { tahsilatFisiOlustur, fisYazdir } from "@/lib/fis-yazdir";
 import { getLocalDateTimeString } from "@/lib/utils";
@@ -32,6 +32,13 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
 
   const [anlikKur, setAnlikKur] = useState(1);
   const [tlKarsiligi, setTlKarsiligi] = useState(0);
+  
+  // Tahsilat kuru state'leri
+  const [tahsilatKurAktif, setTahsilatKurAktif] = useState(false);
+  const [tahsilatKurInput, setTahsilatKurInput] = useState("");
+  
+  // Hesaplanan düşülecek borç
+  const [dusulecekBorc, setDusulecekBorc] = useState(0);
 
   useEffect(() => {
     if (open && musteri) {
@@ -42,25 +49,54 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
         odemeTuru: "nakit",
         aciklama: "",
       });
+      setTahsilatKurAktif(false);
+      setTahsilatKurInput("");
     }
   }, [open, musteri]);
 
-  useEffect(() => {
-    const kur = getKur(formData.odemeParaBirimi);
-    setAnlikKur(kur);
-    
-    const tutar = parseFloat(formData.odemeTutari) || 0;
-    const tlTutar = paraBirimiTLyeCevir(tutar, formData.odemeParaBirimi, kur);
-    setTlKarsiligi(tlTutar);
-  }, [formData.odemeTutari, formData.odemeParaBirimi]);
+  // Hesap kuru (müşterinin manuel kuru varsa o, yoksa sistem)
+  const hesapKuru = musteri ? getMusteriKur(musteri, formData.odemeParaBirimi) : getKur(formData.odemeParaBirimi);
+  const sistemKuru = getKur(formData.odemeParaBirimi);
 
-  const yeniBakiye = musteri ? musteri.toplamBorcTL - tlKarsiligi : 0;
+  useEffect(() => {
+    const tutar = parseFloat(formData.odemeTutari) || 0;
+    
+    // Anlık kur = tahsilat kuru aktifse tahsilat kuru, yoksa hesap kuru
+    const tahsilatKuru = tahsilatKurAktif && tahsilatKurInput 
+      ? parseFloat(tahsilatKurInput) 
+      : hesapKuru;
+    
+    setAnlikKur(tahsilatKuru);
+    
+    // TL karşılığı = alınan tutar × tahsilat kuru
+    const tlTutar = paraBirimiTLyeCevir(tutar, formData.odemeParaBirimi, tahsilatKuru);
+    setTlKarsiligi(tlTutar);
+    
+    // Düşülecek borç hesaplama
+    // Formül: alınan tutar × (hesap kuru / tahsilat kuru)
+    if (formData.odemeParaBirimi === 'TRY') {
+      setDusulecekBorc(tutar);
+    } else if (tahsilatKurAktif && tahsilatKurInput) {
+      const parsedTahsilatKur = parseFloat(tahsilatKurInput);
+      if (parsedTahsilatKur > 0) {
+        setDusulecekBorc(tutar * (hesapKuru / parsedTahsilatKur));
+      } else {
+        setDusulecekBorc(tutar);
+      }
+    } else {
+      setDusulecekBorc(tutar);
+    }
+  }, [formData.odemeTutari, formData.odemeParaBirimi, tahsilatKurAktif, tahsilatKurInput, hesapKuru]);
+
+  // Yeni bakiye hesaplama - düşülecek borç üzerinden
+  const dusulecekTL = paraBirimiTLyeCevir(dusulecekBorc, formData.odemeParaBirimi, hesapKuru);
+  const yeniBakiye = musteri ? musteri.toplamBorcTL - dusulecekTL : 0;
 
   const handleKaydet = (yazdır: boolean = false) => {
     if (!musteri) return;
 
-    const tutar = parseFloat(formData.odemeTutari);
-    if (!tutar || tutar <= 0) {
+    const alinanTutar = parseFloat(formData.odemeTutari);
+    if (!alinanTutar || alinanTutar <= 0) {
       toast({
         title: "Hata",
         description: "Geçerli bir ödeme tutarı giriniz.",
@@ -69,10 +105,11 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
       return;
     }
 
-    if (tlKarsiligi > musteri.toplamBorcTL) {
+    // Fazla ödeme kontrolü - düşülecek borç üzerinden
+    if (dusulecekTL > musteri.toplamBorcTL) {
       toast({
         title: "❌ Fazla Ödeme",
-        description: `Ödeme tutarı (${formatCurrency(tlKarsiligi, 'TRY')}) mevcut borçtan (${formatCurrency(musteri.toplamBorcTL, 'TRY')}) fazla! Lütfen tutarı azaltın.`,
+        description: `Düşülecek borç (${formatCurrency(dusulecekTL, 'TRY')}) mevcut borçtan (${formatCurrency(musteri.toplamBorcTL, 'TRY')}) fazla! Lütfen tutarı azaltın.`,
         variant: "destructive",
       });
       return;
@@ -80,12 +117,24 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
 
     const oncekiBorc = musteri.toplamBorcTL;
 
+    // Açıklama oluştur
+    let aciklama = formData.aciklama || 'Ödeme alındı';
+    if (tahsilatKurAktif && formData.odemeParaBirimi !== 'TRY' && tahsilatKurInput) {
+      // Tahsilat kuru aktifse, açıklamaya gerçek alınan tutarı yaz
+      const tahsilatKuru = parseFloat(tahsilatKurInput);
+      aciklama = `${alinanTutar.toFixed(2)} ${formData.odemeParaBirimi} alındı @ ${tahsilatKuru.toFixed(2)} kur`;
+    }
+
     // 🆕 DEBUG LOG - Ödeme öncesi
     console.log('💳 Ödeme başlatılıyor:', {
       musteriId: musteri.id,
       musteriAdi: musteri.adSoyad,
-      tutar,
+      alinanTutar,
+      dusulecekBorc,
       paraBirimi: formData.odemeParaBirimi,
+      tahsilatKurAktif,
+      tahsilatKuru: tahsilatKurInput,
+      hesapKuru,
       oncekiBorc,
       musteriBorclar: {
         USD: musteri.borclar.USD,
@@ -94,14 +143,14 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
       }
     });
 
-    // Yeni ödeme işleme fonksiyonunu kullan
+    // Ödeme işle - düşülecek borç miktarıyla
     const sonuc = odemeIsle(
       musteri.id,
-      tutar,
+      dusulecekBorc, // Alınan tutar değil, düşülecek borç
       formData.odemeParaBirimi,
       formData.odemeTarihi,
       formData.odemeTuru,
-      formData.aciklama || 'Ödeme alındı'
+      aciklama
     );
 
     // 🆕 DEBUG LOG - Ödeme sonrası
@@ -254,17 +303,85 @@ const OdemeAlModal = ({ musteri, open, onOpenChange, onSuccess }: OdemeAlModalPr
           </div>
 
           {formData.odemeParaBirimi !== 'TRY' && (
-            <div className="p-2.5 bg-muted/50 rounded-lg border">
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Kur:</span>
-                  <span className="font-semibold">{anlikKur.toFixed(2)}</span>
+            <div className="space-y-2">
+              {/* Tahsilat Kuru Checkbox + Input */}
+              <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <Checkbox
+                    id="tahsilatKur"
+                    checked={tahsilatKurAktif}
+                    onCheckedChange={(checked) => {
+                      setTahsilatKurAktif(!!checked);
+                      if (!checked) {
+                        setTahsilatKurInput("");
+                      } else {
+                        setTahsilatKurInput(sistemKuru.toFixed(2));
+                      }
+                    }}
+                  />
+                  <Label htmlFor="tahsilatKur" className="text-sm font-medium cursor-pointer">
+                    📊 Tahsilat Kuru Kullan
+                  </Label>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">TL:</span>
-                  <span className="font-semibold">{formatCurrency(tlKarsiligi, 'TRY')}</span>
+                
+                {tahsilatKurAktif && (
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formData.odemeParaBirimi} Kuru:
+                    </Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={tahsilatKurInput}
+                      onChange={(e) => setTahsilatKurInput(e.target.value)}
+                      className="w-24 h-8 text-sm"
+                    />
+                    <span className="text-xs text-muted-foreground">₺</span>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      (Sistem: {sistemKuru.toFixed(2)})
+                    </span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Kur Bilgisi */}
+              <div className="p-2.5 bg-muted/50 rounded-lg border">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Hesap Kuru:</span>
+                    <span className="font-semibold">{hesapKuru.toFixed(2)} ₺</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">TL Karşılığı:</span>
+                    <span className="font-semibold">{formatCurrency(tlKarsiligi, 'TRY')}</span>
+                  </div>
                 </div>
               </div>
+              
+              {/* Tahsilat kuru aktifse hesaplama göster */}
+              {tahsilatKurAktif && tahsilatKurInput && (
+                <div className="p-2.5 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="text-xs text-muted-foreground mb-1">📊 Tahsilat Hesabı</div>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span>Alınan:</span>
+                      <span className="font-semibold">{formData.odemeTutari} {formData.odemeParaBirimi}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Tahsilat Kuru:</span>
+                      <span>{parseFloat(tahsilatKurInput).toFixed(2)} ₺</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Hesap Kuru:</span>
+                      <span>{hesapKuru.toFixed(2)} ₺</span>
+                    </div>
+                    <div className="border-t pt-1 flex justify-between font-semibold text-blue-600">
+                      <span>Düşülecek Borç:</span>
+                      <span>{dusulecekBorc.toFixed(2)} {formData.odemeParaBirimi}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

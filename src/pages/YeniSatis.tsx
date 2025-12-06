@@ -52,33 +52,10 @@ export default function YeniSatis() {
   const [genelIndirimInputTL, setGenelIndirimInputTL] = useState<string>("");
   const [genelIndirimInputYuzde, setGenelIndirimInputYuzde] = useState<string>("");
   
-  // Manuel kur state'leri (bu satış için)
-  const [satisManuelKurUSD, setSatisManuelKurUSD] = useState<string>("");
-  const [satisManuelKurEUR, setSatisManuelKurEUR] = useState<string>("");
-  const [satisManuelKurAktif, setSatisManuelKurAktif] = useState(false);
-  
   const kurlar = getGuncelKurlar();
   const urunler = getUrunler();
   const musteriler = getMusteriler();
   const ayarlar = getAyarlar();
-
-  // Helper: Aktif kuru al (manuel veya sistem)
-  const getAktifKur = (paraBirimi: 'TRY' | 'USD' | 'EUR'): number => {
-    if (paraBirimi === 'TRY') return 1;
-    
-    if (satisManuelKurAktif) {
-      if (paraBirimi === 'USD' && satisManuelKurUSD) {
-        const kur = parseFloat(satisManuelKurUSD);
-        if (!isNaN(kur) && kur > 0) return kur;
-      }
-      if (paraBirimi === 'EUR' && satisManuelKurEUR) {
-        const kur = parseFloat(satisManuelKurEUR);
-        if (!isNaN(kur) && kur > 0) return kur;
-      }
-    }
-    
-    return paraBirimi === 'USD' ? kurlar.usd : kurlar.eur;
-  };
 
   // Sayfa açıldığında kurları kontrol et ve gerekirse güncelle
   useEffect(() => {
@@ -145,42 +122,6 @@ export default function YeniSatis() {
       setIndirimInputs(yeniIndirimInputs);
     }
   }, [sepet.map(k => k.id).join(',')]);
-
-  // Manuel kur değiştiğinde sepeti güncelle
-  useEffect(() => {
-    if (sepet.length === 0) return;
-    
-    setSepet(prevSepet => prevSepet.map(kalem => {
-      // Satış fiyatını güncel kurla hesapla
-      const yeniBirimFiyati = paraBirimiTLyeCevir(
-        kalem.orijinalBirimFiyati,
-        kalem.paraBirimi,
-        getAktifKur(kalem.paraBirimi)
-      );
-      
-      // Alış fiyatını güncel kurla hesapla (lot para birimi)
-      const yeniAlisFiyati = paraBirimiTLyeCevir(
-        kalem.lotAlisFiyati || kalem.alisFiyati,
-        kalem.lotParaBirimi || kalem.paraBirimi,
-        getAktifKur(kalem.lotParaBirimi || kalem.paraBirimi)
-      );
-      
-      const yeniToplamTutar = hesaplaKalemToplam(
-        kalem.adet,
-        yeniBirimFiyati,
-        kalem.kdvOrani,
-        kalem.indirimTL,
-        kalem.indirimYuzde
-      );
-      
-      return {
-        ...kalem,
-        birimFiyati: yeniBirimFiyati,
-        alisFiyati: yeniAlisFiyati,
-        toplamTutar: yeniToplamTutar
-      };
-    }));
-  }, [satisManuelKurAktif, satisManuelKurUSD, satisManuelKurEUR]);
 
   // Barkod ile ürün ekle - Otomatik ilk lotu seç
   const barkodIleUrunEkle = (barkod: string) => {
@@ -249,18 +190,16 @@ export default function YeniSatis() {
     // Satış fiyatının para birimini belirle (satisFiyatiParaBirimi varsa onu kullan, yoksa alisFiyatiParaBirimi)
     const urunParaBirimi = urun.satisFiyatiParaBirimi || urun.alisFiyatiParaBirimi;
     
-    // Satış fiyatını TL'ye çevir - MANUEL KUR KULLAN
+    // Satış fiyatını TL'ye çevir
     const birimFiyatiTL = paraBirimiTLyeCevir(
       urun.satisFiyati,
-      urunParaBirimi,
-      getAktifKur(urunParaBirimi)
+      urunParaBirimi
     );
     
-    // Alış fiyatını TL'ye çevir - LOT'tan al - MANUEL KUR KULLAN
+    // Alış fiyatını TL'ye çevir - LOT'tan al
     const alisFiyatiTL = paraBirimiTLyeCevir(
       lotAlisFiyati,
-      lotParaBirimi,
-      getAktifKur(lotParaBirimi)
+      lotParaBirimi
     );
     
     if (mevcutKalem) {
@@ -423,9 +362,6 @@ export default function YeniSatis() {
     setIndirimInputs({});
     setGenelIndirimInputTL("");
     setGenelIndirimInputYuzde("");
-    setSatisManuelKurUSD("");
-    setSatisManuelKurEUR("");
-    setSatisManuelKurAktif(false);
   };
 
   // Fiyat hesaplamaları
@@ -495,13 +431,6 @@ export default function YeniSatis() {
         return;
       }
       
-      // Manuel kur varsa hazırla
-      const manuelKur = satisManuelKurAktif ? {
-        USD: parseFloat(satisManuelKurUSD) || undefined,
-        EUR: parseFloat(satisManuelKurEUR) || undefined,
-        aktif: true
-      } : (seciliMusteriData?.manuelKur?.aktif ? seciliMusteriData.manuelKur : undefined);
-      
       hesapliSatisYap(
         seciliMusteri,
         sepet,
@@ -510,8 +439,7 @@ export default function YeniSatis() {
         genelToplamIndirim,
         genelIndirimYuzde,
         genelToplam,
-        kdvDahil,
-        manuelKur
+        kdvDahil
       );
     } else if (satisTuru === 'rezerv') {
       rezervYap(
@@ -575,103 +503,21 @@ export default function YeniSatis() {
   return (
     <Layout>
       <div className="space-y-4">
-        {/* Üst Bar - Döviz Kurları + Manuel Kur */}
+        {/* Üst Bar - Döviz Kurları */}
         <Card>
           <CardContent className="py-4">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              {/* Sistem Kurları */}
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-green-600" />
-                  <span className="text-sm font-medium">USD/TRY:</span>
-                  <span className="text-lg font-bold text-green-600">{kurlar.usd.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm font-medium">EUR/TRY:</span>
-                  <span className="text-lg font-bold text-blue-600">{kurlar.eur.toFixed(2)}</span>
-                </div>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-green-600" />
+                <span className="text-sm font-medium">USD/TRY:</span>
+                <span className="text-lg font-bold text-green-600">{kurlar.usd.toFixed(2)}</span>
               </div>
-              
-              {/* Manuel Kur Girişi */}
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="satisManuelKur"
-                    checked={satisManuelKurAktif}
-                    onCheckedChange={(checked) => {
-                      setSatisManuelKurAktif(!!checked);
-                      if (!checked) {
-                        setSatisManuelKurUSD("");
-                        setSatisManuelKurEUR("");
-                      }
-                    }}
-                  />
-                  <Label htmlFor="satisManuelKur" className="text-sm font-medium cursor-pointer whitespace-nowrap">
-                    💱 Bu Satışta Manuel Kur
-                  </Label>
-                </div>
-                
-                {satisManuelKurAktif && (
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5">
-                      <Label className="text-xs text-muted-foreground">USD:</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder={kurlar.usd.toFixed(2)}
-                        value={satisManuelKurUSD}
-                        onChange={(e) => setSatisManuelKurUSD(e.target.value)}
-                        className="w-20 h-8 text-sm"
-                      />
-                      <span className="text-xs text-muted-foreground">₺</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Label className="text-xs text-muted-foreground">EUR:</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder={kurlar.eur.toFixed(2)}
-                        value={satisManuelKurEUR}
-                        onChange={(e) => setSatisManuelKurEUR(e.target.value)}
-                        className="w-20 h-8 text-sm"
-                      />
-                      <span className="text-xs text-muted-foreground">₺</span>
-                    </div>
-                  </div>
-                )}
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-blue-600" />
+                <span className="text-sm font-medium">EUR/TRY:</span>
+                <span className="text-lg font-bold text-blue-600">{kurlar.eur.toFixed(2)}</span>
               </div>
             </div>
-            
-            {/* Müşteri Manuel Kuru Bilgisi */}
-            {seciliMusteriData?.manuelKur?.aktif && !satisManuelKurAktif && (
-              <div className="mt-3 pt-3 border-t border-dashed">
-                <div className="flex items-center gap-4 text-sm">
-                  <Badge variant="secondary" className="bg-amber-100 text-amber-800">
-                    ⚡ Müşteri Manuel Kuru Aktif
-                  </Badge>
-                  <span className="text-muted-foreground">
-                    USD: <span className="font-semibold text-green-600">{seciliMusteriData.manuelKur.USD?.toFixed(2) || kurlar.usd.toFixed(2)} ₺</span>
-                    {' | '}
-                    EUR: <span className="font-semibold text-blue-600">{seciliMusteriData.manuelKur.EUR?.toFixed(2) || kurlar.eur.toFixed(2)} ₺</span>
-                  </span>
-                </div>
-              </div>
-            )}
-            
-            {/* Satış Manuel Kur Aktifse Bilgi */}
-            {satisManuelKurAktif && (
-              <div className="mt-3 pt-3 border-t border-dashed">
-                <div className="flex items-center gap-2 text-sm text-amber-700">
-                  <Badge variant="secondary" className="bg-amber-100 text-amber-800">
-                    ⚡ Satış Manuel Kuru Aktif
-                  </Badge>
-                  <span>
-                    Bu satışta kullanılacak kur: USD {satisManuelKurUSD || kurlar.usd.toFixed(2)} ₺ | EUR {satisManuelKurEUR || kurlar.eur.toFixed(2)} ₺
-                  </span>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 
