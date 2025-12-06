@@ -62,6 +62,24 @@ export default function YeniSatis() {
   const musteriler = getMusteriler();
   const ayarlar = getAyarlar();
 
+  // Helper: Aktif kuru al (manuel veya sistem)
+  const getAktifKur = (paraBirimi: 'TRY' | 'USD' | 'EUR'): number => {
+    if (paraBirimi === 'TRY') return 1;
+    
+    if (satisManuelKurAktif) {
+      if (paraBirimi === 'USD' && satisManuelKurUSD) {
+        const kur = parseFloat(satisManuelKurUSD);
+        if (!isNaN(kur) && kur > 0) return kur;
+      }
+      if (paraBirimi === 'EUR' && satisManuelKurEUR) {
+        const kur = parseFloat(satisManuelKurEUR);
+        if (!isNaN(kur) && kur > 0) return kur;
+      }
+    }
+    
+    return paraBirimi === 'USD' ? kurlar.usd : kurlar.eur;
+  };
+
   // Sayfa açıldığında kurları kontrol et ve gerekirse güncelle
   useEffect(() => {
     const kurYasi = getKurYasi();
@@ -127,6 +145,42 @@ export default function YeniSatis() {
       setIndirimInputs(yeniIndirimInputs);
     }
   }, [sepet.map(k => k.id).join(',')]);
+
+  // Manuel kur değiştiğinde sepeti güncelle
+  useEffect(() => {
+    if (sepet.length === 0) return;
+    
+    setSepet(prevSepet => prevSepet.map(kalem => {
+      // Satış fiyatını güncel kurla hesapla
+      const yeniBirimFiyati = paraBirimiTLyeCevir(
+        kalem.orijinalBirimFiyati,
+        kalem.paraBirimi,
+        getAktifKur(kalem.paraBirimi)
+      );
+      
+      // Alış fiyatını güncel kurla hesapla (lot para birimi)
+      const yeniAlisFiyati = paraBirimiTLyeCevir(
+        kalem.lotAlisFiyati || kalem.alisFiyati,
+        kalem.lotParaBirimi || kalem.paraBirimi,
+        getAktifKur(kalem.lotParaBirimi || kalem.paraBirimi)
+      );
+      
+      const yeniToplamTutar = hesaplaKalemToplam(
+        kalem.adet,
+        yeniBirimFiyati,
+        kalem.kdvOrani,
+        kalem.indirimTL,
+        kalem.indirimYuzde
+      );
+      
+      return {
+        ...kalem,
+        birimFiyati: yeniBirimFiyati,
+        alisFiyati: yeniAlisFiyati,
+        toplamTutar: yeniToplamTutar
+      };
+    }));
+  }, [satisManuelKurAktif, satisManuelKurUSD, satisManuelKurEUR]);
 
   // Barkod ile ürün ekle - Otomatik ilk lotu seç
   const barkodIleUrunEkle = (barkod: string) => {
@@ -195,16 +249,18 @@ export default function YeniSatis() {
     // Satış fiyatının para birimini belirle (satisFiyatiParaBirimi varsa onu kullan, yoksa alisFiyatiParaBirimi)
     const urunParaBirimi = urun.satisFiyatiParaBirimi || urun.alisFiyatiParaBirimi;
     
-    // Satış fiyatını TL'ye çevir
+    // Satış fiyatını TL'ye çevir - MANUEL KUR KULLAN
     const birimFiyatiTL = paraBirimiTLyeCevir(
       urun.satisFiyati,
-      urunParaBirimi
+      urunParaBirimi,
+      getAktifKur(urunParaBirimi)
     );
     
-    // Alış fiyatını TL'ye çevir - LOT'tan al
+    // Alış fiyatını TL'ye çevir - LOT'tan al - MANUEL KUR KULLAN
     const alisFiyatiTL = paraBirimiTLyeCevir(
       lotAlisFiyati,
-      lotParaBirimi
+      lotParaBirimi,
+      getAktifKur(lotParaBirimi)
     );
     
     if (mevcutKalem) {
