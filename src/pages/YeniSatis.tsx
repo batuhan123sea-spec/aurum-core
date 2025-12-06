@@ -502,7 +502,7 @@ export default function YeniSatis() {
   return (
     <Layout>
       <div className="space-y-4">
-        {/* Üst Bar - Döviz Kurları */}
+        {/* Üst Bar - Döviz Kurları + Manuel Kur */}
         <Card>
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
@@ -528,6 +528,22 @@ export default function YeniSatis() {
                 })}
               </div>
             </div>
+            
+            {/* Manuel Kur - Müşteri seçiliyse ve aktifse göster */}
+            {seciliMusteriData?.manuelKur?.aktif && (
+              <div className="mt-3 pt-3 border-t border-dashed">
+                <div className="flex items-center gap-4 text-sm">
+                  <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+                    ⚡ Müşteri Manuel Kuru Aktif
+                  </Badge>
+                  <span className="text-muted-foreground">
+                    USD: <span className="font-semibold text-green-600">{seciliMusteriData.manuelKur.USD?.toFixed(2) || kurlar.usd.toFixed(2)} ₺</span>
+                    {' | '}
+                    EUR: <span className="font-semibold text-blue-600">{seciliMusteriData.manuelKur.EUR?.toFixed(2) || kurlar.eur.toFixed(2)} ₺</span>
+                  </span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
