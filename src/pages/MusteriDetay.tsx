@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ArrowLeft, Edit, DollarSign, Receipt, FileText, Settings2 } from "lucide-react";
+import { ArrowLeft, Edit, DollarSign, Receipt, FileText } from "lucide-react";
 import { getMusteriById, musteriBalanceGuncelle, updateMusteri } from "@/lib/musteri-data";
 import { ManuelKur } from "@/types/musteri";
 import { useToast } from "@/hooks/use-toast";
@@ -108,12 +108,17 @@ const MusteriDetay = () => {
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="absolute top-3 right-3"
+                      variant={musteri.manuelKur?.aktif ? "default" : "ghost"}
+                      size="sm"
+                      className={`absolute top-3 right-3 h-7 px-2 gap-1 text-xs ${
+                        musteri.manuelKur?.aktif 
+                          ? 'bg-amber-500 hover:bg-amber-600 text-white' 
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
                       title="Manuel Kur Ayarla"
                     >
-                      <Settings2 className={`w-4 h-4 ${musteri.manuelKur?.aktif ? 'text-amber-600' : 'text-muted-foreground'}`} />
+                      <span>💱</span>
+                      {musteri.manuelKur?.aktif && <span>Aktif</span>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-72" align="end">
