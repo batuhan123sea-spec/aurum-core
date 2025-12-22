@@ -9,7 +9,6 @@ import {
   Package,
   Users,
   AlertTriangle,
-  DollarSign,
   ShoppingCart,
   Bell,
   Plus,
@@ -294,96 +293,67 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Kritik Stok Uyarıları */}
-        <Card className={kritikStoklar.length > 0 ? "border-l-4 border-l-destructive" : ""}>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className={kritikStoklar.length > 0 ? "w-5 h-5 text-destructive" : "w-5 h-5 text-warning"} />
-                Stok Uyarıları
-              </CardTitle>
-              {(kritikStoklar.length > 0 || dusukStoklar.length > 0) && (
-                <Button size="sm" onClick={() => navigate('/stok/uyarilar')}>
-                  Tümünü Gör
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {kritikStoklar.length === 0 && dusukStoklar.length === 0 ? (
-              <div className="text-center py-8">
-                <Package className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">Tüm stoklar yeterli seviyede</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {kritikStoklar.slice(0, 3).map((urun) => (
-                  <div key={urun.id} className="flex items-center justify-between border-b border-border pb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-foreground">{urun.ad}</p>
-                        <Badge variant="destructive" className="text-xs">KRİTİK</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Min: {urun.minStokSeviyesi} {urun.birim} | Kritik: {urun.kritikStokSeviyesi} {urun.birim}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-destructive">{urun.stokMiktari} {urun.birim}</p>
-                      <p className="text-xs text-muted-foreground">Mevcut</p>
-                    </div>
-                  </div>
-                ))}
-                {dusukStoklar.slice(0, 2).map((urun) => (
-                  <div key={urun.id} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-foreground">{urun.ad}</p>
-                        <Badge variant="outline" className="text-xs">DÜŞÜK</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Min: {urun.minStokSeviyesi} {urun.birim}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-warning">{urun.stokMiktari} {urun.birim}</p>
-                      <p className="text-xs text-muted-foreground">Mevcut</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+      {/* Kritik Stok Uyarıları */}
+      <Card className={kritikStoklar.length > 0 ? "border-l-4 border-l-destructive" : ""}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className={kritikStoklar.length > 0 ? "w-5 h-5 text-destructive" : "w-5 h-5 text-warning"} />
+              Stok Uyarıları
+            </CardTitle>
+            {(kritikStoklar.length > 0 || dusukStoklar.length > 0) && (
+              <Button size="sm" onClick={() => navigate('/stok/uyarilar')}>
+                Tümünü Gör
+              </Button>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Hızlı İşlemler */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Hızlı İşlemler</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <button className="p-4 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all text-center group">
-                <ShoppingCart className="w-8 h-8 mx-auto mb-2 text-primary" />
-                <p className="text-sm font-medium text-foreground">Yeni Satış</p>
-              </button>
-              <button className="p-4 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all text-center group">
-                <Package className="w-8 h-8 mx-auto mb-2 text-primary" />
-                <p className="text-sm font-medium text-foreground">Stok Giriş</p>
-              </button>
-              <button className="p-4 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all text-center group">
-                <Users className="w-8 h-8 mx-auto mb-2 text-primary" />
-                <p className="text-sm font-medium text-foreground">Yeni Müşteri</p>
-              </button>
-              <button className="p-4 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all text-center group">
-                <DollarSign className="w-8 h-8 mx-auto mb-2 text-primary" />
-                <p className="text-sm font-medium text-foreground">Tahsilat</p>
-              </button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {kritikStoklar.length === 0 && dusukStoklar.length === 0 ? (
+            <div className="text-center py-8">
+              <Package className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
+              <p className="text-muted-foreground">Tüm stoklar yeterli seviyede</p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          ) : (
+            <div className="space-y-3">
+              {kritikStoklar.slice(0, 3).map((urun) => (
+                <div key={urun.id} className="flex items-center justify-between border-b border-border pb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-foreground">{urun.ad}</p>
+                      <Badge variant="destructive" className="text-xs">KRİTİK</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Min: {urun.minStokSeviyesi} {urun.birim} | Kritik: {urun.kritikStokSeviyesi} {urun.birim}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-destructive">{urun.stokMiktari} {urun.birim}</p>
+                    <p className="text-xs text-muted-foreground">Mevcut</p>
+                  </div>
+                </div>
+              ))}
+              {dusukStoklar.slice(0, 2).map((urun) => (
+                <div key={urun.id} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-foreground">{urun.ad}</p>
+                      <Badge variant="outline" className="text-xs">DÜŞÜK</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Min: {urun.minStokSeviyesi} {urun.birim}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-warning">{urun.stokMiktari} {urun.birim}</p>
+                    <p className="text-xs text-muted-foreground">Mevcut</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
